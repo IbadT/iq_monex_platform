@@ -1,0 +1,15 @@
+export const specificationsData = [
+  { name: { ru: 'Цвет', en: 'Color', kz: 'Түс' } },
+  { name: { ru: 'Размер', en: 'Size', kz: 'Өлшем' } },
+  { name: { ru: 'Вес', en: 'Weight', kz: 'Салмақ' } },
+  { name: { ru: 'Материал', en: 'Material', kz: 'Материал' } },
+  { name: { ru: 'Бренд', en: 'Brand', kz: 'Бренд' } },
+  { name: { ru: 'Модель', en: 'Model', kz: 'Модель' } },
+  { name: { ru: 'Год выпуска', en: 'Year', kz: 'Шығарылған жылы' } },
+  { name: { ru: 'Состояние', en: 'Condition', kz: 'Күйі' } },
+  { name: { ru: 'Гарантия', en: 'Warranty', kz: 'Кепілдік' } },
+  { name: { ru: 'Производитель', en: 'Manufacturer', kz: 'Өндіруші' } },
+  { name: { ru: 'Страна', en: 'Country', kz: 'Ел' } },
+  { name: { ru: 'Артикул', en: 'SKU', kz: 'Артикул' } },
+  { name: { ru: 'Комплектация', en: 'Package contents', kz: 'Жинақтама' } },
+];
