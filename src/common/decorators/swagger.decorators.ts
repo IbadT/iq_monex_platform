@@ -4,7 +4,10 @@ import { LoginResponseDto } from '@/auth/dto/login-response.dto';
 import { RegisterResponseDto } from '@/auth/dto/register-response.dto';
 
 // Декоратор для успешного ответа
-export const ApiSuccessResponse = (type: any, description = 'Successful operation') => {
+export const ApiSuccessResponse = (
+  type: any,
+  description = 'Successful operation',
+) => {
   return ApiResponse({
     status: 200,
     description,
@@ -45,7 +48,9 @@ export const ApiConflictResponse = (description = 'Conflict') => {
 };
 
 // Декоратор для ошибки 500 (Internal Server Error)
-export const ApiInternalServerErrorResponse = (description = 'Internal Server Error') => {
+export const ApiInternalServerErrorResponse = (
+  description = 'Internal Server Error',
+) => {
   return ApiResponse({
     status: 500,
     description,

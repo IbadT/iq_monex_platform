@@ -16,7 +16,7 @@ export class UsersService {
     }
 
     // Если нет в кэше, получаем из БД
-    const user = await prisma.users.findUnique({
+    const user = await prisma.user.findUnique({
       where: { email },
     });
 
@@ -36,7 +36,7 @@ export class UsersService {
 
   // Внутренний метод для получения пользователя с паролем (для аутентификации)
   async getUserByEmailWithPassword(email: string) {
-    return prisma.users.findUnique({
+    return prisma.user.findUnique({
       where: { email },
     });
   }
@@ -48,7 +48,7 @@ export class UsersService {
       return cachedUser;
     }
 
-    const user = await prisma.users.findUnique({
+    const user = await prisma.user.findUnique({
       where: { id },
     });
 
@@ -65,12 +65,13 @@ export class UsersService {
     return null;
   }
 
+  // TODO: нужен ли?
   async invalidateUserCache(userId: string, email: string): Promise<void> {
     await this.cacheService.invalidateUserCache(userId, email);
   }
 
   async createUser(data: { email: string; password: string }): Promise<User> {
-    const user = await prisma.users.create({
+    const user = await prisma.user.create({
       data,
     });
 

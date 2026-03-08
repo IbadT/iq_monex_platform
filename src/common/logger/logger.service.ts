@@ -6,7 +6,13 @@ import chalk from 'chalk';
 
 @Injectable()
 export class AppLogger implements LoggerService {
-  private readonly logLevels: LogLevel[] = ['log', 'error', 'warn', 'debug', 'verbose'];
+  private readonly logLevels: LogLevel[] = [
+    'log',
+    'error',
+    'warn',
+    'debug',
+    'verbose',
+  ];
   private readonly logDir: string;
   private readonly enableFileLogging: boolean;
   private readonly enableConsoleLogging: boolean;
@@ -15,13 +21,25 @@ export class AppLogger implements LoggerService {
   private readonly environment: string;
 
   constructor(private readonly configService: ConfigService) {
-    this.environment = this.configService.get<string>('NODE_ENV', 'development');
-    this.enableFileLogging = this.configService.get<boolean>('LOG_FILE_ENABLED', false);
-    this.enableConsoleLogging = this.configService.get<boolean>('LOG_CONSOLE_ENABLED', true);
-    this.enableColors = this.configService.get<boolean>('LOG_COLORS_ENABLED', true);
-    this.logLevel = this.configService.get<LogLevel>('LOG_LEVEL', 'log') as LogLevel;
+    this.environment = this.configService.get<string>(
+      'NODE_ENV',
+      'development',
+    );
+    this.enableFileLogging = this.configService.get<boolean>(
+      'LOG_FILE_ENABLED',
+      false,
+    );
+    this.enableConsoleLogging = this.configService.get<boolean>(
+      'LOG_CONSOLE_ENABLED',
+      true,
+    );
+    this.enableColors = this.configService.get<boolean>(
+      'LOG_COLORS_ENABLED',
+      true,
+    );
+    this.logLevel = this.configService.get<LogLevel>('LOG_LEVEL', 'log');
     this.logDir = this.configService.get<string>('LOG_DIR', 'logs');
-    
+
     this.ensureLogDirectory();
   }
 
@@ -79,9 +97,7 @@ export class AppLogger implements LoggerService {
   private colorizeEnvironment(env: string): string {
     if (!this.enableColors) return env;
 
-    return env === 'PRODUCTION' 
-      ? chalk.red.bold(env) 
-      : chalk.green.bold(env);
+    return env === 'PRODUCTION' ? chalk.red.bold(env) : chalk.green.bold(env);
   }
 
   private colorizeTimestamp(timestamp: string): string {
@@ -90,44 +106,68 @@ export class AppLogger implements LoggerService {
     return chalk.gray(timestamp);
   }
 
-  private formatMessage(level: LogLevel, message: any, context?: string): string {
+  private formatMessage(
+    level: LogLevel,
+    message: any,
+    context?: string,
+  ): string {
     const timestamp = new Date().toISOString();
     const env = this.colorizeEnvironment(this.environment.toUpperCase());
     const levelColored = this.colorizeMessage(level, level.toUpperCase());
     const contextStr = context ? ` [${this.colorizeContext(context)}]` : '';
     const timestampColored = this.colorizeTimestamp(timestamp);
-    
+
     return `${timestampColored} [${env}] ${levelColored}${contextStr}: ${message}`;
   }
 
-  private formatMessageForFile(level: LogLevel, message: any, context?: string): string {
+  private formatMessageForFile(
+    level: LogLevel,
+    message: any,
+    context?: string,
+  ): string {
     const timestamp = new Date().toISOString();
     const env = this.environment.toUpperCase();
     const contextStr = context ? ` [${context}]` : '';
-    
+
     return `${timestamp} [${env}] ${level.toUpperCase()}${contextStr}: ${message}`;
   }
 
-  private writeToFile(level: LogLevel, message: string, context?: string): void {
+  private writeToFile(
+    level: LogLevel,
+    message: string,
+    context?: string,
+  ): void {
     if (!this.enableFileLogging) return;
 
     const today = new Date().toISOString().split('T')[0];
-    const envPrefix = this.environment === 'production' ? '' : `${this.environment}-`;
+    const envPrefix =
+      this.environment === 'production' ? '' : `${this.environment}-`;
     const logFile = path.join(this.logDir, `${envPrefix}app-${today}.log`);
-    
+
     try {
-      const formattedMessage = this.formatMessageForFile(level, message, context);
+      const formattedMessage = this.formatMessageForFile(
+        level,
+        message,
+        context,
+      );
       fs.appendFileSync(logFile, formattedMessage + '\n');
     } catch (error) {
       console.error('Failed to write to log file:', error);
     }
   }
 
-  private writeToConsole(level: LogLevel, message: string, context?: string): void {
+  private writeToConsole(
+    level: LogLevel,
+    message: string,
+    context?: string,
+  ): void {
     if (!this.enableConsoleLogging) return;
 
     // В production выводим только ошибки и предупреждения в консоль
-    if (this.environment === 'production' && !['error', 'warn'].includes(level)) {
+    if (
+      this.environment === 'production' &&
+      !['error', 'warn'].includes(level)
+    ) {
       return;
     }
 
@@ -153,14 +193,14 @@ export class AppLogger implements LoggerService {
 
   log(message: any, context?: string): void {
     if (!this.shouldLog('log')) return;
-    
+
     this.writeToConsole('log', message, context);
     this.writeToFile('log', message, context);
   }
 
   error(message: any, trace?: string, context?: string): void {
     if (!this.shouldLog('error')) return;
-    
+
     const errorMessage = trace ? `${message}\n${trace}` : message;
     this.writeToConsole('error', errorMessage, context);
     this.writeToFile('error', errorMessage, context);
@@ -168,7 +208,7 @@ export class AppLogger implements LoggerService {
 
   warn(message: any, context?: string): void {
     if (!this.shouldLog('warn')) return;
-    
+
     this.writeToConsole('warn', message, context);
     this.writeToFile('warn', message, context);
   }
@@ -176,9 +216,9 @@ export class AppLogger implements LoggerService {
   debug(message: any, context?: string): void {
     // В production отключаем debug логи
     if (this.environment === 'production') return;
-    
+
     if (!this.shouldLog('debug')) return;
-    
+
     this.writeToConsole('debug', message, context);
     this.writeToFile('debug', message, context);
   }
@@ -186,20 +226,25 @@ export class AppLogger implements LoggerService {
   verbose(message: any, context?: string): void {
     // В production отключаем verbose логи
     if (this.environment === 'production') return;
-    
+
     if (!this.shouldLog('verbose')) return;
-    
+
     this.writeToConsole('verbose', message, context);
     this.writeToFile('verbose', message, context);
   }
 
   // Дополнительные методы для удобства
-  logRequest(method: string, url: string, statusCode: number, responseTime: number): void {
+  logRequest(
+    method: string,
+    url: string,
+    statusCode: number,
+    responseTime: number,
+  ): void {
     // В production логируем только ошибки (4xx, 5xx)
     if (this.environment === 'production' && statusCode < 400) {
       return;
     }
-    
+
     const statusColor = statusCode >= 400 ? chalk.red : chalk.green;
     const message = `${chalk.bold(method)} ${chalk.blue(url)} - ${statusColor(statusCode)} (${chalk.cyan(responseTime + 'ms')})`;
     this.log(message, 'HTTP');
@@ -210,8 +255,16 @@ export class AppLogger implements LoggerService {
   }
 
   logAuth(action: string, userId?: string, email?: string): void {
-    const userInfo = userId ? chalk.cyan(`user:${userId}`) : email ? chalk.cyan(`email:${email}`) : chalk.red('unknown');
-    const actionColor = action.includes('success') ? chalk.green : action.includes('failed') ? chalk.red : chalk.yellow;
+    const userInfo = userId
+      ? chalk.cyan(`user:${userId}`)
+      : email
+        ? chalk.cyan(`email:${email}`)
+        : chalk.red('unknown');
+    const actionColor = action.includes('success')
+      ? chalk.green
+      : action.includes('failed')
+        ? chalk.red
+        : chalk.yellow;
     const message = `Auth action: ${actionColor(action)} - ${userInfo}`;
     this.log(message, 'AUTH');
   }
@@ -221,9 +274,21 @@ export class AppLogger implements LoggerService {
     if (this.environment === 'production' && duration && duration < 100) {
       return;
     }
-    
-    const operationColor = operation === 'SELECT' ? chalk.blue : operation === 'INSERT' ? chalk.green : operation === 'UPDATE' ? chalk.yellow : chalk.red;
-    const durationColor = duration && duration > 100 ? chalk.red : duration ? chalk.cyan : chalk.gray;
+
+    const operationColor =
+      operation === 'SELECT'
+        ? chalk.blue
+        : operation === 'INSERT'
+          ? chalk.green
+          : operation === 'UPDATE'
+            ? chalk.yellow
+            : chalk.red;
+    const durationColor =
+      duration && duration > 100
+        ? chalk.red
+        : duration
+          ? chalk.cyan
+          : chalk.gray;
     const message = `DB operation: ${operationColor(operation)} on ${chalk.magenta(table)}${duration ? ` (${durationColor(duration + 'ms')})` : ''}`;
     this.log(message, 'DATABASE');
   }
@@ -233,9 +298,21 @@ export class AppLogger implements LoggerService {
     if (this.environment === 'production' && hit === true) {
       return;
     }
-    
-    const operationColor = operation === 'GET' ? chalk.blue : operation === 'SET' ? chalk.green : operation === 'DEL' ? chalk.red : chalk.yellow;
-    const hitColor = hit === true ? chalk.green('HIT') : hit === false ? chalk.red('MISS') : chalk.gray('UNKNOWN');
+
+    const operationColor =
+      operation === 'GET'
+        ? chalk.blue
+        : operation === 'SET'
+          ? chalk.green
+          : operation === 'DEL'
+            ? chalk.red
+            : chalk.yellow;
+    const hitColor =
+      hit === true
+        ? chalk.green('HIT')
+        : hit === false
+          ? chalk.red('MISS')
+          : chalk.gray('UNKNOWN');
     const message = `Cache ${operationColor(operation)}: ${chalk.cyan(key)}${hit !== undefined ? ` - ${hitColor}` : ''}`;
     this.log(message, 'CACHE');
   }

@@ -8,24 +8,24 @@ datasource db {
   provider = "postgresql"
 }
 
-model Users {
-  id        String   @id @default(uuid())
-  email     String   @unique
-  password  String
-  createdAt DateTime @default(now())
-  updatedAt DateTime @updatedAt
+model User {
+  id       String @id @default(uuid()) @db.Uuid
+  email    String @unique
+  password String
+
+  usersChats       UserChat[]
+  pinedChats       PinnedChat[]
+  chatFiles        ChatFile[]
+  message          Message[]         @relation("SentMessages")
+  chatParticipants ChatParticipant[]
+
+  createdAt DateTime @default(now()) @map("created_at")
+  updatedAt DateTime @updatedAt @map("updated_at")
 
   @@map("users")
 }
 
-// model Categories {
-//   id        Int      @id @default(autoincrement())
-//   name      String
-//   createdAt DateTime @default(now())
-//   updatedAt DateTime @updatedAt
-
-//   @@map("categories")
-// }
+// ================ DEFAULT ================
 
 model Category {
   id       Int        @id @default(autoincrement())
@@ -59,4 +59,94 @@ model Specification {
   name Json
 
   @@map("specifications")
+}
+
+// ================ CHATS ================
+model Chat {
+  id String @id @default(uuid()) @db.Uuid
+
+  usersChats       UserChat[]
+  messages         Message[]
+  pinnedChats      PinnedChat[]
+  chatParticipants ChatParticipant[]
+  chatFiles        ChatFile[]
+
+  createdAt DateTime @default(now()) @map("created_at")
+  updatedAt DateTime @updatedAt @map("updated_at")
+
+  @@map("chats")
+}
+
+model PinnedChat {
+  id String @id @default(uuid()) @db.Uuid
+
+  userId    String   @map("user_id") @db.Uuid
+  chatId    String   @map("chat_id") @db.Uuid
+  pinned_at DateTime @default(now())
+
+  user User @relation(fields: [userId], references: [id], onUpdate: NoAction, onDelete: NoAction)
+  chat Chat @relation(fields: [chatId], references: [id], onUpdate: NoAction, onDelete: NoAction)
+
+  @@map("pinned_chats")
+}
+
+model UserChat {
+  id      String @id @default(uuid()) @db.Uuid
+  usersId String @map("userd_id") @db.Uuid
+  chatsId String @map("chats_id") @db.Uuid
+
+  user User @relation(fields: [usersId], references: [id], onUpdate: NoAction, onDelete: NoAction)
+  chat Chat @relation(fields: [chatsId], references: [id], onUpdate: NoAction, onDelete: NoAction)
+
+  @@unique([usersId, chatsId])
+  @@index([usersId, chatsId], map: "users_chats_index_0")
+  @@map("users_chats")
+}
+
+model ChatParticipant {
+  id     String @id @default(uuid()) @db.Uuid
+  userId String @map("user_id") @db.Uuid
+  chatId String @map("chat_id") @db.Uuid
+
+  user User @relation(fields: [userId], references: [id], onUpdate: NoAction, onDelete: NoAction)
+  chat Chat @relation(fields: [chatId], references: [id], onUpdate: NoAction, onDelete: NoAction)
+
+  createdAt DateTime  @default(now()) @map("created_at")
+  deletedAt DateTime? @map("deleted_at") @db.Timestamp()
+
+  @@map("chat_participants")
+}
+
+model Message {
+  id       String  @id @default(uuid()) @db.Uuid
+  senderId String  @map("sender_id") @db.Uuid
+  message  String  @db.VarChar(1000)
+  isRead   Boolean @default(false) @map("is_read")
+  chatId   String  @map("chat_id") @db.Uuid
+
+  sender User @relation("SentMessages", fields: [senderId], references: [id], onUpdate: NoAction, onDelete: NoAction)
+  chat   Chat @relation(fields: [chatId], references: [id], onUpdate: NoAction, onDelete: NoAction)
+
+  createdAt DateTime @default(now()) @map("created_at")
+  updatedAt DateTime @updatedAt @map("updated_at")
+
+  @@map("messages")
+}
+
+model ChatFile {
+  id           String   @id @default(uuid()) @db.Uuid
+  mimeType     String   @map("mime_type") @db.VarChar(100)
+  uploadStatus String   @default("pending") @map("upload_status") @db.VarChar(20)
+  userId       String   @map("user_id") @db.Uuid
+  chatId       String   @map("chat_id") @db.Uuid
+  expiresAt    DateTime @default(dbgenerated("CURRENT_DATE + INTERVAL '30 days'")) @map("expires_at") @db.Date
+  fileUrl      String   @map("file_url") @db.VarChar(255)
+
+  user User @relation(fields: [userId], references: [id], onUpdate: NoAction, onDelete: NoAction)
+  chat Chat @relation(fields: [chatId], references: [id], onUpdate: NoAction, onDelete: NoAction)
+
+  createdAt DateTime @default(now()) @map("created_at")
+  updatedAt DateTime @updatedAt @map("updated_at")
+
+  @@map("chat_files")
 }

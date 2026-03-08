@@ -2,21 +2,21 @@ import { ApiProperty } from '@nestjs/swagger';
 import { User } from '@/users/entities/user.entity';
 
 export class LoginResponseDto {
-  @ApiProperty({ 
+  @ApiProperty({
     description: 'Access token for authentication',
-    example: 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9...'
+    example: 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9...',
   })
   accessToken: string;
 
-  @ApiProperty({ 
+  @ApiProperty({
     description: 'Refresh token for getting new access token',
-    example: 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9...'
+    example: 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9...',
   })
   refreshToken: string;
 
-  @ApiProperty({ 
+  @ApiProperty({
     description: 'User information',
-    type: User 
+    type: User,
   })
   user: User;
 

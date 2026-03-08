@@ -16,58 +16,95 @@ import {
   RateLimit,
   AccessControl,
 } from '@/common/decorators';
+import { UpdateUserDto } from './dto/update-user.dto';
 
 @ApiTags('Users')
 @Controller('users')
 export class UsersController {
   constructor(private readonly usersService: UsersService) {}
 
-  @Get()
+  // получить свой профиль
+  // получить профиль
+  @Get(':id/profile')
+  async getProfileById() {
+    return;
+  }
+
+  // редактирование профиля
+  @Patch()
   @Protected()
-  @RateLimit(100, 60000) // 100 запросов в минуту
-  async findAll() {
-    // return this.usersService.findAll();
+  async updateProfile(@Body() body: UpdateUserDto) {
+    return;
   }
 
-  @Get(':id')
-  @Protected()
-  async findOne(@Param('id') id: string) {
-    // return this.usersService.findOne(id);
-  }
+  // получить все сферы деятельности
 
-  @Post()
-  @Admin() // Только для администраторов
-  async create(@Body() createUserDto: any) {
-    // return this.usersService.create(createUserDto);
-  }
+  // получить все должности работников
 
-  @Patch(':id')
-  @AccessControl({
-    roles: ['admin', 'moderator'],
-    rateLimit: { limit: 50, windowMs: 60000 },
-  })
-  async update(@Param('id') id: string, @Body() updateUserDto: any) {
-    // return this.usersService.update(id, updateUserDto);
-  }
+  // получить коментарии к своему профилю
 
-  @Delete(':id')
-  @Admin() // Только для администраторов
-  async remove(@Param('id') id: string) {
-    // return this.usersService.remove(id);
-  }
+  // оставить комментарий к профилю
 
-  @Get('profile/me')
-  @Protected()
-  async getProfile() {
-    // Получение профиля текущего пользователя
-    // return this.usersService.getProfile();
-  }
+  // оставить жалобу на профиль
 
-  @Get('public/stats')
-  @Public()
-  @RateLimit(10, 60000) // 10 запросов в минуту для публичного эндпоинта
-  async getPublicStats() {
-    // Публичная статистика
-    // return this.usersService.getPublicStats();
-  }
+  // получить свои избранные профили
+
+  // добавить профиль в избранное
+
+  // убрать профиль из избранного
+
+  // получить профили компании
+
+  // получить коментарии к профилю
+
+  // ====================================================================
+
+  // @Get()
+  // @Protected()
+  // @RateLimit(100, 60000) // 100 запросов в минуту
+  // async findAll() {
+  //   // return this.usersService.findAll();
+  // }
+
+  // @Get(':id')
+  // @Protected()
+  // async findOne(@Param('id') id: string) {
+  //   // return this.usersService.findOne(id);
+  // }
+
+  // @Post()
+  // @Admin() // Только для администраторов
+  // async create(@Body() createUserDto: any) {
+  //   // return this.usersService.create(createUserDto);
+  // }
+
+  // @Patch(':id')
+  // @AccessControl({
+  //   roles: ['admin', 'moderator'],
+  //   rateLimit: { limit: 50, windowMs: 60000 },
+  // })
+  // async update(@Param('id') id: string, @Body() updateUserDto: any) {
+  //   // return this.usersService.update(id, updateUserDto);
+  // }
+
+  // @Delete(':id')
+  // @Admin() // Только для администраторов
+  // async remove(@Param('id') id: string) {
+  //   // return this.usersService.remove(id);
+  // }
+
+  // @Get('profile/me')
+  // @Protected()
+  // async getProfile() {
+  //   // Получение профиля текущего пользователя
+  //   // return this.usersService.getProfile();
+  // }
+
+  // @Get('public/stats')
+  // @Public()
+  // @RateLimit(10, 60000) // 10 запросов в минуту для публичного эндпоинта
+  // async getPublicStats() {
+  //   // Публичная статистика
+  //   // return this.usersService.getPublicStats();
+  // }
 }

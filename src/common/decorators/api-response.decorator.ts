@@ -1,17 +1,20 @@
 import { applyDecorators } from '@nestjs/common';
 import { ApiResponse } from '@nestjs/swagger';
 import { HttpStatus } from '@nestjs/common';
-import { 
-  ErrorResponseSchema, 
-  ValidationErrorResponseSchema, 
+import {
+  ErrorResponseSchema,
+  ValidationErrorResponseSchema,
   SuccessResponseSchema,
-  ErrorSchemas 
+  ErrorSchemas,
 } from '../schemas/error-response.schema';
 
 /**
  * Декоратор для успешного ответа
  */
-export const ApiSuccessResponse = (type?: any, description = 'Successful operation') => {
+export const ApiSuccessResponse = (
+  type?: any,
+  description = 'Successful operation',
+) => {
   if (type) {
     return ApiResponse({
       status: HttpStatus.OK,
@@ -19,11 +22,13 @@ export const ApiSuccessResponse = (type?: any, description = 'Successful operati
       type,
     });
   }
-  
+
   return ApiResponse({
     status: HttpStatus.OK,
     description,
-    schema: SuccessResponseSchema({ message: 'Operation completed successfully' }),
+    schema: SuccessResponseSchema({
+      message: 'Operation completed successfully',
+    }),
   });
 };
 
@@ -85,7 +90,9 @@ export const ApiConflictResponse = (description = 'Conflict') => {
 /**
  * Декоратор для ошибки 429 (Too Many Requests)
  */
-export const ApiTooManyRequestsResponse = (description = 'Too Many Requests') => {
+export const ApiTooManyRequestsResponse = (
+  description = 'Too Many Requests',
+) => {
   return ApiResponse({
     status: HttpStatus.TOO_MANY_REQUESTS,
     description,
@@ -96,7 +103,9 @@ export const ApiTooManyRequestsResponse = (description = 'Too Many Requests') =>
 /**
  * Декоратор для ошибки 500 (Internal Server Error)
  */
-export const ApiInternalServerErrorResponse = (description = 'Internal Server Error') => {
+export const ApiInternalServerErrorResponse = (
+  description = 'Internal Server Error',
+) => {
   return ApiResponse({
     status: HttpStatus.INTERNAL_SERVER_ERROR,
     description,

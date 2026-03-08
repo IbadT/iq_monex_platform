@@ -10,6 +10,8 @@ import { GuardsModule } from './common/guards/guards.module';
 import { CategoriesModule } from './categories/categories.module';
 import { DictionariesModule } from './dictionaries/dictionaries.module';
 import { AttributesModule } from './attributes/attributes.module';
+import { ChatsModule } from './chats/chats.module';
+import { NotificationsModule } from './notifications/notifications.module';
 
 @Module({
   imports: [
@@ -23,6 +25,8 @@ import { AttributesModule } from './attributes/attributes.module';
     CategoriesModule,
     DictionariesModule,
     AttributesModule,
+    ChatsModule,
+    NotificationsModule,
   ],
   controllers: [AppController],
   providers: [AppService, CacheService],

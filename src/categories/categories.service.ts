@@ -84,11 +84,13 @@ export class CategoriesService {
   }
 
   async seedCategories(): Promise<string> {
+    const cacheCategoriesKey = `categories`;
     try {
       this.logger.log('Начинаю сидирование категорий...');
 
       // Очищаем таблицу (опционально)
       await prisma.category.deleteMany();
+      await this.cacheService.del(cacheCategoriesKey);
       this.logger.log('Таблица categories очищена');
 
       let categoryCount = 0;

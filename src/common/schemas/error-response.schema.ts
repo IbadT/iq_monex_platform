@@ -20,10 +20,10 @@ export const ValidationErrorResponseSchema = {
   type: 'object',
   properties: {
     success: { type: 'boolean', example: false },
-    message: { 
-      type: 'array', 
+    message: {
+      type: 'array',
       items: { type: 'string' },
-      example: ['Некорректный email', 'Пароль не может быть пустым']
+      example: ['Некорректный email', 'Пароль не может быть пустым'],
     },
     error: { type: 'string', example: 'Bad Request' },
     statusCode: { type: 'number', example: 400 },
@@ -35,7 +35,10 @@ export const ValidationErrorResponseSchema = {
 /**
  * Схема успешного ответа
  */
-export const SuccessResponseSchema = (dataExample: any, description = 'Successful operation') => ({
+export const SuccessResponseSchema = (
+  dataExample: any,
+  description = 'Successful operation',
+) => ({
   type: 'object',
   properties: {
     success: { type: 'boolean', example: true },
@@ -52,7 +55,7 @@ export const SuccessResponseSchema = (dataExample: any, description = 'Successfu
 export const createErrorResponseSchema = (
   statusCode: number,
   errorType: string,
-  messageExample: string
+  messageExample: string,
 ) => ({
   type: 'object',
   properties: {
@@ -69,11 +72,31 @@ export const createErrorResponseSchema = (
  * Преднастроенные схемы для常见 HTTP статусов
  */
 export const ErrorSchemas = {
-  badRequest: createErrorResponseSchema(400, 'Bad Request', 'Invalid request data'),
-  unauthorized: createErrorResponseSchema(401, 'Unauthorized', 'Access token is required'),
+  badRequest: createErrorResponseSchema(
+    400,
+    'Bad Request',
+    'Invalid request data',
+  ),
+  unauthorized: createErrorResponseSchema(
+    401,
+    'Unauthorized',
+    'Access token is required',
+  ),
   forbidden: createErrorResponseSchema(403, 'Forbidden', 'Access denied'),
   notFound: createErrorResponseSchema(404, 'Not Found', 'Resource not found'),
-  conflict: createErrorResponseSchema(409, 'Conflict', 'Resource already exists'),
-  tooManyRequests: createErrorResponseSchema(429, 'Too Many Requests', 'Rate limit exceeded'),
-  internalServerError: createErrorResponseSchema(500, 'Internal Server Error', 'Internal server error'),
+  conflict: createErrorResponseSchema(
+    409,
+    'Conflict',
+    'Resource already exists',
+  ),
+  tooManyRequests: createErrorResponseSchema(
+    429,
+    'Too Many Requests',
+    'Rate limit exceeded',
+  ),
+  internalServerError: createErrorResponseSchema(
+    500,
+    'Internal Server Error',
+    'Internal server error',
+  ),
 };

@@ -26,9 +26,7 @@ export interface ErrorResponse {
 export class HttpExceptionFilter implements ExceptionFilter {
   private readonly logger = new Logger(HttpExceptionFilter.name);
 
-  constructor(
-    private readonly configService: ConfigService
-  ) {}
+  constructor(private readonly configService: ConfigService) {}
 
   catch(exception: unknown, host: ArgumentsHost): void {
     const ctx = host.switchToHttp();
@@ -36,17 +34,19 @@ export class HttpExceptionFilter implements ExceptionFilter {
     const request = ctx.getRequest<Request>();
 
     const errorResponse = this.createErrorResponse(exception, request);
-    
+
     // Логируем ошибку
     this.logError(exception, errorResponse);
 
-    response
-      .status(errorResponse.statusCode)
-      .json(errorResponse);
+    response.status(errorResponse.statusCode).json(errorResponse);
   }
 
-  private createErrorResponse(exception: unknown, request: Request): ErrorResponse {
-    const isDevelopment = this.configService.get<string>('NODE_ENV') === 'development';
+  private createErrorResponse(
+    exception: unknown,
+    request: Request,
+  ): ErrorResponse {
+    const isDevelopment =
+      this.configService.get<string>('NODE_ENV') === 'development';
 
     if (exception instanceof HttpException) {
       const status = exception.getStatus();
@@ -57,7 +57,10 @@ export class HttpExceptionFilter implements ExceptionFilter {
 
       if (typeof exceptionResponse === 'string') {
         message = exceptionResponse;
-      } else if (typeof exceptionResponse === 'object' && exceptionResponse !== null) {
+      } else if (
+        typeof exceptionResponse === 'object' &&
+        exceptionResponse !== null
+      ) {
         const responseObj = exceptionResponse as any;
         message = responseObj.message || responseObj.error || message;
         error = responseObj.error || error;
@@ -106,7 +109,8 @@ export class HttpExceptionFilter implements ExceptionFilter {
   }
 
   private logError(exception: unknown, errorResponse: ErrorResponse): void {
-    const isDevelopment = this.configService.get<string>('NODE_ENV') === 'development';
+    const isDevelopment =
+      this.configService.get<string>('NODE_ENV') === 'development';
 
     if (exception instanceof HttpException) {
       // HTTP ошибки (4xx, 5xx)

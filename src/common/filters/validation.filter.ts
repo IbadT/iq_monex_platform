@@ -19,7 +19,7 @@ export class ValidationExceptionFilter implements ExceptionFilter {
     const request = ctx.getRequest<Request>();
 
     const status = HttpStatus.BAD_REQUEST;
-    
+
     const errorResponse = {
       success: false,
       message: 'Validation failed',
@@ -35,7 +35,10 @@ export class ValidationExceptionFilter implements ExceptionFilter {
       }),
     };
 
-    this.logger.error(`Validation Error: ${exception.message}`, exception.stack);
+    this.logger.error(
+      `Validation Error: ${exception.message}`,
+      exception.stack,
+    );
 
     response.status(status).json(errorResponse);
   }
@@ -50,9 +53,11 @@ export class ValidationExceptionFilter implements ExceptionFilter {
       });
     }
 
-    return [{
-      field: 'general',
-      message: exception.message || 'Validation failed',
-    }];
+    return [
+      {
+        field: 'general',
+        message: exception.message || 'Validation failed',
+      },
+    ];
   }
 }

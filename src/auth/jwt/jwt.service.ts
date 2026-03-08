@@ -13,13 +13,11 @@ export class JwtTokenService {
     const data = { id: userId };
 
     const accessToken = await this.jwtService.signAsync(data, {
-      // expiresIn: '15m',
-      expiresIn: this.configService.get<number>('JWT_EXPIRES_IN') || 900,
+      expiresIn: '15m', // Явно указываем 15 минут
     });
 
     const refreshToken = await this.jwtService.signAsync(data, {
-      expiresIn:
-        this.configService.get<number>('JWT_REFRESH_EXPIRES_IN') || 604800,
+      expiresIn: '7d', // Явно указываем 7 дней
     });
 
     return {

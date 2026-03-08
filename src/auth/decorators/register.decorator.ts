@@ -21,10 +21,13 @@ export const ApiRegisterOperation = () => {
         type: 'object',
         properties: {
           success: { type: 'boolean', example: false },
-          message: { 
-            type: 'array', 
+          message: {
+            type: 'array',
             items: { type: 'string' },
-            example: ['Некорректный email', 'Пароль должен содержать минимум 6 символов']
+            example: [
+              'Некорректный email',
+              'Пароль должен содержать минимум 6 символов',
+            ],
           },
           error: { type: 'string', example: 'Bad Request' },
           statusCode: { type: 'number', example: 400 },
@@ -40,7 +43,11 @@ export const ApiRegisterOperation = () => {
         type: 'object',
         properties: {
           success: { type: 'boolean', example: false },
-          message: { type: 'string', example: 'Пользователь с таким email: user@example.com уже зарегистрирован' },
+          message: {
+            type: 'string',
+            example:
+              'Пользователь с таким email: user@example.com уже зарегистрирован',
+          },
           error: { type: 'string', example: 'Conflict' },
           statusCode: { type: 'number', example: 409 },
           path: { type: 'string', example: '/auth/sign-up' },

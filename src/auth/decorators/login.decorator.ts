@@ -21,10 +21,10 @@ export const ApiLoginOperation = () => {
         type: 'object',
         properties: {
           success: { type: 'boolean', example: false },
-          message: { 
-            type: 'array', 
+          message: {
+            type: 'array',
             items: { type: 'string' },
-            example: ['Некорректный email', 'Пароль не может быть пустым']
+            example: ['Некорректный email', 'Пароль не может быть пустым'],
           },
           error: { type: 'string', example: 'Bad Request' },
           statusCode: { type: 'number', example: 400 },
@@ -55,7 +55,10 @@ export const ApiLoginOperation = () => {
         type: 'object',
         properties: {
           success: { type: 'boolean', example: false },
-          message: { type: 'string', example: 'Пользователь с email: user@example.com не найден' },
+          message: {
+            type: 'string',
+            example: 'Пользователь с email: user@example.com не найден',
+          },
           error: { type: 'string', example: 'Not Found' },
           statusCode: { type: 'number', example: 404 },
           path: { type: 'string', example: '/auth/sign-in' },

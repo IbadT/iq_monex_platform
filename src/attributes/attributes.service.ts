@@ -15,19 +15,38 @@ export class AttributesService {
     private readonly logger: AppLogger,
   ) {}
   async list(lang: Language) {
+    const cachekey = 'specifications';
+
+    // получаем из redis
+    const cachedSpecifications =
+      await this.cacheService.get<Specification[]>(cachekey);
+    if (cachedSpecifications) return cachedSpecifications;
+
     const specifications = await prisma.specification.findMany();
 
-    return specifications.map((spec: Specification) =>
+    const response = specifications.map((spec: Specification) =>
       Specification.fromPrisma(spec).toResponse(lang),
     );
+
+    if (response) {
+      await this.cacheService.set({
+        baseKey: cachekey,
+        ttl: 3600,
+        value: response,
+      });
+    }
+
+    return response;
   }
 
   async seedSpecifications() {
+    const cachekey = 'specifications';
     try {
       this.logger.log('Начинаю сидирование specifications...');
 
       // Очищаем таблицу
       await prisma.specification.deleteMany();
+      await this.cacheService.del(cachekey);
       this.logger.log('Таблица specifications очищена');
 
       // Сидирование

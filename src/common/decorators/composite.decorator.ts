@@ -9,21 +9,22 @@ import { ApiKeyAuth } from './api-key.decorator';
 /**
  * Декоратор для роутов с авторизацией и ограничением скорости
  */
-export const AuthenticatedWithRateLimit = (limit: number = 100, windowMs: number = 60000) => {
-  return applyDecorators(
-    Protected(),
-    RateLimit(limit, windowMs),
-  );
+export const AuthenticatedWithRateLimit = (
+  limit: number = 100,
+  windowMs: number = 60000,
+) => {
+  return applyDecorators(Protected(), RateLimit(limit, windowMs));
 };
 
 /**
  * Декоратор для роутов с ролевой моделью и ограничением скорости
  */
-export const RolesWithRateLimit = (roles: string[], limit: number = 50, windowMs: number = 60000) => {
-  return applyDecorators(
-    Roles(...roles),
-    RateLimit(limit, windowMs),
-  );
+export const RolesWithRateLimit = (
+  roles: string[],
+  limit: number = 50,
+  windowMs: number = 60000,
+) => {
+  return applyDecorators(Roles(...roles), RateLimit(limit, windowMs));
 };
 
 /**
@@ -42,22 +43,24 @@ export const AccessControl = (options: {
     decorators.push(Public());
   } else {
     decorators.push(Protected());
-    
+
     if (options.roles?.length) {
       decorators.push(Roles(...options.roles));
     }
-    
+
     if (options.permissions?.length) {
       decorators.push(Permissions(...options.permissions));
     }
-    
+
     if (options.requireApiKey) {
       decorators.push(ApiKeyAuth());
     }
   }
 
   if (options.rateLimit) {
-    decorators.push(RateLimit(options.rateLimit.limit, options.rateLimit.windowMs));
+    decorators.push(
+      RateLimit(options.rateLimit.limit, options.rateLimit.windowMs),
+    );
   }
 
   return applyDecorators(...decorators);
