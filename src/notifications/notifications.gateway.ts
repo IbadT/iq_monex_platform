@@ -8,12 +8,13 @@ import {
   OnGatewayDisconnect,
 } from '@nestjs/websockets';
 import { Server, Socket } from 'socket.io';
-import { Logger, OnModuleInit } from '@nestjs/common';
+import { Logger } from '@nestjs/common';
 import { UseGuards } from '@nestjs/common';
 import { WsJwtGuard } from '@/guards/ws-jwt.guard';
 import { RedisPubSubService } from '@/cache/redis-pubsub.service';
 import { NotificationsService, Notification } from './notifications.service';
 import { MarkNotificationReadDto } from './dto/notification.dto';
+import { SocketWithUser } from '@/common/interfaces/socket-with-user.interface';
 
 @WebSocketGateway({
   namespace: 'notifications',
@@ -22,9 +23,9 @@ import { MarkNotificationReadDto } from './dto/notification.dto';
     credentials: true,
   },
 })
-export class NotificationsGateway implements OnModuleInit, OnGatewayConnection, OnGatewayDisconnect {
+export class NotificationsGateway implements OnGatewayConnection, OnGatewayDisconnect {
   @WebSocketServer()
-  server: Server;
+  server!: Server;
 
   private readonly logger = new Logger(NotificationsGateway.name);
   private userSockets = new Map<string, Set<string>>(); // userId -> Set<socketId>
@@ -113,8 +114,8 @@ export class NotificationsGateway implements OnModuleInit, OnGatewayConnection, 
   // Аутентификация пользователя
   @UseGuards(WsJwtGuard)
   @SubscribeMessage('authenticate')
-  async handleAuthenticate(@ConnectedSocket() client: Socket) {
-    const userId = client['user'].id;
+  async handleAuthenticate(@ConnectedSocket() client: SocketWithUser) {
+    const userId = client.user.id;
 
     // Добавляем сокет к пользователю
     if (!this.userSockets.has(userId)) {
@@ -138,8 +139,8 @@ export class NotificationsGateway implements OnModuleInit, OnGatewayConnection, 
   // Получить непрочитанные уведомления
   @UseGuards(WsJwtGuard)
   @SubscribeMessage('get-unread')
-  async handleGetUnread(@ConnectedSocket() client: Socket) {
-    const userId = client['user'].id;
+  async handleGetUnread(@ConnectedSocket() client: SocketWithUser) {
+    const userId = client.user.id;
     const notifications =
       await this.notificationsService.getUnreadNotifications(userId);
 
@@ -154,9 +155,9 @@ export class NotificationsGateway implements OnModuleInit, OnGatewayConnection, 
   @SubscribeMessage('mark-read')
   async handleMarkRead(
     @MessageBody() dto: MarkNotificationReadDto,
-    @ConnectedSocket() client: Socket,
+    @ConnectedSocket() client: SocketWithUser,
   ) {
-    const userId = client['user'].id;
+    const userId = client.user.id;
     await this.notificationsService.markAsRead(dto.notificationId, userId);
 
     client.emit('notification-marked-read', {
@@ -168,8 +169,8 @@ export class NotificationsGateway implements OnModuleInit, OnGatewayConnection, 
   // Пометить все уведомления как прочитанные
   @UseGuards(WsJwtGuard)
   @SubscribeMessage('mark-all-read')
-  async handleMarkAllRead(@ConnectedSocket() client: Socket) {
-    const userId = client['user'].id;
+  async handleMarkAllRead(@ConnectedSocket() client: SocketWithUser) {
+    const userId = client.user.id;
     const notifications =
       await this.notificationsService.getUnreadNotifications(userId);
 
@@ -189,9 +190,9 @@ export class NotificationsGateway implements OnModuleInit, OnGatewayConnection, 
   @SubscribeMessage('test-notification')
   async handleTestNotification(
     @MessageBody() dto: { title: string; message: string },
-    @ConnectedSocket() client: Socket,
+    @ConnectedSocket() client: SocketWithUser,
   ) {
-    const userId = client['user'].id;
+    const userId = client.user.id;
 
     await this.notificationsService.sendNotification({
       userId,

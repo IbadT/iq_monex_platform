@@ -75,7 +75,7 @@ export class HttpExceptionFilter implements ExceptionFilter {
         timestamp: new Date().toISOString(),
         ...(isDevelopment && {
           developerInfo: {
-            stack: exception.stack,
+            stack: exception.stack || '',
             cause: exception.cause,
           },
         }),

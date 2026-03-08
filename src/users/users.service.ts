@@ -2,6 +2,7 @@ import { Injectable } from '@nestjs/common';
 import { prisma } from '@/lib/prisma';
 import { CacheService } from '@/cache/cacheService.service';
 import { User } from './entities/user.entity';
+import { UpdateUserDto } from './dto/update-user.dto';
 
 @Injectable()
 export class UsersService {
@@ -25,9 +26,10 @@ export class UsersService {
       const userEntity: User = {
         id: user.id,
         email: user.email,
+        name: user.name,
       };
 
-      await this.cacheService.setUserByEmail(email, userEntity, 3600);
+      // await this.cacheService.setUserByEmail(email, userEntity, 3600);
       return userEntity;
     }
 
@@ -56,6 +58,7 @@ export class UsersService {
       const userEntity: User = {
         id: user.id,
         email: user.email,
+        name: user.name,
       };
 
       await this.cacheService.setUserById(id, userEntity, 3600);
@@ -70,7 +73,11 @@ export class UsersService {
     await this.cacheService.invalidateUserCache(userId, email);
   }
 
-  async createUser(data: { email: string; password: string }): Promise<User> {
+  async createUser(data: {
+    email: string;
+    password: string;
+    name: string;
+  }): Promise<User> {
     const user = await prisma.user.create({
       data,
     });
@@ -78,12 +85,22 @@ export class UsersService {
     const userEntity: User = {
       id: user.id,
       email: user.email,
+      name: user.name,
     };
 
     // Кэшируем нового пользователя
     await this.cacheService.setUserById(user.id, userEntity, 3600);
-    await this.cacheService.setUserByEmail(user.email, userEntity, 3600);
+    // await this.cacheService.setUserByEmail(user.email, userEntity, 3600);
 
     return userEntity;
+  }
+
+  async updateUser(id: string, body: UpdateUserDto) {
+    return await prisma.user.update({
+      where: { id },
+      data: {
+        ...body,
+      },
+    });
   }
 }

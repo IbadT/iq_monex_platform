@@ -1,7 +1,7 @@
 import { applyDecorators } from '@nestjs/common';
 import { ApiOperation, ApiResponse } from '@nestjs/swagger';
 import { HttpStatus } from '@nestjs/common';
-import { LoginResponseDto } from '../dto/login-response.dto';
+import { LoginResponseDto } from '../dto/response/login-response.dto';
 
 export const ApiLoginOperation = () => {
   return applyDecorators(

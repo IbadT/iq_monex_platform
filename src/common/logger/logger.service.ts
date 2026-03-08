@@ -53,9 +53,8 @@ export class AppLogger implements LoggerService {
   }
 
   private shouldLog(level: LogLevel): boolean {
-    const levels = ['debug', 'verbose', 'log', 'warn', 'error'];
-    const currentLevelIndex = levels.indexOf(this.logLevel);
-    const messageLevelIndex = levels.indexOf(level);
+    const currentLevelIndex = this.logLevels.indexOf(this.logLevel);
+    const messageLevelIndex = this.logLevels.indexOf(level);
     return messageLevelIndex >= currentLevelIndex;
   }
 

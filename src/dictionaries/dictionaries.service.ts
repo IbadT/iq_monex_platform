@@ -1,9 +1,6 @@
 import { Injectable } from '@nestjs/common';
-import { CreateDictionaryDto } from './dto/create-dictionary.dto';
-import { UpdateDictionaryDto } from './dto/update-dictionary.dto';
 import { CacheService } from '@/cache/cacheService.service';
 import { prisma } from '@/lib/prisma';
-import { CurrenciesResponseDto } from './dto/response/currencies-response.dto';
 import { Currency } from './entities/currency.entity';
 import {
   currenciesData,
@@ -21,11 +18,24 @@ export class DictionariesService {
   ) {}
 
   async currenciesList(lang: Language) {
+    const cacheKey = 'currencies';
+
+    const cachedCurrencies = await this.cacheService.get(cacheKey);
+    if (cachedCurrencies) return cachedCurrencies;
+
     const currencies = await prisma.currency.findMany();
 
-    return currencies.map((currencies: Currency) =>
+    const result = currencies.map((currencies: Currency) =>
       Currency.fromPrisma(currencies).toResponse(lang),
     );
+
+    await this.cacheService.set({
+      baseKey: cacheKey,
+      ttl: 900,
+      value: result,
+    });
+
+    return result;
   }
 
   async unitMeasurements(lang: Language) {

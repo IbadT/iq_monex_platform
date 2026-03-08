@@ -2,22 +2,24 @@ import {
   WebSocketGateway,
   SubscribeMessage,
   MessageBody,
-  OnGatewayConnection,
-  OnGatewayDisconnect,
   WebSocketServer,
   ConnectedSocket,
-  WsException,
+  OnGatewayConnection,
+  OnGatewayDisconnect,
 } from '@nestjs/websockets';
-import { ChatsService } from './chats.service';
 import { Server, Socket } from 'socket.io';
+import { ChatsService } from './chats.service';
+import { RedisPubSubService } from '@/cache/redis-pubsub.service';
+import { NotificationsService } from '@/notifications/notifications.service';
 import { AppLogger } from '@/common/logger/logger.service';
+import { ChatParticipant } from './interfaces/chat-participant.interface';
 import { UseGuards } from '@nestjs/common';
 import { WsJwtGuard } from '@/guards/ws-jwt.guard';
+import { WsException } from '@nestjs/websockets';
 import { JoinChatDto } from './dto/join-chat.dto';
 import { SendMessageDto } from './dto/send-message.dto';
 import { TypingDto } from './dto/typing.dto';
-import { RedisPubSubService } from '@/cache/redis-pubsub.service';
-import { NotificationsService } from '@/notifications/notifications.service';
+import { SocketWithUser } from '@/common/interfaces/socket-with-user.interface';
 
 // сообщения
 // получить список всех чатов
@@ -38,12 +40,12 @@ import { NotificationsService } from '@/notifications/notifications.service';
   namespace: 'chats',
   cors: {
     origin: '*', // TODO: для продакшена изменить
-    credentioals: true,
+    credentials: true,
   },
 })
 export class ChatsGateway implements OnGatewayConnection, OnGatewayDisconnect {
   @WebSocketServer()
-  server: Server;
+  server!: Server;
 
   private userSocketMap = new Map<string, Set<string>>(); // userId -> Set<socketId>
   private socketUserMap = new Map<string, string>(); // socketId -> userId
@@ -205,7 +207,8 @@ export class ChatsGateway implements OnGatewayConnection, OnGatewayDisconnect {
   @SubscribeMessage('get-online-status')
   async handleGetOnlineStatus(
     @MessageBody() dto: { userIds: string[] },
-    @ConnectedSocket() client: Socket,
+    // @ConnectedSocket() client: Socket,
+    @ConnectedSocket() _: Socket,
   ) {
     const statusMap = new Map();
 
@@ -232,9 +235,9 @@ export class ChatsGateway implements OnGatewayConnection, OnGatewayDisconnect {
   @SubscribeMessage('typing')
   async handleTyping(
     @MessageBody() dto: TypingDto,
-    @ConnectedSocket() client: Socket,
+    @ConnectedSocket() client: SocketWithUser,
   ) {
-    const userId = client['user'].id;
+    const userId = client.user.id;
 
     client.to(`chat:${dto.chatId}`).emit('user_typing', {
       chatId: dto.chatId,
@@ -264,9 +267,9 @@ export class ChatsGateway implements OnGatewayConnection, OnGatewayDisconnect {
   @SubscribeMessage('mark-read')
   async handleMarkRead(
     @MessageBody() dto: { chatId: string; messageIds: string[] },
-    @ConnectedSocket() client: Socket,
+    @ConnectedSocket() client: SocketWithUser,
   ) {
-    const userId = client['user'].id;
+    const userId = client.user.id;
 
     await this.chatsService.markMessagesAsRead(dto.messageIds, userId);
 
@@ -301,8 +304,8 @@ export class ChatsGateway implements OnGatewayConnection, OnGatewayDisconnect {
   private async getOnlineParticipants(chatId: string): Promise<string[]> {
     const participants = await this.chatsService.getChatParticipants(chatId);
     return participants
-      .filter((p) => this.userSocketMap.has(p.userId))
-      .map((p) => p.userId);
+      .filter((p: ChatParticipant) => this.userSocketMap.has(p.userId))
+      .map((p: ChatParticipant) => p.userId);
   }
 
   private async getOnlineContacts(userId: string): Promise<string[]> {
@@ -317,10 +320,13 @@ export class ChatsGateway implements OnGatewayConnection, OnGatewayDisconnect {
     message: any,
   ) {
     const participants = await this.chatsService.getChatParticipants(chatId);
-    
+
     // Получаем информацию об отправителе для имени
-    const sender = participants.find(p => p.userId === senderId);
-    const senderName = sender?.user?.name || sender?.user?.email || 'Unknown User';
+    const sender = participants.find(
+      (p: ChatParticipant) => p.userId === senderId,
+    );
+    const senderName =
+      sender?.user?.name || sender?.user?.email || 'Unknown User';
 
     for (const participant of participants) {
       if (participant.userId === senderId) continue;
@@ -340,13 +346,12 @@ export class ChatsGateway implements OnGatewayConnection, OnGatewayDisconnect {
           participant.userId,
           chatId,
           senderName,
-          message.message
+          message.message,
         );
       }
     }
   }
 
-  // TODO: почему не используются?
   // Публичный метод для проверки онлайн (из других сервисов)
   isUserOnline(userId: string): boolean {
     return this.userSocketMap.has(userId);

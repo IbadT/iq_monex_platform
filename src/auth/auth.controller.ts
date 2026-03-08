@@ -1,23 +1,24 @@
-import { Controller, Post, Body, Get, Res } from '@nestjs/common';
-import { AuthService } from './auth.service';
-import { LoginUserDto } from './dto/login-user.dto';
-import { LoginResponseDto } from './dto/login-response.dto';
+import { Body, Controller, Post, Get, Res, Req } from '@nestjs/common';
 import { ApiTags } from '@nestjs/swagger';
-import { RegisterResponseDto } from './dto/register-response.dto';
-import { RegisterUserDto } from './dto/register-user.dto';
+import { LoginUserDto } from './dto/request/login-user.dto';
+import { RegisterUserDto } from './dto/request/register-user.dto';
+import { AuthService } from './auth.service';
+import { LoginResponseDto } from './dto/response/login-response.dto';
+import { RegisterResponseDto } from './dto/response/register-response.dto';
+import { TokensDto } from './dto/tokens.dto';
+import { JwtPayload } from '@/common/interfaces/jwt-payload.interface';
+import { CurrentUser } from '@/common/decorators/current-user.decorator';
+import { Protected } from '@/common/decorators/protected.decorator';
+import { Response, Request } from 'express';
 import { ApiLoginOperation } from './decorators/login.decorator';
 import { ApiRegisterOperation } from './decorators/register.decorator';
-import { Protected, Public } from '@/common/decorators';
-import { Response } from 'express';
-import { ConfigService } from '@nestjs/config';
+import { Public } from '@/common/decorators';
+import { ApiRefreshTokenOperation } from '@/common/decorators/swagger.decorators';
 
 @ApiTags('Auth')
 @Controller('auth')
 export class AuthController {
-  constructor(
-    private readonly configService: ConfigService,
-    private readonly authService: AuthService,
-  ) {}
+  constructor(private readonly authService: AuthService) {}
 
   @Get('me')
   @Protected()
@@ -25,34 +26,28 @@ export class AuthController {
     return;
   }
 
-  @Post('sign-in')
+  @Post('login')
   @Public()
   @ApiLoginOperation()
   async login(
-    @Body() body: LoginUserDto,
-    @Res({ passthrough: true }) res: Response,
+    @Body() loginUserDto: LoginUserDto,
+    @Res({ passthrough: true }) response: Response,
   ): Promise<LoginResponseDto> {
-    const tokens = await this.authService.login(body);
+    const tokens = await this.authService.login(loginUserDto);
 
-    res.cookie('refreshToken', tokens.refreshToken, {
+    // Устанавливаем cookies
+    response.cookie('refreshToken', tokens.refreshToken, {
       httpOnly: true,
-      secure:
-        this.configService.getOrThrow<string>('NODE_ENV') === 'production',
+      secure: process.env.NODE_ENV === 'production',
       sameSite: 'strict',
-      maxAge: this.configService.getOrThrow<number>(
-        'COOKIES_REFRESH_TOKEN_EXPIRES_ID',
-      ),
-      path: 'api/auth/refresh-token',
+      maxAge: 7 * 24 * 60 * 60 * 1000, // 7 дней
     });
 
-    res.cookie('accessToken', tokens.accessToken, {
+    response.cookie('accessToken', tokens.accessToken, {
       httpOnly: true,
-      secure:
-        this.configService.getOrThrow<string>('NODE_ENV') === 'production',
+      secure: process.env.NODE_ENV === 'production',
       sameSite: 'strict',
-      maxAge: this.configService.getOrThrow<number>(
-        'COOKIES_ACCESS_TOKEN_EXPIRES_ID',
-      ),
+      maxAge: 15 * 60 * 1000, // 15 минут
     });
 
     return tokens;
@@ -94,13 +89,46 @@ export class AuthController {
 
   @Post('refresh-token')
   @Public()
-  async refreshToken() {
-    return;
+  @ApiRefreshTokenOperation()
+  async refreshToken(
+    @CurrentUser() user: JwtPayload,
+    @Req() request: Request,
+    @Res({ passthrough: true }) response: Response,
+  ): Promise<TokensDto> {
+    const refreshTokenFromCookie = (request as any).cookies?.refreshToken;
+
+    const tokens = await this.authService.refreshToken(
+      { refreshToken: refreshTokenFromCookie },
+      user,
+    );
+
+    // Устанавливаем cookies
+    response.cookie('refreshToken', tokens.refreshToken, {
+      httpOnly: true,
+      secure: process.env.NODE_ENV === 'production',
+      sameSite: 'strict',
+      maxAge: 7 * 24 * 60 * 60 * 1000, // 7 дней
+    });
+
+    response.cookie('accessToken', tokens.accessToken, {
+      httpOnly: true,
+      secure: process.env.NODE_ENV === 'production',
+      sameSite: 'strict',
+      maxAge: 15 * 60 * 1000, // 15 минут
+    });
+
+    return tokens;
   }
 
   @Post('sign-out')
   @Public()
-  async logOut() {
+  async logOut(
+    // @CurrentUser() user: JwtPayload,
+    @Res({ passthrough: true }) res: Response,
+  ) {
+    await this.authService.logout();
+    res.clearCookie('refreshToken');
+    res.clearCookie('accessToken');
     return;
   }
 }

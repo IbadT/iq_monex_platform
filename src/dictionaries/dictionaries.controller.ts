@@ -1,13 +1,4 @@
-import {
-  Controller,
-  Get,
-  Post,
-  Body,
-  Patch,
-  Param,
-  Delete,
-  Query,
-} from '@nestjs/common';
+import { Controller, Get, Post, Query } from '@nestjs/common';
 import { DictionariesService } from './dictionaries.service';
 import { Public } from '@/common/decorators';
 import { GetCurrencyDto, Language } from './dto/request/get-currency.dto';

@@ -1,4 +1,4 @@
-import { CanActivate, ExecutionContext, Injectable, Logger } from '@nestjs/common';
+import { CanActivate, ExecutionContext, Injectable } from '@nestjs/common';
 import { JwtService } from '@nestjs/jwt';
 import { WsException } from '@nestjs/websockets';
 import { ConfigService } from '@nestjs/config';
@@ -6,7 +6,6 @@ import { AppLogger } from '@/common/logger/logger.service';
 
 @Injectable()
 export class WsJwtGuard implements CanActivate {
-
   constructor(
     private jwtService: JwtService,
     private configService: ConfigService,
@@ -18,7 +17,7 @@ export class WsJwtGuard implements CanActivate {
     const token = this.extractToken(client);
 
     this.logger.log(`Проверка аутентификации WebSocket клиента ${client.id}`);
-    
+
     if (!token) {
       this.logger.error('Токен не найден в запросе');
       throw new WsException('Unauthorized');
@@ -30,7 +29,9 @@ export class WsJwtGuard implements CanActivate {
       const payload = await this.jwtService.verifyAsync(token, {
         secret: this.configService.getOrThrow<string>('SECRET_TOKEN'),
       });
-      this.logger.log(`Токен успешно верифицирован для пользователя: ${payload.id}`);
+      this.logger.log(
+        `Токен успешно верифицирован для пользователя: ${payload.id}`,
+      );
       client['user'] = payload;
       return true;
     } catch (error) {
@@ -47,7 +48,9 @@ export class WsJwtGuard implements CanActivate {
 
     const queryToken = client.handshake?.query?.token;
     if (queryToken) {
-      this.logger.log(`Токен извлечен из query параметра: ${queryToken.substring(0, 20)}...`);
+      this.logger.log(
+        `Токен извлечен из query параметра: ${queryToken.substring(0, 20)}...`,
+      );
       return queryToken;
     }
 

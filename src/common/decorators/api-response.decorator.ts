@@ -2,7 +2,6 @@ import { applyDecorators } from '@nestjs/common';
 import { ApiResponse } from '@nestjs/swagger';
 import { HttpStatus } from '@nestjs/common';
 import {
-  ErrorResponseSchema,
   ValidationErrorResponseSchema,
   SuccessResponseSchema,
   ErrorSchemas,

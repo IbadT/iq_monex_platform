@@ -1,7 +1,8 @@
 import { applyDecorators } from '@nestjs/common';
 import { ApiOperation, ApiResponse } from '@nestjs/swagger';
-import { LoginResponseDto } from '@/auth/dto/login-response.dto';
-import { RegisterResponseDto } from '@/auth/dto/register-response.dto';
+import { LoginResponseDto } from '@/auth/dto/response/login-response.dto';
+import { RegisterResponseDto } from '@/auth/dto/response/register-response.dto';
+// import { RegisterResponseDto } from '@/auth/dto/register-response.dto';
 
 // Декоратор для успешного ответа
 export const ApiSuccessResponse = (

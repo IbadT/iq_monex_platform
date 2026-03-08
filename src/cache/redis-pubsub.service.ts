@@ -3,16 +3,16 @@ import { Injectable, OnModuleDestroy, OnModuleInit } from '@nestjs/common';
 import { ConfigService } from '@nestjs/config';
 import { createClient, RedisClientType } from 'redis';
 
-interface PubSubMessage {
-  channel: string;
-  pattern?: string;
-  data: any;
-}
+// interface PubSubMessage {
+//   channel: string;
+//   pattern?: string;
+//   data: any;
+// }
 
 @Injectable()
 export class RedisPubSubService implements OnModuleInit, OnModuleDestroy {
-  private publisher: RedisClientType;
-  private subscriber: RedisClientType;
+  private publisher!: RedisClientType;
+  private subscriber!: RedisClientType;
 
   //   Каналы
   readonly CHANNELS = {
@@ -53,7 +53,10 @@ export class RedisPubSubService implements OnModuleInit, OnModuleDestroy {
   async publish(channel: string, message: any): Promise<void> {
     try {
       if (!this.publisher) {
-        this.logger.warn('Redis publisher not available, skipping publish to', channel);
+        this.logger.warn(
+          'Redis publisher not available, skipping publish to',
+          channel,
+        );
         return;
       }
       await this.publisher.publish(channel, JSON.stringify(message));
@@ -69,7 +72,10 @@ export class RedisPubSubService implements OnModuleInit, OnModuleDestroy {
   ): Promise<void> {
     // Проверяем инициализацию
     if (!this.publisher || !this.subscriber) {
-      this.logger.warn('Redis Pub/Sub not available, skipping subscription to', channel);
+      this.logger.warn(
+        'Redis Pub/Sub not available, skipping subscription to',
+        channel,
+      );
       return;
     }
 

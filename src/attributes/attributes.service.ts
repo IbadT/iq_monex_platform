@@ -1,6 +1,4 @@
 import { Injectable } from '@nestjs/common';
-import { CreateAttributeDto } from './dto/create-attribute.dto';
-import { UpdateAttributeDto } from './dto/update-attribute.dto';
 import { Language } from '@/dictionaries/dto/request/get-currency.dto';
 import { prisma } from '@/lib/prisma';
 import { Specification } from './entities/specification.entity';

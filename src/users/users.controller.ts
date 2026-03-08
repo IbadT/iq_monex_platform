@@ -1,22 +1,17 @@
 import {
   Controller,
   Get,
-  Post,
   Body,
   Patch,
   Param,
-  Delete,
+  ParseUUIDPipe,
 } from '@nestjs/common';
 import { UsersService } from './users.service';
 import { ApiTags } from '@nestjs/swagger';
-import {
-  Public,
-  Protected,
-  Admin,
-  RateLimit,
-  AccessControl,
-} from '@/common/decorators';
+import { Protected } from '@/common/decorators';
 import { UpdateUserDto } from './dto/update-user.dto';
+import { CurrentUser } from '@/common/decorators/current-user.decorator';
+import { JwtPayload } from '@/common/interfaces/jwt-payload.interface';
 
 @ApiTags('Users')
 @Controller('users')
@@ -26,15 +21,18 @@ export class UsersController {
   // получить свой профиль
   // получить профиль
   @Get(':id/profile')
-  async getProfileById() {
-    return;
+  async getProfileById(@Param('id', ParseUUIDPipe) id: string) {
+    return await this.usersService.getUserById(id);
   }
 
   // редактирование профиля
   @Patch()
   @Protected()
-  async updateProfile(@Body() body: UpdateUserDto) {
-    return;
+  async updateProfile(
+    @Body() body: UpdateUserDto,
+    @CurrentUser() user: JwtPayload,
+  ) {
+    return await this.usersService.updateUser(user.id, body);
   }
 
   // получить все сферы деятельности

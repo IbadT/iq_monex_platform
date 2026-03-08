@@ -7,9 +7,10 @@ import { HashService } from './hash.service';
 import { UsersService } from '@/users/users.service';
 import { CacheService } from '@/cache/cacheService.service';
 import { RedisCacheModule } from '@/cache/redis.module';
+import { RabbitmqModule } from '@/rabbitmq/rabbitmq.module';
 
 @Module({
-  imports: [ConfigModule, JwtAuthModule, RedisCacheModule],
+  imports: [ConfigModule, JwtAuthModule, RedisCacheModule, RabbitmqModule],
   controllers: [AuthController],
   providers: [
     AuthService,

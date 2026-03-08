@@ -8,9 +8,12 @@ datasource db {
   provider = "postgresql"
 }
 
+// ================ USER ================
+
 model User {
   id       String @id @default(uuid()) @db.Uuid
   email    String @unique
+  name     String
   password String
 
   usersChats       UserChat[]
@@ -149,4 +152,34 @@ model ChatFile {
   updatedAt DateTime @updatedAt @map("updated_at")
 
   @@map("chat_files")
+}
+
+// ================ LISTINGS ================
+model Listing {
+  id   String @id @default(uuid()) @db.Uuid
+  name String
+
+  subcategoryId String
+
+  price Int
+
+  // связь с Currency
+  price_symbol String
+  price_unit   String
+  condition    String // новой или б/у
+
+  photos String[] // максимум 10
+  files  String[] // максимум 5
+
+  specifications String[] // тут пользователь будет выбирать характеристику и Specifications таблицы и добавлять к этому name свой value для объявления
+
+  description String @db.VarChar(3000)
+
+  // я думаю, что нужна новая таблица для maps где будут храниться координаты(метрики для карты)
+  maps String[] // должно передаваться (тип(например офис, склад и тд), и координаты latitude, longtitude)
+
+  createdAt DateTime @default(now()) @map("created_at")
+  updatedAt DateTime @updatedAt @map("updated_at")
+
+  @@map("listings")
 }

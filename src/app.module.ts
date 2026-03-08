@@ -12,6 +12,8 @@ import { DictionariesModule } from './dictionaries/dictionaries.module';
 import { AttributesModule } from './attributes/attributes.module';
 import { ChatsModule } from './chats/chats.module';
 import { NotificationsModule } from './notifications/notifications.module';
+import { EmailModule } from './email/email.module';
+import { RabbitmqModule } from './rabbitmq/rabbitmq.module';
 
 @Module({
   imports: [
@@ -27,6 +29,8 @@ import { NotificationsModule } from './notifications/notifications.module';
     AttributesModule,
     ChatsModule,
     NotificationsModule,
+    EmailModule,
+    RabbitmqModule,
   ],
   controllers: [AppController],
   providers: [AppService, CacheService],

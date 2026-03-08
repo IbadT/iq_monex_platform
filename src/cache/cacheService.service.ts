@@ -2,6 +2,7 @@ import { Injectable, Logger } from '@nestjs/common';
 import { InjectRedis } from '@nestjs-modules/ioredis';
 import { ConfigService } from '@nestjs/config';
 import type { Redis as RedisType } from 'ioredis';
+import { User } from '@/users/entities/user.entity';
 
 export interface ISetRedisData<T> {
   baseKey: string;
@@ -11,9 +12,9 @@ export interface ISetRedisData<T> {
 
 @Injectable()
 export class CacheService {
-  private readonly REGISTRATION_PREFIX = 'reg:';
-  private readonly REGISTRATION_TTL = 300;
-  private readonly MAX_ATTEMPTS = 3;
+  // private readonly REGISTRATION_PREFIX = 'reg:';
+  // private readonly REGISTRATION_TTL = 300;
+  // private readonly MAX_ATTEMPTS = 3;
 
   private readonly logger = new Logger(CacheService.name);
   private readonly defaultTTL: number;
@@ -155,15 +156,15 @@ export class CacheService {
   /**
    * Установить значение с автоматическим ключом на основе параметров
    */
-  async setWithParams<T>(
-    baseKey: string,
-    params: Record<string, any>,
-    value: T,
-    ttl?: number,
-  ): Promise<void> {
-    const key = this.buildKey(baseKey, params);
-    await this.set({ baseKey: key, ttl, value });
-  }
+  // async setWithParams<T>(
+  //   baseKey: string,
+  //   params: Record<string, any>,
+  //   value: T,
+  //   ttl?: number,
+  // ): Promise<void> {
+  //   const key = this.buildKey(baseKey, params);
+  //   await this.set({ baseKey: key, ttl, value });
+  // }
 
   /**
    * Получить значение с автоматическим ключом на основе параметров
@@ -222,21 +223,22 @@ export class CacheService {
     return this.get(this.getUserKeys.byId(id));
   }
 
-  async setUserById(id: string, user: any, ttl?: number): Promise<void> {
-    await this.set({ baseKey: this.getUserKeys.byId(id), value: user, ttl });
+  async setUserById(key: string, user: User, ttl: number): Promise<void> {
+    // await this.set({ baseKey: this.getUserKeys.byId(id), value: user, ttl });
+    await this.set({ baseKey: key, value: user, ttl });
   }
 
   async getUserByEmail(email: string): Promise<any> {
     return this.get(this.getUserKeys.byEmail(email));
   }
 
-  async setUserByEmail(email: string, user: any, ttl?: number): Promise<void> {
-    await this.set({
-      baseKey: this.getUserKeys.byEmail(email),
-      value: user,
-      ttl,
-    });
-  }
+  // async setUserByEmail(email: string, user: any, ttl?: number): Promise<void> {
+  //   await this.set({
+  //     baseKey: this.getUserKeys.byEmail(email),
+  //     value: user,
+  //     ttl,
+  //   });
+  // }
 
   async invalidateUserCache(userId: string, email: string): Promise<void> {
     await Promise.all([
@@ -248,45 +250,45 @@ export class CacheService {
   /**
    * Методы для работы с токенами
    */
-  async setAccessToken(
-    userId: string,
-    token: string,
-    ttl?: number,
-  ): Promise<void> {
-    await this.set({
-      baseKey: this.getAuthKeys.accessToken(userId),
-      value: token,
-      ttl,
-    });
-  }
+  // async setAccessToken(
+  //   userId: string,
+  //   token: string,
+  //   ttl?: number,
+  // ): Promise<void> {
+  //   await this.set({
+  //     baseKey: this.getAuthKeys.accessToken(userId),
+  //     value: token,
+  //     ttl,
+  //   });
+  // }
 
   async getAccessToken(userId: string): Promise<string | null> {
     return this.get(this.getAuthKeys.accessToken(userId));
   }
 
-  async setRefreshToken(
-    userId: string,
-    token: string,
-    ttl?: number,
-  ): Promise<void> {
-    await this.set({
-      baseKey: this.getAuthKeys.refreshToken(userId),
-      value: token,
-      ttl,
-    });
-  }
+  // async setRefreshToken(
+  //   userId: string,
+  //   token: string,
+  //   ttl?: number,
+  // ): Promise<void> {
+  //   await this.set({
+  //     baseKey: this.getAuthKeys.refreshToken(userId),
+  //     value: token,
+  //     ttl,
+  //   });
+  // }
 
   async getRefreshToken(userId: string): Promise<string | null> {
     return this.get(this.getAuthKeys.refreshToken(userId));
   }
 
-  async blacklistToken(token: string, ttl?: number): Promise<void> {
-    await this.set({
-      baseKey: this.getAuthKeys.blacklistedToken(token),
-      value: true,
-      ttl,
-    });
-  }
+  // async blacklistToken(token: string, ttl?: number): Promise<void> {
+  //   await this.set({
+  //     baseKey: this.getAuthKeys.blacklistedToken(token),
+  //     value: true,
+  //     ttl,
+  //   });
+  // }
 
   async isTokenBlacklisted(token: string): Promise<boolean> {
     return this.exists(this.getAuthKeys.blacklistedToken(token));

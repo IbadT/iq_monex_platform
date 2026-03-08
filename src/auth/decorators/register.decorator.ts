@@ -1,7 +1,8 @@
 import { applyDecorators } from '@nestjs/common';
 import { ApiOperation, ApiResponse } from '@nestjs/swagger';
 import { HttpStatus } from '@nestjs/common';
-import { RegisterResponseDto } from '../dto/register-response.dto';
+import { RegisterResponseDto } from '../dto/response/register-response.dto';
+// import { RegisterResponseDto } from '../dto/register-response.dto';
 
 export const ApiRegisterOperation = () => {
   return applyDecorators(

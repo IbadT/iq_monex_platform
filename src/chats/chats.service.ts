@@ -1,8 +1,8 @@
 import { Injectable } from '@nestjs/common';
-import { SendMessageDto } from './dto/send-message.dto';
-import { prisma } from '@/lib/prisma';
 import { JoinChatDto } from './dto/join-chat.dto';
+import { prisma } from '@/lib/prisma';
 import { RedisPresenceService } from '@/cache/redis-presence.service';
+import { ChatParticipant } from './interfaces/chat-participant.interface';
 
 @Injectable()
 export class ChatsService {
@@ -27,15 +27,10 @@ export class ChatsService {
       orderBy: {
         createdAt: 'desc',
       },
-      take: limit,
-      skip: offset,
+      take: limit ?? 20,
+      skip: offset ?? 0,
       include: {
-        sender: {
-          // TODO: добавить нужные поля пользователя
-          // select: {
-          //   id: true,
-          // }
-        },
+        sender: {},
       },
     });
   }
@@ -79,16 +74,27 @@ export class ChatsService {
     });
   }
 
-  async getChatParticipants(chatId: string): Promise<any> {
-    return await prisma.chatParticipant.findMany({
+  async getChatParticipants(chatId: string): Promise<ChatParticipant[]> {
+    const participants = await prisma.chatParticipant.findMany({
       where: {
         chatId,
         deletedAt: null,
       },
-      select: {
+      include: {
         user: true,
       },
     });
+
+    return participants.map(participant => ({
+      userId: participant.userId,
+      user: {
+        id: participant.user.id,
+        name: participant.user.name || '',
+        email: participant.user.email,
+      },
+      chatId: participant.chatId,
+      joinedAt: participant.createdAt,
+    }));
   }
 
   // Получить время последнего посещения пользователя

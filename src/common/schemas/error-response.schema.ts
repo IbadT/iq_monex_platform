@@ -37,7 +37,7 @@ export const ValidationErrorResponseSchema = {
  */
 export const SuccessResponseSchema = (
   dataExample: any,
-  description = 'Successful operation',
+  // description = 'Successful operation',
 ) => ({
   type: 'object',
   properties: {

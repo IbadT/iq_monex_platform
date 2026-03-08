@@ -55,6 +55,7 @@ export class NotificationsService {
 
   // Получить непрочитанные уведомления пользователя
   async getUnreadNotifications(userId: string): Promise<Notification[]> {
+    console.log({ userId });
     // Здесь можно добавить получение из Redis или базы данных
     // Пока возвращаем пустой массив
     return [];
@@ -126,6 +127,7 @@ export class NotificationsService {
   private async saveNotificationToHistory(
     notification: Notification,
   ): Promise<void> {
+    console.log({ notification });
     // Здесь можно добавить сохранение в Redis sorted set или базу данных
     // Например: await this.redis.setex(`notification:${notification.id}`, 604800, JSON.stringify(notification));
   }
