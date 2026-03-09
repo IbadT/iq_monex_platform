@@ -57,7 +57,8 @@ export class AuthController {
   @Public()
   @ApiRegisterOperation()
   async register(@Body() body: RegisterUserDto): Promise<RegisterResponseDto> {
-    return this.authService.register(body);
+    // return this.authService.register(body);
+    return this.authService.registerDirect(body);
   }
 
   // TODO: объединить

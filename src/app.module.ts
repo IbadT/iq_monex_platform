@@ -14,6 +14,9 @@ import { ChatsModule } from './chats/chats.module';
 import { NotificationsModule } from './notifications/notifications.module';
 import { EmailModule } from './email/email.module';
 import { RabbitmqModule } from './rabbitmq/rabbitmq.module';
+import { ListingsModule } from './listings/listings.module';
+import { FavoriteModule } from './favorite/favorite.module';
+import { ReviewsModule } from './reviews/reviews.module';
 
 @Module({
   imports: [
@@ -31,6 +34,9 @@ import { RabbitmqModule } from './rabbitmq/rabbitmq.module';
     NotificationsModule,
     EmailModule,
     RabbitmqModule,
+    ListingsModule,
+    FavoriteModule,
+    ReviewsModule,
   ],
   controllers: [AppController],
   providers: [AppService, CacheService],

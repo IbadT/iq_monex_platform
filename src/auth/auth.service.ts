@@ -127,6 +127,36 @@ export class AuthService {
     };
   }
 
+  async registerDirect(loginUserDto: LoginUserDto): Promise<RegisterResponseDto> {
+    const { email, password } = loginUserDto;
+
+    // Проверяем, существует ли пользователь
+    const existingUser =
+      await this.userService.getUserByEmailWithPassword(email);
+    if (existingUser) {
+      throw new ConflictException(
+        `Пользователь с таким email: ${email} уже зарегистрирован`,
+      );
+    }
+
+    // Создаем пользователя сразу без email подтверждения
+    const hashedPassword = await this.hashService.hash(password);
+    
+    const newUser = await this.userService.createUser({
+      email,
+      password: hashedPassword,
+      name: "", // Временно используем часть email как имя
+    });
+
+    this.logger.logAuth('register_direct_success', newUser.id, email);
+
+    return {
+      message: 'Пользователь успешно создан',
+      status: 201,
+      userId: newUser.id,
+    };
+  }
+
   async refreshToken(
     refreshTokenDto: RefreshTokenDto,
     user: JwtPayload,

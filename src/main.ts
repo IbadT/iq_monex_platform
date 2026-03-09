@@ -1,6 +1,7 @@
 import { NestFactory } from '@nestjs/core';
 import { SwaggerModule, DocumentBuilder } from '@nestjs/swagger';
 import { ConfigService } from '@nestjs/config';
+import { ValidationPipe } from '@nestjs/common';
 import { AppModule } from './app.module';
 import { swaggerCustomOptions } from '@/common/swagger-response-time.plugin';
 import { HttpExceptionFilter } from '@/common/filters/http-exception.filter';
@@ -14,6 +15,18 @@ async function bootstrap() {
   });
 
   const configService = new ConfigService();
+
+  // Глобальный Validation Pipe с преобразованием типов
+  app.useGlobalPipes(
+    new ValidationPipe({
+      transform: true, // ✅ Включаем автоматическое преобразование
+      transformOptions: {
+        enableImplicitConversion: true, // ✅ Включаем неявное преобразование
+      },
+      whitelist: true, // ✅ Удаляем лишние поля
+      forbidNonWhitelisted: true, // ✅ Запрещаем неизвестные поля
+    }),
+  );
 
   // Глобальный фильтр ошибок
   app.useGlobalFilters(new HttpExceptionFilter(configService));

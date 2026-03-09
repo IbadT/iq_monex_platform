@@ -1,6 +1,6 @@
 generator client {
   provider   = "prisma-client"
-  output     = "../generated/prisma"
+  output     = "./generated/"
   engineType = "nodeFs"
 }
 
@@ -16,11 +16,22 @@ model User {
   name     String
   password String
 
+  // Рейтинг пользователя (агрегированный)
+  rating       Float? @default(0)
+  reviewsCount Int    @default(0) @map("reviews_count")
+
   usersChats       UserChat[]
   pinedChats       PinnedChat[]
   chatFiles        ChatFile[]
   message          Message[]         @relation("SentMessages")
   chatParticipants ChatParticipant[]
+  listings         Listing[]
+  favorites        Favorite[]
+  authoredReviews  Review[]          @relation("AuthoredReviews")
+  receivedReviews  Review[]          @relation("ReceivedReviews")
+  reviewLikes      ReviewLike[]
+
+  files File[]
 
   createdAt DateTime @default(now()) @map("created_at")
   updatedAt DateTime @updatedAt @map("updated_at")
@@ -37,6 +48,14 @@ model Category {
   parent   Category?  @relation("CategoryTree", fields: [parentId], references: [id])
   children Category[] @relation("CategoryTree")
 
+  // categorySpecifications CategorySpecification[]
+
+  // Характеристики для этой категории (любого уровня)
+  specifications CategorySpecification[]
+
+  // Объявления в этой категории
+  listings Listing[]
+
   @@index([parentId])
   @@index([name])
 }
@@ -47,6 +66,8 @@ model Currency {
   code   String @unique
   name   Json // {"ru": "Российский рубль", "en": "Russian Ruble", "kz": "..."}
 
+  listing Listing[]
+
   @@map("currencies")
 }
 
@@ -54,14 +75,35 @@ model UnitMeasurement {
   id   Int  @id @default(autoincrement())
   name Json
 
+  listing Listing[]
+
   @@map("unit_measurements")
 }
 
 model Specification {
-  id   Int  @id @default(autoincrement())
-  name Json
+  id                     Int                     @id @default(autoincrement())
+  name                   Json
+  categorySpecifications CategorySpecification[]
 
   @@map("specifications")
+}
+
+// ================ CATEGORY SPECIFICATIONS ================
+
+// Связь категории с характеристиками (для любого уровня вложенности)
+model CategorySpecification {
+  id         Int @id @default(autoincrement())
+  categoryId Int @map("category_id")
+
+  specificationId Int     @map("specification_id")
+  isRequired      Boolean @default(false) @map("is_required")
+  defaultUnitId   Int?    @map("default_unit_id")
+
+  category      Category      @relation(fields: [categoryId], references: [id], onDelete: Cascade)
+  specification Specification @relation(fields: [specificationId], references: [id])
+
+  @@unique([categoryId, specificationId])
+  @@map("category_specifications")
 }
 
 // ================ CHATS ================
@@ -156,30 +198,339 @@ model ChatFile {
 
 // ================ LISTINGS ================
 model Listing {
-  id   String @id @default(uuid()) @db.Uuid
-  name String
+  id String @id @default(uuid()) @db.Uuid
 
-  subcategoryId String
+  userId     String @map("user_id") @db.Uuid
+  categoryId Int    @map("subcategory_id")
 
-  price Int
+  user     User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+  category Category @relation(fields: [categoryId], references: [id])
 
-  // связь с Currency
-  price_symbol String
-  price_unit   String
-  condition    String // новой или б/у
+  favorites Favorite[]
+  reviews   Review[]
 
-  photos String[] // максимум 10
-  files  String[] // максимум 5
+  // Рейтинг объявления (агрегированный)
+  rating       Float? @default(0)
+  reviewsCount Int    @default(0) @map("reviews_count")
 
-  specifications String[] // тут пользователь будет выбирать характеристику и Specifications таблицы и добавлять к этому name свой value для объявления
+  title String? @db.VarChar(255)
 
-  description String @db.VarChar(3000)
+  // Для шаблонов
+  description String? @db.VarChar(3000)
 
-  // я думаю, что нужна новая таблица для maps где будут храниться координаты(метрики для карты)
-  maps String[] // должно передаваться (тип(например офис, склад и тд), и координаты latitude, longtitude)
+  // ===== СТАТУС И ЖИЗНЕННЫЙ ЦИКЛ =====
+  status ListingStatus @default(DRAFT)
+
+  // Черновик: удаляется после публикации
+  // Шаблон: никогда не удаляется автоматически
+  // Архив: авто-удаление через 60 дней
+
+  // ===== ЦЕНА =====
+  // Для шаблонов — цена может быть null (заполнится позже)
+  price      Decimal? @db.Decimal(15, 2)
+  currencyId Int?     @map("currency_id")
+
+  currency Currency? @relation(fields: [currencyId], references: [id])
+
+  // Единица измерения цены (за штуку, за кг, за м²...)
+  priceUnitId Int?             @map("price_unit_id")
+  priceUnit   UnitMeasurement? @relation(fields: [priceUnitId], references: [id])
+
+  // ===== СОСТОЯНИЕ =====
+  condition ListingCondition?
+
+  // ===== СЧЁТЧИКИ =====
+  viewsCount     Int @default(0) @map("views_count")
+  favoritesCount Int @default(0) @map("favorites_count")
+
+  // ===== ДАТЫ =====
+  publishedAt  DateTime? @map("published_at") // Когда опубликовано
+  archivedAt   DateTime? @map("archived_at") // Когда отправлено в архив
+  autoDeleteAt DateTime? @map("auto_delete_at") // Авто-удаление архива (60 дней)
+
+  // Для шаблонов — когда последний раз использовался
+  lastUsedAt DateTime? @map("last_used_at")
+
+  // ===== RELATIONS =====
+  files          File[]
+  locations      MapLocation[]
+  specifications ListingSpecification[]
 
   createdAt DateTime @default(now()) @map("created_at")
   updatedAt DateTime @updatedAt @map("updated_at")
 
+  // Индексы для производительности
+  @@index([userId, status])
+  @@index([status, autoDeleteAt])
+  @@index([categoryId, status, publishedAt])
+  @@index([status, lastUsedAt])
   @@map("listings")
+}
+
+// ================ LISTING SPECIFICATIONS ================
+
+model ListingSpecification {
+  id        String @id @default(uuid()) @db.Uuid
+  listingId String @map("listing_id") @db.Uuid
+
+  specificationId Int    @map("specification_id")
+  value           String
+
+  unitId     Int?    @map("unit_id")
+  isRequired Boolean @default(true) @map("is_required")
+
+  listing Listing @relation(fields: [listingId], references: [id], onDelete: Cascade)
+
+  @@unique([listingId, specificationId])
+  @@map("listing_specifications")
+}
+
+// ================ LOCATIONS (отдельная таблица) ================
+
+model MapLocation {
+  id        String @id @default(uuid()) @db.Uuid
+  listingId String @map("listing_id") @db.Uuid
+
+  // Универсальный owner (listing или user)
+  // ownerType   FileOwnerType   @map("owner_type") // USER или LISTING
+  // ownerId     String          @map("owner_id") @db.Uuid
+  // user    User?    @relation(fields: [ownerId], references: [id], map: "location_user_fk", onDelete: Cascade)
+  // listing Listing? @relation(fields: [ownerId], references: [id], map: "location_listing_fk", onDelete: Cascade)
+
+  type MapLocationType
+
+  // TODO: нужно ли?
+  // name String? // название места
+
+  latitude   Decimal @db.Decimal(10, 8)
+  longtitude Decimal @db.Decimal(11, 8)
+
+  // TODO: нужно ли?
+  // Адрес для отображения
+  // address String?
+  // city String?
+  // country String?
+
+  // Гео-индекс для поиска "рядом со мной"
+  geoHash String? @map("geo_hash") // для быстрого поиска по радиусу
+
+  listing Listing @relation(fields: [listingId], references: [id], onDelete: Cascade)
+
+  createdAt DateTime @default(now()) @map("created_at")
+  updatedAt DateTime @updatedAt
+
+  @@index([listingId])
+  @@index([latitude, longtitude])
+  @@index([geoHash])
+  @@map("map_locations")
+}
+
+// ================ FILES ================
+model File {
+  id String @id @default(uuid()) @db.Uuid
+
+  // Кому принадлежит файл
+  ownerType FileOwnerType @map("owner_type")
+  // ownerId   String        @map("owner_id") @db.Uuid // userId или listingId
+
+  // S3
+  s3Key    String @map("s3_key")
+  s3Bucket String @map("s3_bucket")
+  url      String
+
+  // Метаданные
+  fileType String @map("file_type") // image/jpeg, application/pdf
+  fileName String @map("file_name")
+  fileSize Int    @map("file_size")
+
+  // Тип файла
+  kind FileKind
+
+  // Для аватаров и фото - порядок/основная
+  isPrimary Boolean @default(false) @map("is_primary")
+  sortOrder Int     @default(0) @map("sort_order")
+
+  // Статус
+  uploadStatus String @default("pending") @map("upload_status") // pending, completed, failed
+
+  // для временных файлов
+  expiresAt DateTime? @map("expires_at")
+
+  createdAt DateTime @default(now()) @map("created_at")
+  updatedAt DateTime @updatedAt @map("updated_at")
+
+  userId    String? @map("user_id") @db.Uuid
+  listingId String? @map("listing_id") @db.Uuid
+
+  // Relations (опциональные, т.к. ownerId универсальный)
+  user    User?    @relation(fields: [userId], references: [id], map: "file_user_fk", onDelete: Cascade)
+  listing Listing? @relation(fields: [listingId], references: [id], map: "file_listing_fk", onDelete: Cascade)
+
+  // TODO: один аватар у одного ползователя
+  // @@unique([userId, kind])
+  @@index([userId])
+  @@index([listingId])
+  @@index([ownerType, userId])
+  @@index([ownerType, listingId])
+  @@index([ownerType, userId, kind])
+  @@index([ownerType, listingId, kind])
+  @@index([uploadStatus, expiresAt])
+  @@map("files")
+}
+
+// ================ FAVORITES ================
+model Favorite {
+  id        String @id @default(uuid()) @db.Uuid
+  userId    String @map("user_id") @db.Uuid
+  listingId String @map("listing_id") @db.Uuid
+
+  createdAt DateTime @default(now()) @map("created_at")
+
+  user    User    @relation(fields: [userId], references: [id], onDelete: Cascade)
+  listing Listing @relation(fields: [listingId], references: [id], onDelete: Cascade)
+
+  @@unique([userId, listingId]) // Один пользователь — одно избранное на объявление
+  @@index([userId])
+  @@index([listingId])
+  @@map("favorites")
+}
+
+// ================ REVIEWS (комментарии с рейтингом) ================
+
+model Review {
+  id String @id @default(uuid()) @db.Uuid
+
+  // Кто оставил отзыв
+  authorId String @map("author_id") @db.Uuid
+
+  // На какое объявление (или на какого пользователя — гибкость)
+  targetType   ReviewTargetType @map("target_type") // LISTING или USER
+  listingId    String?          @map("listing_id") @db.Uuid
+  targetUserId String?          @map("target_user_id") @db.Uuid
+
+  // Содержание
+  rating  Int // 1-5 звёзд
+  title   String? @db.VarChar(255) // Заголовок отзыва
+  content String  @db.VarChar(2000) // Текст отзыва
+
+  // Модерация
+  status ReviewStatus @default(PENDING) // PENDING, APPROVED, REJECTED
+
+  // Счётчики
+  likesCount   Int @default(0) @map("likes_count")
+  reportsCount Int @default(0) @map("reports_count")
+
+  // Ответ владельца (опционально)
+  replyContent  String?   @map("reply_content") @db.VarChar(1000)
+  replyAt       DateTime? @map("reply_at")
+  replyAuthorId String?   @map("reply_author_id") @db.Uuid
+
+  createdAt DateTime @default(now()) @map("created_at")
+  updatedAt DateTime @updatedAt @map("updated_at")
+
+  // Relations
+  author     User         @relation("AuthoredReviews", fields: [authorId], references: [id], onDelete: Cascade)
+  listing    Listing?     @relation(fields: [listingId], references: [id], onDelete: Cascade)
+  targetUser User?        @relation("ReceivedReviews", fields: [targetUserId], references: [id], onDelete: Cascade)
+  files      ReviewFile[]
+  likes      ReviewLike[]
+
+  @@index([authorId])
+  @@index([listingId, status]) // Для поиска approved отзывов
+  @@index([targetUserId, status])
+  @@map("reviews")
+}
+
+// Файлы к отзыву (фото товара, скриншоты)
+model ReviewFile {
+  id       String @id @default(uuid()) @db.Uuid
+  reviewId String @map("review_id") @db.Uuid
+
+  // S3
+  s3Key    String @map("s3_key")
+  s3Bucket String @map("s3_bucket")
+  url      String
+
+  fileType String @map("file_type")
+  fileName String @map("file_name")
+  fileSize Int    @map("file_size")
+
+  sortOrder Int @default(0) @map("sort_order")
+
+  createdAt DateTime @default(now()) @map("created_at")
+
+  review Review @relation(fields: [reviewId], references: [id], onDelete: Cascade)
+
+  @@index([reviewId])
+  @@map("review_files")
+}
+
+// Лайки к отзывам (чтобы отслеживать полезность)
+model ReviewLike {
+  id       String @id @default(uuid()) @db.Uuid
+  reviewId String @map("review_id") @db.Uuid
+  userId   String @map("user_id") @db.Uuid
+
+  createdAt DateTime @default(now()) @map("created_at")
+
+  review Review @relation(fields: [reviewId], references: [id], onDelete: Cascade)
+  user   User   @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@unique([reviewId, userId])
+  @@map("review_likes")
+}
+
+// ================ ENUMS ================
+enum ListingStatus {
+  DRAFT
+  PUBLISHED
+  ARCHIVED
+  TEMPLATE
+
+  @@map("listing_status")
+}
+
+enum ListingCondition {
+  NEW
+  USED
+
+  @@map("listing_condition")
+}
+
+enum MapLocationType {
+  OFFICE
+  WAREHOUSE
+  OTHER
+
+  @@map("map_location_type")
+}
+
+enum FileOwnerType {
+  USER // Файлы пользователя
+  LISTING // Файлы объявления
+
+  @@map("file_owner_type")
+}
+
+enum FileKind {
+  AVATAR // Аватар пользователя
+  PHOTO // Фото объявления (макс 10)
+  DOCUMENT // Документ (макс 5)
+
+  @@map("file_kind")
+}
+
+enum ReviewTargetType {
+  LISTING
+  USER
+
+  @@map("review_target_type")
+}
+
+enum ReviewStatus {
+  PENDING // На модерации
+  APPROVED // Опубликован
+  REJECTED // Отклонён
+
+  @@map("review_status")
 }
