@@ -40,7 +40,8 @@ export function CreateListingApiDocs() {
       examples: {
         draft: {
           summary: 'Создание черновика',
-          description: 'Все поля опциональны кроме categoryId. Можно заполнить частично или полностью.',
+          description:
+            'Все поля опциональны кроме categoryId. Можно заполнить частично или полностью.',
           value: {
             categoryId: 123,
             status: 'DRAFT',
@@ -52,17 +53,17 @@ export function CreateListingApiDocs() {
             condition: 'USED',
             files: [
               'data:application/pdf;base64,JVBERi0xLjQKJeLjz9M=...',
-              'data:text/plain;base64,SGVsbG8gV29ybGQ='
+              'data:text/plain;base64,SGVsbG8gV29ybGQ=',
             ],
             photos: [
               'data:image/jpeg;base64,/9j/4AAQSkZJRgABAQAAAQ...',
-              'data:image/jpeg;base64,/9j/4AAQSkZJRgABAQAAAQ...'
+              'data:image/jpeg;base64,/9j/4AAQSkZJRgABAQAAAQ...',
             ],
             map: {
               type: 'OFFICE',
               latitude: 55.7558,
-              longtitude: 37.6173
-            }
+              longtitude: 37.6173,
+            },
           },
         },
         draftMinimal: {
@@ -70,7 +71,7 @@ export function CreateListingApiDocs() {
           description: 'Только обязательное поле categoryId',
           value: {
             categoryId: 123,
-            status: 'DRAFT'
+            status: 'DRAFT',
           },
         },
         template: {
@@ -85,12 +86,8 @@ export function CreateListingApiDocs() {
             currencyId: 1,
             priceUnitId: 1,
             condition: 'USED',
-            files: [
-              'data:application/pdf;base64,JVBERi0xLjQKJeLjz9M=...'
-            ],
-            photos: [
-              'data:image/jpeg;base64,/9j/4AAQSkZJRgABAQAAAQ...'
-            ]
+            files: ['data:application/pdf;base64,JVBERi0xLjQKJeLjz9M=...'],
+            photos: ['data:image/jpeg;base64,/9j/4AAQSkZJRgABAQAAAQ...'],
           },
         },
         published: {
@@ -107,18 +104,18 @@ export function CreateListingApiDocs() {
             condition: 'USED',
             files: [
               'data:application/pdf;base64,JVBERi0xLjQKJeLjz9M=...',
-              'data:text/plain;base64,SGVsbG8gV29ybGQ='
+              'data:text/plain;base64,SGVsbG8gV29ybGQ=',
             ],
             photos: [
               'data:image/jpeg;base64,/9j/4AAQSkZJRgABAQAAAQ...',
               'data:image/jpeg;base64,/9j/4AAQSkZJRgABAQAAAQ...',
-              'data:image/jpeg;base64,/9j/4AAQSkZJRgABAQAAAQ...'
+              'data:image/jpeg;base64,/9j/4AAQSkZJRgABAQAAAQ...',
             ],
             map: {
               type: 'OFFICE',
               latitude: 55.7558,
-              longtitude: 37.6173
-            }
+              longtitude: 37.6173,
+            },
           },
         },
       },
@@ -182,7 +179,10 @@ export function CreateListingApiDocs() {
               type: 'string',
             },
             maxItems: 5,
-            example: ['data:application/pdf;base64,JVBERi0xLjQKJeLjz9M=...', 'data:text/plain;base64,SGVsbG8gV29ybGQ='],
+            example: [
+              'data:application/pdf;base64,JVBERi0xLjQKJeLjz9M=...',
+              'data:text/plain;base64,SGVsbG8gV29ybGQ=',
+            ],
             description: 'Массив base64 строк для документов (макс. 5)',
           },
           photos: {
@@ -191,7 +191,10 @@ export function CreateListingApiDocs() {
               type: 'string',
             },
             maxItems: 10,
-            example: ['data:image/jpeg;base64,/9j/4AAQSkZJRgABAQAAAQ...', 'data:image/jpeg;base64,/9j/4AAQSkZJRgABAQAAAQ...'],
+            example: [
+              'data:image/jpeg;base64,/9j/4AAQSkZJRgABAQAAAQ...',
+              'data:image/jpeg;base64,/9j/4AAQSkZJRgABAQAAAQ...',
+            ],
             description: 'Массив base64 строк для изображений (макс. 10)',
           },
           map: {

@@ -30,6 +30,7 @@ model User {
   authoredReviews  Review[]          @relation("AuthoredReviews")
   receivedReviews  Review[]          @relation("ReceivedReviews")
   reviewLikes      ReviewLike[]
+  listingLikes     ListingLike[]
 
   files File[]
 
@@ -208,6 +209,7 @@ model Listing {
 
   favorites Favorite[]
   reviews   Review[]
+  likes     ListingLike[]
 
   // Рейтинг объявления (агрегированный)
   rating       Float? @default(0)
@@ -242,6 +244,10 @@ model Listing {
   // ===== СЧЁТЧИКИ =====
   viewsCount     Int @default(0) @map("views_count")
   favoritesCount Int @default(0) @map("favorites_count")
+  likesCount     Int @default(0) @map("likes_count")
+  
+  // Для оптимистической блокировки(лайки)
+  version        Int @default(0)
 
   // ===== ДАТЫ =====
   publishedAt  DateTime? @map("published_at") // Когда опубликовано
@@ -463,6 +469,23 @@ model ReviewFile {
 
   @@index([reviewId])
   @@map("review_files")
+}
+
+// ================ LISTING LIKES ================
+model ListingLike {
+  id        String @id @default(uuid()) @db.Uuid
+  listingId String @map("listing_id") @db.Uuid
+  userId    String @map("user_id") @db.Uuid
+
+  createdAt DateTime @default(now()) @map("created_at")
+
+  listing Listing @relation(fields: [listingId], references: [id], onDelete: Cascade)
+  user    User    @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@unique([listingId, userId]) // Один пользователь — один лайк на объявление
+  @@index([listingId])
+  @@index([userId])
+  @@map("listing_likes")
 }
 
 // Лайки к отзывам (чтобы отслеживать полезность)

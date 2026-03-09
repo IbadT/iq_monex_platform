@@ -92,6 +92,13 @@ export class ListingsService {
     });
   }
 
+  async hasListing(id: string, status: StatusQueryDto): Promise<boolean> {
+    const listing = await prisma.listing.findFirst({
+      where: { id, status: status.status },
+    });
+    return !!listing;
+  }
+
   async listingById(id: string, status: StatusQueryDto) {
     this.logger.log(`Listing ID: ${id}, Status: ${status.status}`);
     return await prisma.listing.findFirst({

@@ -1,6 +1,7 @@
-import { Controller, Delete, Get, Post } from '@nestjs/common';
+import { Body, Controller, Delete, Get, Post } from '@nestjs/common';
 import { FavoriteService } from './favorite.service';
 import { AppLogger } from '@/common/logger/logger.service';
+import { ChangeListingStatusDto } from '@/listings/dto/request/change-listing-status.dto';
 
 @Controller('favorite')
 export class FavoriteController {
@@ -22,9 +23,9 @@ export class FavoriteController {
   }
 
   @Post('')
-  async createFavorite() {
+  async createFavorite(@Body() body: ChangeListingStatusDto) {
     this.logger.log('Добавить объявление в избранное');
-    return await this.favoriteService.create();
+    return await this.favoriteService.create(body);
   }
 
   // удалить из избранного
