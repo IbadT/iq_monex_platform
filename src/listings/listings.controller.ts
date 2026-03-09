@@ -22,7 +22,7 @@ import { CurrentUser } from '@/common/decorators/current-user.decorator';
 import { JwtPayload } from '@/common/interfaces/jwt-payload.interface';
 import { ListingQueryDto } from './dto/request/listing-query.dto';
 import { StatusQueryDto } from './dto/request/status-query.dto';
-import { FavoriteService } from '@/favorite/favorite.service';
+// import { FavoriteService } from '@/favorite/favorite.service';
 import { ReviewsService } from '@/reviews/reviews.service';
 import { CreateReviewDto } from '@/reviews/dto/create-review.dto';
 import { SendLikeDto } from './dto/request/send-like.dto';
@@ -40,7 +40,7 @@ import { ListingStatus } from './enums/listing-status.enum';
 export class ListingsController {
   constructor(
     private readonly listingsService: ListingsService,
-    private readonly favoritesService: FavoriteService,
+    // private readonly favoritesService: FavoriteService,
     private readonly reviewsService: ReviewsService,
     private readonly listingLikesService: ListingLikesService,
   ) {}
@@ -67,7 +67,8 @@ export class ListingsController {
   @ApiChangeStatusDocs()
   @Protected()
   async addListingToFavorite(@Body() body: ChangeListingStatusDto) {
-    return await this.favoritesService.create(body);
+    // return await this.favoritesService.create(body);
+    return body;
   }
 
   @Post('likes')

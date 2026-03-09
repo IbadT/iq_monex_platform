@@ -1,7 +1,22 @@
-import { Body, Controller, Delete, Get, Post } from '@nestjs/common';
+import {
+  Body,
+  Controller,
+  Delete,
+  Get,
+  Param,
+  ParseUUIDPipe,
+  Post,
+} from '@nestjs/common';
 import { FavoriteService } from './favorite.service';
 import { AppLogger } from '@/common/logger/logger.service';
-import { ChangeListingStatusDto } from '@/listings/dto/request/change-listing-status.dto';
+import { Protected } from '@/common/decorators';
+import { CurrentUser } from '@/common/decorators/current-user.decorator';
+import { JwtPayload } from '@/common/interfaces/jwt-payload.interface';
+import { CreateFavoriteDto } from './dto/create-favorite.dto';
+import { ApiGetFavoritesListDocs } from './decorators/api-get-favorites-list-docs.decorator';
+import { ApiGetFavoriteByIdDocs } from './decorators/api-get-favorite-by-id-docs.decorator';
+import { ApiCreateFavoriteDocs } from './decorators/api-create-favorite-docs.decorator';
+import { ApiDeleteFavoriteDocs } from './decorators/api-delete-favorite-docs.decorator';
 
 @Controller('favorite')
 export class FavoriteController {
@@ -10,28 +25,39 @@ export class FavoriteController {
     private readonly logger: AppLogger,
   ) {}
 
-  @Get('')
-  async getFavorites() {
-    this.logger.log(`Получение избранных объявлений по id: ${123}`);
-    return await this.favoriteService.getById();
+  @Get(':id')
+  @Protected()
+  @ApiGetFavoriteByIdDocs()
+  async getFavorites(@Param('id', ParseUUIDPipe) id: string) {
+    this.logger.log(`Получение избранных объявлений по id: ${id}`);
+    return await this.favoriteService.getById(id);
   }
 
   @Get('')
-  async getList() {
+  @Protected()
+  @ApiGetFavoritesListDocs()
+  async getList(@CurrentUser() user: JwtPayload) {
     this.logger.log('Получить все объявления в избранном');
-    return await this.favoriteService.getList();
+    return await this.favoriteService.getList(user.id);
   }
 
   @Post('')
-  async createFavorite(@Body() body: ChangeListingStatusDto) {
+  @Protected()
+  @ApiCreateFavoriteDocs()
+  async createFavorite(
+    @CurrentUser() user: JwtPayload,
+    @Body() body: CreateFavoriteDto,
+  ) {
     this.logger.log('Добавить объявление в избранное');
-    return await this.favoriteService.create(body);
+    return await this.favoriteService.create(user.id, body);
   }
 
   // удалить из избранного
-  @Delete('')
-  async deleteFavorite() {
-    this.logger.log('Удалить объявление из избранного');
-    return await this.favoriteService.delete();
+  @Delete(':id')
+  @Protected()
+  @ApiDeleteFavoriteDocs()
+  async deleteFavorite(@Param('id', ParseUUIDPipe) id: string) {
+    this.logger.log(`Удалить объявление из избранного по id: ${id}`);
+    return await this.favoriteService.delete(id);
   }
 }
