@@ -8,6 +8,10 @@ datasource db {
   provider = "postgresql"
 }
 
+// PinnedChat не имеет уникального constraint на (userId, chatId) — можно создать дубликаты
+// Message не индексирован по createdAt — чаты будут медленно загружаться при сортировке
+// Review.content 2000 символов без индекса для full-text search
+
 // ================ USER ================
 
 model User {
@@ -33,6 +37,12 @@ model User {
   listingLikes     ListingLike[]
 
   files File[]
+
+  subscriptions Subscription[]
+  payments      Payment[]
+  donations     Donation[]
+  slotPackages  SlotPackage[]
+  userSlots     UserSlot[]
 
   createdAt DateTime @default(now()) @map("created_at")
   updatedAt DateTime @updatedAt @map("updated_at")
@@ -138,7 +148,7 @@ model PinnedChat {
 
 model UserChat {
   id      String @id @default(uuid()) @db.Uuid
-  usersId String @map("userd_id") @db.Uuid
+  usersId String @map("user_id") @db.Uuid
   chatsId String @map("chats_id") @db.Uuid
 
   user User @relation(fields: [usersId], references: [id], onUpdate: NoAction, onDelete: NoAction)
@@ -160,6 +170,7 @@ model ChatParticipant {
   createdAt DateTime  @default(now()) @map("created_at")
   deletedAt DateTime? @map("deleted_at") @db.Timestamp()
 
+  @@unique([userId, chatId])
   @@map("chat_participants")
 }
 
@@ -176,6 +187,7 @@ model Message {
   createdAt DateTime @default(now()) @map("created_at")
   updatedAt DateTime @updatedAt @map("updated_at")
 
+  @@index([chatId, createdAt])
   @@map("messages")
 }
 
@@ -245,9 +257,9 @@ model Listing {
   viewsCount     Int @default(0) @map("views_count")
   favoritesCount Int @default(0) @map("favorites_count")
   likesCount     Int @default(0) @map("likes_count")
-  
+
   // Для оптимистической блокировки(лайки)
-  version        Int @default(0)
+  version Int @default(0)
 
   // ===== ДАТЫ =====
   publishedAt  DateTime? @map("published_at") // Когда опубликовано
@@ -261,6 +273,8 @@ model Listing {
   files          File[]
   locations      MapLocation[]
   specifications ListingSpecification[]
+
+  listingSlot ListingSlot?
 
   createdAt DateTime @default(now()) @map("created_at")
   updatedAt DateTime @updatedAt @map("updated_at")
@@ -503,7 +517,266 @@ model ReviewLike {
   @@map("review_likes")
 }
 
+// ================ TARIFFS ================
+
+model Tariff {
+  id           String     @id @default(uuid()) @db.Uuid
+  code         TariffCode
+  name         String
+  description  String
+  baseSlots    Int        @map("base_slots") // Количество слотов при покупке
+  baseDays     Int        @map("base_days") // Базовый срок действия (дней)
+  maxTotalDays Int        @map("max_total_days") // Максимальный срок (для продлений)
+  isExtendable Boolean    @map("is_extendable") // Можно ли продлевать
+  price        Decimal    @db.Decimal(12, 2) // Цена (в базовой валюте)
+  currencyCode String     @map("currency_code") // ISO код валюты (BYN, USD, EUR)
+  isActive     Boolean    @default(true) @map("is_active")
+
+  subscriptions Subscription[]
+
+  createdAt DateTime @default(now()) @map("created_at")
+  updatedAt DateTime @updatedAt @map("updated_at")
+
+  @@map("tariffs")
+}
+
+// ================ SUBSCRIPTIONS ================
+
+model Subscription {
+  id       String @id @default(uuid()) @db.Uuid
+  userId   String @map("user_id") @db.Uuid
+  tariffId String @map("tariff_id") @db.Uuid
+
+  isActive   Boolean @default(true) @map("is_active")
+  // Общее количество слотов по этой подписке (для истории)
+  totalSlots Int     @map("total_slots")
+
+  user   User   @relation(fields: [userId], references: [id], onDelete: Cascade)
+  tariff Tariff @relation(fields: [tariffId], references: [id])
+
+  periods   SubscriptionPeriod[]
+  userSlots UserSlot[] // Слоты, созданные этой подпиской
+
+  createdAt DateTime @default(now()) @map("created_at")
+  updatedAt DateTime @updatedAt @map("updated_at")
+
+  @@index([userId, isActive])
+  @@map("subscriptions")
+}
+
+model SubscriptionPeriod {
+  id             String @id @default(uuid()) @db.Uuid
+  subscriptionId String @map("subscription_id") @db.Uuid
+
+  days    Int // Сколько дней добавлено
+  startAt DateTime @map("start_at")
+  endAt   DateTime @map("end_at")
+
+  // Ссылка на платёж, которым оплачен этот период
+  paymentId String? @map("payment_id") @db.Uuid
+
+  subscription Subscription @relation(fields: [subscriptionId], references: [id], onDelete: Cascade)
+
+  createdAt DateTime @default(now()) @map("created_at")
+
+  @@index([subscriptionId, endAt])
+  @@map("subscription_periods")
+}
+
+// ================ PAYMENTS ================
+
+model Payment {
+  id     String @id @default(uuid()) @db.Uuid
+  userId String @map("user_id") @db.Uuid
+
+  amount   Decimal       @db.Decimal(12, 2)
+  currency String // BYN, USD, EUR
+  status   PaymentStatus @default(PENDING)
+
+  // Данные от платёжной системы
+  externalId  String @map("external_id") @db.VarChar(100)
+  provider    String // Название платёжной системы (yookassa, stripe, etc)
+  description String
+
+  // Для связывания с invoice/счётом
+  invoiceId String? @map("invoice_id") @db.VarChar(50)
+
+  // Дополнительные данные от провайдера
+  metadata Json? // @db.JsonB
+
+  user  User          @relation(fields: [userId], references: [id], onDelete: Cascade)
+  items PaymentItem[]
+
+  createdAt DateTime @default(now()) @map("created_at")
+  updatedAt DateTime @updatedAt @map("updated_at")
+
+  @@index([userId, status])
+  @@index([externalId])
+  @@index([status, createdAt])
+  @@map("payments")
+}
+
+model PaymentItem {
+  id        String @id @default(uuid()) @db.Uuid
+  paymentId String @map("payment_id") @db.Uuid
+
+  itemType  PaymentItemType @map("item_type")
+  // ID сущности в зависимости от типа:
+  // - SUBSCRIPTION → subscription.id
+  // - SLOT_PACKAGE → slot_package.id  
+  // - DONATION → donation.id
+  itemId    String          @db.Uuid
+  itemIdStr String?         @map("item_id_str") // Для совместимости если нужно
+
+  quantity  Int     @default(1)
+  unitPrice Decimal @map("unit_price") @db.Decimal(12, 2)
+
+  // Описание позиции (название тарифа/пакета)
+  description String
+
+  payment Payment @relation(fields: [paymentId], references: [id], onDelete: Cascade)
+
+  createdAt DateTime @default(now()) @map("created_at")
+
+  @@index([paymentId])
+  @@index([itemType, itemId])
+  @@map("payment_items")
+}
+
+// ================ DONATIONS ================
+
+model Donation {
+  id     String @id @default(uuid()) @db.Uuid
+  userId String @map("user_id") @db.Uuid
+
+  amount   Decimal @db.Decimal(12, 2)
+  currency String // BYN, USD, EUR
+
+  comment String?
+
+  // Ссылка на платёж
+  paymentId String? @map("payment_id") @db.Uuid
+
+  user User @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  createdAt DateTime @default(now()) @map("created_at")
+
+  @@index([userId])
+  @@map("donations")
+}
+
+// ================ SLOT PACKAGES ================
+
+model SlotPackage {
+  id     String @id @default(uuid()) @db.Uuid
+  userId String @map("user_id") @db.Uuid
+
+  slots Int // Количество купленных слотов
+  price Decimal @db.Decimal(12, 2) // Цена покупки (для аналитики)
+
+  // Срок действия слотов пакета (обычно бессрочно или длительный)
+  expiresAt DateTime @map("expires_at")
+  isActive  Boolean  @default(true) @map("is_active")
+
+  // Ссылка на платёж
+  paymentId String? @map("payment_id") @db.Uuid
+
+  user      User       @relation(fields: [userId], references: [id], onDelete: Cascade)
+  userSlots UserSlot[] // Созданные этим пакетом слоты
+
+  createdAt DateTime @default(now()) @map("created_at")
+
+  @@index([userId, isActive])
+  @@map("slot_packages")
+}
+
+// ================ USER SLOTS ================
+
+model UserSlot {
+  id     String @id @default(uuid()) @db.Uuid
+  userId String @map("user_id") @db.Uuid
+
+  slotIndex Int @map("slot_index") // 1, 2, 3... для отображения пользователю
+
+  sourceType SlotSource @map("source_type")
+  // ID подписки или пакета
+  sourceId   String     @map("source_id") @db.Uuid
+
+  createdAt DateTime @default(now()) @map("created_at")
+  expiresAt DateTime @map("expires_at") // Когда слот истекает (независимо от использования)
+
+  user User @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  // Связь с подпиской или пакетом (опциональные, для целостности)
+  subscription Subscription? @relation(fields: [sourceId], references: [id], map: "userslot_subscription_fk")
+
+  listingSlot   ListingSlot? // Текущее использование слота
+  slotPackage   SlotPackage? @relation(fields: [slotPackageId], references: [id])
+  slotPackageId String?      @db.Uuid
+
+  @@unique([userId, slotIndex])
+  @@index([userId, expiresAt])
+  @@index([sourceType, sourceId])
+  @@map("user_slots")
+}
+
+// ================ LISTING SLOTS ================
+
+model ListingSlot {
+  id        String @id @default(uuid()) @db.Uuid
+  listingId String @unique @map("listing_id") @db.Uuid // 1:1 с Listing
+
+  userSlotId String @unique @map("user_slot_id") @db.Uuid // Какой слот используется
+
+  assignedAt DateTime  @map("assigned_at")
+  releasedAt DateTime? @map("released_at") // Когда слот освобождён
+
+  // Причина освобождения (для аналитики)
+  releaseReason String? @map("release_reason") // ARCHIVED, DELETED, REPUBLISHED
+
+  listing  Listing  @relation(fields: [listingId], references: [id], onDelete: Cascade)
+  userSlot UserSlot @relation(fields: [userSlotId], references: [id], onDelete: Cascade)
+
+  createdAt DateTime @default(now()) @map("created_at")
+  updatedAt DateTime @updatedAt @map("updated_at")
+
+  @@index([userSlotId, releasedAt])
+  @@map("listing_slots")
+}
+
 // ================ ENUMS ================
+enum PaymentStatus {
+  PENDING
+  COMPLETED
+  FAILED
+  REFUNDED
+
+  @@map("payment_status")
+}
+
+enum SlotSource {
+  SUBSCRIPTION
+  SLOT_PACKAGE
+
+  @@map("slot_cource")
+}
+
+enum PaymentItemType {
+  SUBSCRIPTION
+  SLOT_PACKAGE
+  DONATION
+
+  @@map("payment_item_type")
+}
+
+enum TariffCode {
+  BASE // 3 слота, 30 дней
+  MAIN // 10 слотов, 60 дней  
+  PREMIUM // 30 слотов, 90 дней, возможность продления
+
+  @@map("tariff_code")
+}
+
 enum ListingStatus {
   DRAFT
   PUBLISHED

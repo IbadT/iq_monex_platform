@@ -46,6 +46,9 @@ export class CategoriesService {
   }
 
   async getCategoryTreeById(id: number) {
+    const cacheKey = `categories/tree/id:$${id}`;
+    const cachedData = await this.cacheService.get(cacheKey);
+    if (cachedData) return cachedData;
     const categoryTree = await prisma.category.findUnique({
       where: { id },
       include: {
@@ -61,26 +64,61 @@ export class CategoriesService {
       throw new NotFoundException(`Категория с ID ${id} не найдена`);
     }
 
+    await this.cacheService.set({
+      baseKey: cacheKey,
+      ttl: 900,
+      value: categoryTree,
+    });
+
     return categoryTree;
   }
 
   async subcategoriesList(): Promise<SubcategoryResponseDto[]> {
-    return await prisma.category.findMany({
+    const cackeKey = 'subcategories';
+    const cachedData =
+      await this.cacheService.get<SubcategoryResponseDto[]>(cackeKey);
+    if (cachedData) return cachedData;
+
+    const subcategories = await prisma.category.findMany({
       where: {
         parentId: { not: null },
         parent: { parentId: null },
       },
     });
+
+    if (subcategories && subcategories.length > 0) {
+      await this.cacheService.set({
+        baseKey: cackeKey,
+        ttl: 900,
+        value: subcategories,
+      });
+    }
+
+    return subcategories;
   }
 
   async subsubcategoriesList(): Promise<SubSubcategoryResponseDto[]> {
-    return await prisma.category.findMany({
+    const cacheKey = 'subsubcategories';
+    const cachedData =
+      await this.cacheService.get<SubSubcategoryResponseDto[]>(cacheKey);
+    if (cachedData) return cachedData;
+    const subsubcategories = await prisma.category.findMany({
       where: {
         parent: {
           parentId: { not: null },
         },
       },
     });
+
+    if (subsubcategories && subsubcategories.length > 0) {
+      await this.cacheService.set({
+        baseKey: cacheKey,
+        ttl: 900,
+        value: subsubcategories,
+      });
+    }
+
+    return subsubcategories;
   }
 
   async seedCategories(): Promise<string> {

@@ -7,17 +7,21 @@ import {
 import { CreateListingDto } from './dto/request/create-listing.dto';
 import { ListingQueryDto } from './dto/request/listing-query.dto';
 import { prisma } from '@/lib/prisma';
-import { Decimal } from 'decimal.js/decimal';
 import { StatusQueryDto } from './dto/request/status-query.dto';
 import { ListingStatus } from './enums/listing-status.enum';
 import { FileOwnerType, FileKind } from 'prisma/generated/enums';
-import { TransactionClient } from 'prisma/generated/internal/prismaNamespace';
+import {
+  Decimal,
+  TransactionClient,
+} from 'prisma/generated/internal/prismaNamespace';
+import { CacheService } from '@/cache/cacheService.service';
+// import { CacheService } from '@/cache/cacheService.service';
 
 @Injectable()
 export class ListingsService {
   constructor(
-    // private readonly cacheSevice: CacheService,
     private readonly logger: AppLogger,
+    private readonly cacheSevice: CacheService,
   ) {}
 
   async listingList(query: ListingQueryDto) {
@@ -93,15 +97,24 @@ export class ListingsService {
   }
 
   async hasListing(id: string, status: StatusQueryDto): Promise<boolean> {
+    const cacheKey = `listings:${id}`;
+    const cachedListing = await this.cacheSevice.get(cacheKey);
+    if (cachedListing) return !!cachedListing;
+
     const listing = await prisma.listing.findFirst({
       where: { id, status: status.status },
     });
+
     return !!listing;
   }
 
   async listingById(id: string, status: StatusQueryDto) {
+    const cachedKey = `listings:${id}`;
+    const cachedListing = await this.cacheSevice.get(cachedKey);
+    if (cachedListing) return cachedListing;
+
     this.logger.log(`Listing ID: ${id}, Status: ${status.status}`);
-    return await prisma.listing.findFirst({
+    const listing = await prisma.listing.findFirst({
       where: { id, status: status.status },
       include: {
         category: true,
@@ -112,12 +125,26 @@ export class ListingsService {
         specifications: true,
       },
     });
+
+    if (listing) {
+      await this.cacheSevice.set({
+        baseKey: cachedKey,
+        ttl: 900,
+        value: listing,
+      });
+    }
+
+    return listing;
   }
 
   async listingsByUserId(userId: string) {
+    const cacheKey = `listings:userId:${userId}`;
+    const cachedListings = await this.cacheSevice.get(cacheKey);
+    if (cachedListings) return cachedListings;
+
     this.logger.log(`User ID: ${userId}`);
 
-    return await prisma.listing.findMany({
+    const listings = await prisma.listing.findMany({
       where: { userId },
       include: {
         category: true,
@@ -128,14 +155,27 @@ export class ListingsService {
         specifications: true,
       },
     });
+
+    if (listings && listings.length > 0) {
+      await this.cacheSevice.set({
+        baseKey: cacheKey,
+        ttl: 900,
+        value: listings,
+      });
+    }
+
+    return listings;
   }
 
   async createListing(userId: string, body: CreateListingDto) {
+    const cacheKey = 'listings';
+    // TODO: вынести логику в ресурсы для map, photos/files и там использовать cacheService
+
     const { map, photos, files, ...listing } = body;
     this.logger.log(`Объявление для создания: ${JSON.stringify(body)}`);
 
     try {
-      return await prisma.$transaction(async (tx: TransactionClient) => {
+      const res = await prisma.$transaction(async (tx: TransactionClient) => {
         // Создаем объявление
         const createdListing = await tx.listing.create({
           data: {
@@ -201,6 +241,9 @@ export class ListingsService {
 
         return createdListing;
       });
+      await this.cacheSevice.del(cacheKey);
+
+      return res;
     } catch (error) {
       this.logger.error('Ошибка создания объявления:', error);
       throw error;
@@ -212,15 +255,24 @@ export class ListingsService {
   }
 
   async deleteListingById(id: string, status: StatusQueryDto) {
+    const cacheKey = 'listings';
+    const cackeKeyId = `listings:${id}`;
     const hasListing = await this.listingById(id, status);
     if (!hasListing) {
       throw new NotFoundException(`Объявление с id: ${id} не найдено`);
     }
-    return await prisma.listing.delete({
+    const deleted = await prisma.listing.delete({
       where: {
         id,
         status: status.status,
       },
     });
+
+    if (deleted) {
+      await this.cacheSevice.del(cacheKey);
+      await this.cacheSevice.del(cackeKeyId);
+    }
+
+    return deleted;
   }
 }

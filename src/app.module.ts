@@ -17,12 +17,15 @@ import { RabbitmqModule } from './rabbitmq/rabbitmq.module';
 import { ListingsModule } from './listings/listings.module';
 import { FavoriteModule } from './favorite/favorite.module';
 import { ReviewsModule } from './reviews/reviews.module';
+import { PaymentsModule } from './payments/payments.module';
+import { ScheduleModule } from '@nestjs/schedule';
 
 @Module({
   imports: [
     ConfigModule.forRoot({
       isGlobal: true,
     }),
+    ScheduleModule.forRoot(),
     LoggerModule,
     GuardsModule,
     UsersModule,
@@ -37,6 +40,7 @@ import { ReviewsModule } from './reviews/reviews.module';
     ListingsModule,
     FavoriteModule,
     ReviewsModule,
+    PaymentsModule,
   ],
   controllers: [AppController],
   providers: [AppService, CacheService],

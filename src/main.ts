@@ -34,7 +34,7 @@ async function bootstrap() {
   app.setGlobalPrefix('api');
 
   const config = new DocumentBuilder()
-    .setTitle('Iq Monex Platform')
+    .setTitle('IQMONEX Platform')
     .setVersion('1.0.0')
     .addBearerAuth({
       type: 'http',

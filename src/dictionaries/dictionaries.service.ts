@@ -29,25 +29,43 @@ export class DictionariesService {
       Currency.fromPrisma(currencies).toResponse(lang),
     );
 
-    await this.cacheService.set({
-      baseKey: cacheKey,
-      ttl: 900,
-      value: result,
-    });
+    if (result) {
+      await this.cacheService.set({
+        baseKey: cacheKey,
+        ttl: 900,
+        value: result,
+      });
+    }
 
     return result;
   }
 
   async unitMeasurements(lang: Language) {
+    const cacheKey = 'unit-measurements';
+    const cacheData = await this.cacheService.get(cacheKey);
+    if (cacheData) return cacheData;
+
     const unitMeasurements = await prisma.unitMeasurement.findMany();
 
-    return unitMeasurements.map((unit: UnitMeasurement) =>
+    const result = unitMeasurements.map((unit: UnitMeasurement) =>
       UnitMeasurement.fromPrisma(unit).toResponse(lang),
     );
+
+    if (result && result.length > 0) {
+      await this.cacheService.set({
+        baseKey: cacheKey,
+        ttl: 900,
+        value: result,
+      });
+    }
+
+    return result;
   }
 
   async seedDictionariesData() {
     try {
+      const cacheKeyCurrencies = 'currencies';
+      const cacheKeyUnit = 'unit-measurements';
       this.logger.log('Начинаю сидирование валют и единиц измерения...');
 
       // Очищаем таблицы
@@ -79,6 +97,19 @@ export class DictionariesService {
           }),
         ),
       );
+
+      await this.cacheService.set({
+        baseKey: cacheKeyCurrencies,
+        ttl: 900,
+        value: currencies,
+      });
+
+      await this.cacheService.set({
+        baseKey: cacheKeyUnit,
+        ttl: 900,
+        value: units,
+      });
+
       this.logger.log(`Создано ${units.length} единиц измерения`);
 
       return 'OK';

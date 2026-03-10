@@ -10,6 +10,12 @@ import { ListingLikesService } from './listing-likes.service';
 @Module({
   imports: [JwtAuthModule],
   controllers: [ListingsController],
-  providers: [ListingsService, FavoriteService, ReviewsService, CacheService, ListingLikesService],
+  providers: [
+    CacheService,
+    ListingsService,
+    FavoriteService,
+    ReviewsService,
+    ListingLikesService,
+  ],
 })
 export class ListingsModule {}
