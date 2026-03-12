@@ -18,14 +18,14 @@ import { ApiGetListingLikesDocs } from '@/listings/decorators/api-get-listing-li
 export class LikesController {
   constructor(private readonly likesService: LikesService) {}
 
-  @Post('likes')
+  @Post('')
   @ApiToggleLikeDocs()
   @Protected()
   async toggleLike(@Body() body: SendLikeDto, @CurrentUser() user: JwtPayload) {
     return await this.likesService.toggleLike(body.listing_id, user.id);
   }
 
-  @Get('likes/:listingId')
+  @Get('listings/:listingId')
   @ApiGetListingLikesDocs()
   async getListingLikes(@Param('listingId', ParseUUIDPipe) listingId: string) {
     return await this.likesService.getListingLikes(listingId);

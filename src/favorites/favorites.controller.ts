@@ -7,16 +7,16 @@ import {
   ParseUUIDPipe,
   Post,
 } from '@nestjs/common';
-import { FavoriteService } from './favorite.service';
+import { FavoriteService } from './favorites.service';
 import { AppLogger } from '@/common/logger/logger.service';
 import { Protected } from '@/common/decorators';
 import { CurrentUser } from '@/common/decorators/current-user.decorator';
 import { JwtPayload } from '@/common/interfaces/jwt-payload.interface';
-import { CreateFavoriteDto } from './dto/create-favorite.dto';
-import { ApiGetFavoritesListDocs } from './decorators/api-get-favorites-list-docs.decorator';
-import { ApiGetFavoriteByIdDocs } from './decorators/api-get-favorite-by-id-docs.decorator';
 import { ApiCreateFavoriteDocs } from './decorators/api-create-favorite-docs.decorator';
 import { ApiDeleteFavoriteDocs } from './decorators/api-delete-favorite-docs.decorator';
+import { ApiGetFavoriteByIdDocs } from './decorators/api-get-favorite-by-id-docs.decorator';
+import { ApiGetFavoritesListDocs } from './decorators/api-get-favorites-list-docs.decorator';
+import { CreateFavoriteDto } from './dto/create-favorite.dto';
 
 @Controller('favorite')
 export class FavoriteController {

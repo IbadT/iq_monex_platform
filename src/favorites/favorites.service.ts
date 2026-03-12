@@ -1,8 +1,8 @@
 import { Injectable } from '@nestjs/common';
-import { CreateFavoriteDto } from './dto/create-favorite.dto';
 import { prisma } from '@/lib/prisma';
 import { CacheService } from '@/cache/cacheService.service';
 import { AppLogger } from '@/common/logger/logger.service';
+import { CreateFavoriteDto } from './dto/create-favorite.dto';
 
 @Injectable()
 export class FavoriteService {

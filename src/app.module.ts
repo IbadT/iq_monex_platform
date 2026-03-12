@@ -15,7 +15,6 @@ import { NotificationsModule } from './notifications/notifications.module';
 import { EmailModule } from './email/email.module';
 import { RabbitmqModule } from './rabbitmq/rabbitmq.module';
 import { ListingsModule } from './listings/listings.module';
-import { FavoriteModule } from './favorite/favorite.module';
 import { ReviewsModule } from './reviews/reviews.module';
 import { PaymentsModule } from './payments/payments.module';
 import { ScheduleModule } from '@nestjs/schedule';
@@ -24,6 +23,7 @@ import { FileUploadModule } from './workers/file-upload.module';
 import { SubscriptionServiceModule } from './subscription/subscription.module';
 import { YookassaModule } from 'nestjs-yookassa';
 import { LikesModule } from './likes/likes.module';
+import { FavoritesModule } from './favorites/favorites.module';
 
 @Module({
   imports: [
@@ -51,13 +51,13 @@ import { LikesModule } from './likes/likes.module';
     EmailModule,
     RabbitmqModule,
     ListingsModule,
-    FavoriteModule,
     ReviewsModule,
     PaymentsModule,
     S3Module,
     FileUploadModule,
     SubscriptionServiceModule,
     LikesModule,
+    FavoritesModule,
   ],
   controllers: [AppController],
   providers: [AppService, CacheService],

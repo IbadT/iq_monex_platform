@@ -27,10 +27,7 @@ import { UpdateListingDto } from './dto/request/update-listing.dto';
 
 @Controller('listings')
 export class ListingsController {
-  constructor(
-    private readonly listingsService: ListingsService,
-    // private readonly favoritesService: FavoriteService,
-  ) {}
+  constructor(private readonly listingsService: ListingsService) {}
 
   @Get('')
   @ApiListingQueryDocs()
