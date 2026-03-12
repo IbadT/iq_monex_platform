@@ -6,6 +6,9 @@ import { CacheService } from '@/cache/cacheService.service';
 import { FavoriteService } from '@/favorite/favorite.service';
 import { ReviewsService } from '@/reviews/reviews.service';
 import { ListingLikesService } from './listing-likes.service';
+import { S3Service } from '@/s3/s3.service';
+import { RabbitmqService } from '@/rabbitmq/rabbitmq.service';
+import { SubscriptionService } from '@/subscription/subscription.service';
 
 @Module({
   imports: [JwtAuthModule],
@@ -16,6 +19,9 @@ import { ListingLikesService } from './listing-likes.service';
     FavoriteService,
     ReviewsService,
     ListingLikesService,
+    RabbitmqService,
+    S3Service,
+    SubscriptionService,
   ],
 })
 export class ListingsModule {}

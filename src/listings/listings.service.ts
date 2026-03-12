@@ -15,13 +15,18 @@ import {
   TransactionClient,
 } from 'prisma/generated/internal/prismaNamespace';
 import { CacheService } from '@/cache/cacheService.service';
-// import { CacheService } from '@/cache/cacheService.service';
+import { S3Service } from '@/s3/s3.service';
+import { RabbitmqService } from '@/rabbitmq/rabbitmq.service';
+import { SubscriptionService } from '@/subscription/subscription.service';
 
 @Injectable()
 export class ListingsService {
   constructor(
     private readonly logger: AppLogger,
     private readonly cacheSevice: CacheService,
+    private readonly s3Service: S3Service,
+    private readonly rabbitmqService: RabbitmqService,
+    private readonly subscriptionService: SubscriptionService,
   ) {}
 
   async listingList(query: ListingQueryDto) {
@@ -58,6 +63,11 @@ export class ListingsService {
         files: true,
         locations: true,
         specifications: true,
+        listingSlot: {
+          include: {
+            userSlot: true,
+          },
+        },
       },
       orderBy: {
         createdAt: 'desc',
@@ -109,9 +119,9 @@ export class ListingsService {
   }
 
   async listingById(id: string, status: StatusQueryDto) {
-    const cachedKey = `listings:${id}`;
-    const cachedListing = await this.cacheSevice.get(cachedKey);
-    if (cachedListing) return cachedListing;
+    // const cachedKey = `listings:${id}`;
+    // const cachedListing = await this.cacheSevice.get(cachedKey);
+    // if (cachedListing) return cachedListing;
 
     this.logger.log(`Listing ID: ${id}, Status: ${status.status}`);
     const listing = await prisma.listing.findFirst({
@@ -123,16 +133,21 @@ export class ListingsService {
         files: true,
         locations: true,
         specifications: true,
+        listingSlot: {
+          include: {
+            userSlot: true,
+          },
+        },
       },
     });
 
-    if (listing) {
-      await this.cacheSevice.set({
-        baseKey: cachedKey,
-        ttl: 900,
-        value: listing,
-      });
-    }
+    // if (listing) {
+    //   await this.cacheSevice.set({
+    //     baseKey: cachedKey,
+    //     ttl: 900,
+    //     value: listing,
+    //   });
+    // }
 
     return listing;
   }
@@ -153,6 +168,11 @@ export class ListingsService {
         files: true,
         locations: true,
         specifications: true,
+        listingSlot: {
+          include: {
+            userSlot: true,
+          },
+        },
       },
     });
 
@@ -169,10 +189,34 @@ export class ListingsService {
 
   async createListing(userId: string, body: CreateListingDto) {
     const cacheKey = 'listings';
+
+    // TODO: проверка доступных(пустых) слотов
+    const availableSlots =
+      await this.subscriptionService.getUserAvailableSlots(userId);
+
+    if (!availableSlots || availableSlots.length === 0) {
+      throw new BadRequestException(
+        'Нет доступных слотов для создания объявления',
+      );
+    }
+
     // TODO: вынести логику в ресурсы для map, photos/files и там использовать cacheService
 
     const { map, photos, files, ...listing } = body;
     this.logger.log(`Объявление для создания: ${JSON.stringify(body)}`);
+
+    // Проверяем существование категории
+    if (listing.categoryId) {
+      const categoryExists = await prisma.category.findUnique({
+        where: { id: listing.categoryId },
+      });
+
+      if (!categoryExists) {
+        throw new BadRequestException(
+          `Категория с ID ${listing.categoryId} не найдена`,
+        );
+      }
+    }
 
     try {
       const res = await prisma.$transaction(async (tx: TransactionClient) => {
@@ -183,7 +227,16 @@ export class ListingsService {
             status: listing.status || 'DRAFT',
             // price: listing.price ? new Decimal(listing.price) : null,
             price: listing.price ? new Decimal(listing.price) : null,
-            userId, // TODO: Получить из контекста пользователя
+            userId,
+          },
+        });
+
+        // Создаем связь объявления со слотом
+        await tx.listingSlot.create({
+          data: {
+            listingId: createdListing.id,
+            userSlotId: availableSlots[0].id,
+            assignedAt: new Date(),
           },
         });
 
@@ -201,18 +254,48 @@ export class ListingsService {
 
         // Создаем файлы если указаны
         if (files && files.length > 0) {
-          const fileRecords = files.map((fileData, index) => ({
-            ownerType: FileOwnerType.LISTING,
-            listingId: createdListing.id,
-            url: fileData,
-            fileType: 'application/pdf', // TODO: Определять из base64
-            fileName: `document_${index}.pdf`,
-            fileSize: 0, // TODO: Получить размер из base64
-            kind: FileKind.DOCUMENT,
-            sortOrder: index,
-            s3Key: '', // TODO: Генерировать S3 ключ
-            s3Bucket: '', // TODO: Получить из конфига
-          }));
+          const fileRecords = [];
+
+          for (let index = 0; index < files.length; index++) {
+            const fileData = files[index];
+            const fileName = this.s3Service.generateFileNameFromBase64(
+              fileData,
+              index,
+              'document',
+            );
+            const s3Key = this.s3Service.generateDocumentKey(
+              createdListing.id,
+              index,
+            );
+            const contentType =
+              this.s3Service.getContentTypeFromBase64(fileData);
+            const fileSize = this.s3Service.getFileSizeFromBase64(fileData);
+
+            // Отправляем задачу загрузки в RabbitMQ
+            this.rabbitmqService.sendFileUpload({
+              listingId: createdListing.id,
+              fileType: 'document',
+              fileIndex: index,
+              fileData,
+              fileName,
+              contentType,
+              fileSize,
+              s3Key,
+            });
+
+            fileRecords.push({
+              ownerType: FileOwnerType.LISTING,
+              listingId: createdListing.id,
+              url: fileData, // Временно храним base64, обновится после загрузки
+              fileType: contentType,
+              fileName,
+              fileSize,
+              kind: FileKind.DOCUMENT,
+              sortOrder: index,
+              s3Key,
+              s3Bucket: '', // Обновится после загрузки
+            });
+          }
 
           await tx.file.createMany({
             data: fileRecords,
@@ -221,18 +304,48 @@ export class ListingsService {
 
         // Создаем фото если указаны
         if (photos && photos.length > 0) {
-          const photoRecords = photos.map((photoData, index) => ({
-            ownerType: FileOwnerType.LISTING,
-            listingId: createdListing.id,
-            url: photoData,
-            fileType: 'image/jpeg', // TODO: Определять из base64
-            fileName: `photo_${index}.jpg`,
-            fileSize: 0, // TODO: Получить размер из base64
-            kind: FileKind.PHOTO,
-            sortOrder: index,
-            s3Key: '', // TODO: Генерировать S3 ключ
-            s3Bucket: '', // TODO: Получить из конфига
-          }));
+          const photoRecords = [];
+
+          for (let index = 0; index < photos.length; index++) {
+            const photoData = photos[index];
+            const fileName = this.s3Service.generateFileNameFromBase64(
+              photoData,
+              index,
+              'photo',
+            );
+            const s3Key = this.s3Service.generatePhotoKey(
+              createdListing.id,
+              index,
+            );
+            const contentType =
+              this.s3Service.getContentTypeFromBase64(photoData);
+            const fileSize = this.s3Service.getFileSizeFromBase64(photoData);
+
+            // Отправляем задачу загрузки в RabbitMQ
+            this.rabbitmqService.sendFileUpload({
+              listingId: createdListing.id,
+              fileType: 'photo',
+              fileIndex: index,
+              fileData: photoData,
+              fileName,
+              contentType,
+              fileSize,
+              s3Key,
+            });
+
+            photoRecords.push({
+              ownerType: FileOwnerType.LISTING,
+              listingId: createdListing.id,
+              url: photoData, // Временно храним base64, обновится после загрузки
+              fileType: contentType,
+              fileName,
+              fileSize,
+              kind: FileKind.PHOTO,
+              sortOrder: index,
+              s3Key,
+              s3Bucket: '', // Обновится после загрузки
+            });
+          }
 
           await tx.file.createMany({
             data: photoRecords,

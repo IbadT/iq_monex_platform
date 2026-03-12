@@ -82,6 +82,16 @@ model Currency {
   @@map("currencies")
 }
 
+model CurrencyRate {
+  id      Int      @id @default(autoincrement())
+  code    String   @unique @db.VarChar(3) // Код валюты: USD, EUR, CNY
+  nominal Int // Номинал: 1, 10, 100, 1000
+  rate    Decimal  @db.Decimal(10, 4) // Курс в рублях
+  date    DateTime @db.Date // Дата курса
+
+  @@map("currency_rates")
+}
+
 model UnitMeasurement {
   id   Int  @id @default(autoincrement())
   name Json
@@ -645,6 +655,12 @@ model PaymentItem {
 
 // ================ DONATIONS ================
 
+enum DonationStatus {
+  PENDING
+  COMPLETED
+  CANCELED
+}
+
 model Donation {
   id     String @id @default(uuid()) @db.Uuid
   userId String @map("user_id") @db.Uuid
@@ -653,6 +669,9 @@ model Donation {
   currency String // BYN, USD, EUR
 
   comment String?
+
+  // Статус доната
+  status DonationStatus @default(PENDING)
 
   // Ссылка на платёж
   paymentId String? @map("payment_id") @db.Uuid
@@ -707,12 +726,11 @@ model UserSlot {
 
   user User @relation(fields: [userId], references: [id], onDelete: Cascade)
 
-  // Связь с подпиской или пакетом (опциональные, для целостности)
-  subscription Subscription? @relation(fields: [sourceId], references: [id], map: "userslot_subscription_fk")
-
   listingSlot   ListingSlot? // Текущее использование слота
   slotPackage   SlotPackage? @relation(fields: [slotPackageId], references: [id])
   slotPackageId String?      @db.Uuid
+  subscription Subscription? @relation(fields: [subscriptionId], references: [id])
+  subscriptionId String?      @db.Uuid
 
   @@unique([userId, slotIndex])
   @@index([userId, expiresAt])

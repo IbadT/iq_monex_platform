@@ -5,6 +5,7 @@ import {
   Transport,
 } from '@nestjs/microservices';
 import { EmailMessage } from './interfaces/email-message.interface';
+import { FileUploadMessage } from './interfaces/file-upload-message.interface';
 import { AppLogger } from '@/common/logger/logger.service';
 
 @Injectable()
@@ -35,11 +36,16 @@ export class RabbitmqService implements OnModuleInit, OnModuleDestroy {
     }
   }
 
+  async onModuleDestroy() {
+    await this.client.close();
+  }
+
   async sendEmail(message: EmailMessage): Promise<void> {
     this.client.emit('send_email', message);
   }
 
-  async onModuleDestroy() {
-    await this.client.close();
+  async sendFileUpload(message: FileUploadMessage): Promise<void> {
+    this.client.emit('file_upload', message);
+    this.logger.log(`File upload task sent to queue: ${message.s3Key}`);
   }
 }

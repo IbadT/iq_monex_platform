@@ -1,5 +1,5 @@
 import { Module } from '@nestjs/common';
-import { ConfigModule } from '@nestjs/config';
+import { ConfigModule, ConfigService } from '@nestjs/config';
 import { AppController } from './app.controller';
 import { AppService } from './app.service';
 import { UsersModule } from './users/users.module';
@@ -19,11 +19,23 @@ import { FavoriteModule } from './favorite/favorite.module';
 import { ReviewsModule } from './reviews/reviews.module';
 import { PaymentsModule } from './payments/payments.module';
 import { ScheduleModule } from '@nestjs/schedule';
+import { S3Module } from './s3/s3.module';
+import { FileUploadModule } from './workers/file-upload.module';
+import { SubscriptionServiceModule } from './subscription/subscription.module';
+import { YookassaModule } from 'nestjs-yookassa';
 
 @Module({
   imports: [
     ConfigModule.forRoot({
       isGlobal: true,
+    }),
+    YookassaModule.forRootAsync({
+      imports: [ConfigModule],
+      useFactory: (configService: ConfigService) => ({
+        shopId: configService.getOrThrow<string>('YOOKASSA_SHOP_ID'),
+        apiKey: configService.getOrThrow<string>('YOOKASSA_SECRET_KEY'),
+      }),
+      inject: [ConfigService],
     }),
     ScheduleModule.forRoot(),
     LoggerModule,
@@ -41,6 +53,9 @@ import { ScheduleModule } from '@nestjs/schedule';
     FavoriteModule,
     ReviewsModule,
     PaymentsModule,
+    S3Module,
+    FileUploadModule,
+    SubscriptionServiceModule,
   ],
   controllers: [AppController],
   providers: [AppService, CacheService],

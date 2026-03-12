@@ -1,8 +1,10 @@
-import { Controller, Get, Post, Query } from '@nestjs/common';
+import { Body, Controller, Get, Post, Query } from '@nestjs/common';
 import { DictionariesService } from './dictionaries.service';
 import { Public } from '@/common/decorators';
 import { GetCurrencyDto, Language } from './dto/request/get-currency.dto';
 import { ApiQuery } from '@nestjs/swagger';
+import { Cron, CronExpression } from '@nestjs/schedule';
+import { GetConvertValueFromAmountDto } from './dto/request/get-convert-valut-from-amount.dto';
 
 // валюты и единицы изменения
 // TODO: добавить redis
@@ -14,6 +16,21 @@ export class DictionariesController {
   @Post('seed')
   async addSeedDatas(): Promise<string> {
     return await this.dictionariesService.seedDictionariesData();
+  }
+
+  @Cron(CronExpression.EVERY_DAY_AT_8PM)
+  async categoryRates() {
+    return await this.dictionariesService.categoryRates();
+  }
+
+  @Post('valutes/convert')
+  async convertValutFromAmount(@Body() body: GetConvertValueFromAmountDto) {
+    return await this.dictionariesService.convertValutFromAmount(body);
+  }
+
+  @Get('valutes')
+  async getCategoryRates() {
+    return await this.dictionariesService.getCategoryRates();
   }
 
   @Get('currencies')
