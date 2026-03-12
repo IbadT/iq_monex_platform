@@ -18,7 +18,7 @@ import { ApiGetFavoriteByIdDocs } from './decorators/api-get-favorite-by-id-docs
 import { ApiGetFavoritesListDocs } from './decorators/api-get-favorites-list-docs.decorator';
 import { CreateFavoriteDto } from './dto/create-favorite.dto';
 
-@Controller('favorite')
+@Controller('favorites')
 export class FavoriteController {
   constructor(
     private readonly favoriteService: FavoriteService,

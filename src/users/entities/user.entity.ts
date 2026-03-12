@@ -13,9 +13,13 @@ export class User {
   @ApiProperty({ example: 'John Doe', description: 'User name' })
   name: string;
 
-  constructor(id: string, email: string, name: string) {
+  @ApiProperty({ example: 'John Doe', description: 'User name' })
+  accountNumber: string;
+
+  constructor(id: string, email: string, name: string, accountNumber: string) {
     this.id = id;
     this.email = email;
     this.name = name;
+    this.accountNumber = accountNumber;
   }
 }

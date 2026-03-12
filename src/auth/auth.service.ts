@@ -20,17 +20,19 @@ import { RegisterResponseDto } from './dto/response/register-response.dto';
 import { CacheService } from '@/cache/cacheService.service';
 import { RabbitmqService } from '@/rabbitmq/rabbitmq.service';
 import { JwtPayload } from '@/common/interfaces/jwt-payload.interface';
+import { randomInt } from 'crypto';
+import { prisma } from '@/lib/prisma';
 
 @Injectable()
 export class AuthService {
   constructor(
     // private configService: ConfigService,
-    private hashService: HashService,
-    private userService: UsersService,
-    private jwtTokenService: JwtTokenService,
+    private readonly hashService: HashService,
+    private readonly userService: UsersService,
+    private readonly jwtTokenService: JwtTokenService,
     private readonly cacheService: CacheService,
     private readonly rabbitmqService: RabbitmqService,
-    private logger: AppLogger,
+    private readonly logger: AppLogger,
   ) {}
 
   async login(loginUserDto: LoginUserDto): Promise<LoginResponseDto> {
@@ -61,6 +63,7 @@ export class AuthService {
       id: existUser.id,
       email: existUser.email,
       name: existUser.name || '',
+      accountNumber: existUser.accountNumber,
     };
 
     const tokens = await this.jwtTokenService.issueTokens(
@@ -94,6 +97,9 @@ export class AuthService {
     // Генерируем 5-значный код подтверждения
     const verificationCode = this.genRandomCode();
 
+    // генерируем 8 значный код для аккаунта пользователя
+    const accountNumber = await this.generateUniqueAccountNumber();
+
     // Хэшируем пароль для сохранения в Redis
     const hashedPassword = await this.hashService.hash(password);
 
@@ -101,6 +107,7 @@ export class AuthService {
     const registrationData = {
       email,
       password: hashedPassword,
+      accountNumber,
       verificationCode,
       createdAt: new Date().toISOString(),
     };
@@ -127,7 +134,9 @@ export class AuthService {
     };
   }
 
-  async registerDirect(loginUserDto: LoginUserDto): Promise<RegisterResponseDto> {
+  async registerDirect(
+    loginUserDto: LoginUserDto,
+  ): Promise<RegisterResponseDto> {
     const { email, password } = loginUserDto;
 
     // Проверяем, существует ли пользователь
@@ -139,13 +148,16 @@ export class AuthService {
       );
     }
 
+    const accountNumber = await this.generateUniqueAccountNumber();
+
     // Создаем пользователя сразу без email подтверждения
     const hashedPassword = await this.hashService.hash(password);
-    
+
     const newUser = await this.userService.createUser({
       email,
+      accountNumber,
       password: hashedPassword,
-      name: "", // Временно используем часть email как имя
+      name: '', // Временно используем часть email как имя
     });
 
     this.logger.logAuth('register_direct_success', newUser.id, email);
@@ -208,6 +220,18 @@ export class AuthService {
 
   async logout(): Promise<void> {
     this.logger.logAuth('logout_success', 'user');
+  }
+
+  private async generateUniqueAccountNumber(): Promise<string> {
+    const accountNumber = randomInt(10_000_000, 100_000_000).toString();
+    const exists = await prisma.user.findUnique({
+      where: { accountNumber },
+    });
+    if (exists) {
+      return this.generateUniqueAccountNumber();
+    }
+
+    return accountNumber;
   }
 
   private genRandomCode(length: number = 5): string {

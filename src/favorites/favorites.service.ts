@@ -3,6 +3,7 @@ import { prisma } from '@/lib/prisma';
 import { CacheService } from '@/cache/cacheService.service';
 import { AppLogger } from '@/common/logger/logger.service';
 import { CreateFavoriteDto } from './dto/create-favorite.dto';
+import { FavoriteType } from './enums/favorite-type.enum';
 
 @Injectable()
 export class FavoriteService {
@@ -65,6 +66,7 @@ export class FavoriteService {
       data: {
         userId,
         listingId: body.listingId,
+        type: FavoriteType.LISTING,
       },
     });
     await this.cacheService.del(cacheKey);

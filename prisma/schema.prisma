@@ -15,14 +15,18 @@ datasource db {
 // ================ USER ================
 
 model User {
-  id       String @id @default(uuid()) @db.Uuid
-  email    String @unique
-  name     String
-  password String
+  id            String @id @default(uuid()) @db.Uuid
+  email         String @unique
+  name          String
+  accountNumber String @unique
+  password      String
 
   // Рейтинг пользователя (агрегированный)
   rating       Float? @default(0)
   reviewsCount Int    @default(0) @map("reviews_count")
+
+  roleId String @map("role_id") @db.Uuid
+  role   Role   @relation(fields: [roleId], references: [id])
 
   usersChats       UserChat[]
   pinedChats       PinnedChat[]
@@ -30,7 +34,7 @@ model User {
   message          Message[]         @relation("SentMessages")
   chatParticipants ChatParticipant[]
   listings         Listing[]
-  favorites        Favorite[]
+  // favorites        Favorite[]
   authoredReviews  Review[]          @relation("AuthoredReviews")
   receivedReviews  Review[]          @relation("ReceivedReviews")
   reviewLikes      ReviewLike[]
@@ -44,10 +48,47 @@ model User {
   slotPackages  SlotPackage[]
   userSlots     UserSlot[]
 
+  createdAt   DateTime   @default(now()) @map("created_at")
+  updatedAt   DateTime   @updatedAt @map("updated_at")
+  favorites   Favorite[] @relation("UserFavorites") // Что пользователь добавил в избранное
+  favoritedBy Favorite[] @relation("UserFavoritedBy") // Кто добавил этого пользователя
+
+  @@map("users")
+}
+
+// ================ WORKERS ================
+model Worker {
+  id    String @id @default(uuid()) @db.Uuid
+  name  String
+  phone String
+  email String
+
+  isAcitve Boolean
+
+  roleId String @map("role_id") @db.Uuid
+  role   Role   @relation(fields: [roleId], references: [id])
+
   createdAt DateTime @default(now()) @map("created_at")
   updatedAt DateTime @updatedAt @map("updated_at")
 
-  @@map("users")
+  @@index([roleId])
+  @@map("workers")
+}
+
+model Role {
+  id   String   @id @default(uuid()) @db.Uuid
+  role String
+  code String
+  type RoleType @unique
+
+  users   User[]
+  workers Worker[]
+
+  createdAt DateTime @default(now()) @map("created_at")
+  updatedAt DateTime @updatedAt @map("updated_at")
+
+  @@index([type])
+  @@map("roles")
 }
 
 // ================ DEFAULT ================
@@ -409,19 +450,46 @@ model File {
 }
 
 // ================ FAVORITES ================
+// model Favorite {
+//   id        String @id @default(uuid()) @db.Uuid
+//   userId    String @map("user_id") @db.Uuid
+//   listingId String @map("listing_id") @db.Uuid
+
+//   createdAt DateTime @default(now()) @map("created_at")
+
+//   user    User    @relation(fields: [userId], references: [id], onDelete: Cascade)
+//   listing Listing @relation(fields: [listingId], references: [id], onDelete: Cascade)
+
+//   @@unique([userId, listingId]) // Один пользователь — одно избранное на объявление
+//   @@index([userId])
+//   @@index([listingId])
+//   @@map("favorites")
+// }
+
 model Favorite {
-  id        String @id @default(uuid()) @db.Uuid
-  userId    String @map("user_id") @db.Uuid
-  listingId String @map("listing_id") @db.Uuid
+  id     String       @id @default(uuid()) @db.Uuid
+  // ID пользователя, который добавил в избранное (владелец записи)
+  userId String       @map("user_id") @db.Uuid
+  type   FavoriteType
+
+  // В зависимости от type, одно из полей должно быть заполнено
+  // ID объявления (Listing), добавленного в избранное
+  listingId String? @map("listing_id") @db.Uuid
+
+  // ID пользователя (User), добавленного в избранное
+  targetUserId String? @map("target_user_id") @db.Uuid
+
+  user       User     @relation("UserFavorites", fields: [userId], references: [id], onDelete: Cascade)
+  listing    Listing? @relation(fields: [listingId], references: [id], onDelete: Cascade)
+  targetUser User?    @relation("UserFavoritedBy", fields: [targetUserId], references: [id], onDelete: Cascade)
 
   createdAt DateTime @default(now()) @map("created_at")
 
-  user    User    @relation(fields: [userId], references: [id], onDelete: Cascade)
-  listing Listing @relation(fields: [listingId], references: [id], onDelete: Cascade)
-
-  @@unique([userId, listingId]) // Один пользователь — одно избранное на объявление
+  @@unique([userId, type, listingId])
+  @@unique([userId, type, targetUserId])
   @@index([userId])
   @@index([listingId])
+  @@index([targetUserId])
   @@map("favorites")
 }
 
@@ -726,11 +794,11 @@ model UserSlot {
 
   user User @relation(fields: [userId], references: [id], onDelete: Cascade)
 
-  listingSlot   ListingSlot? // Текущее использование слота
-  slotPackage   SlotPackage? @relation(fields: [slotPackageId], references: [id])
-  slotPackageId String?      @db.Uuid
-  subscription Subscription? @relation(fields: [subscriptionId], references: [id])
-  subscriptionId String?      @db.Uuid
+  listingSlot    ListingSlot? // Текущее использование слота
+  slotPackage    SlotPackage?  @relation(fields: [slotPackageId], references: [id])
+  slotPackageId  String?       @db.Uuid
+  subscription   Subscription? @relation(fields: [subscriptionId], references: [id])
+  subscriptionId String?       @db.Uuid
 
   @@unique([userId, slotIndex])
   @@index([userId, expiresAt])
@@ -847,4 +915,18 @@ enum ReviewStatus {
   REJECTED // Отклонён
 
   @@map("review_status")
+}
+
+enum RoleType {
+  WORKER
+  USER
+  ADMIN
+  SUPER_ADMIN
+
+  @@map("role_types")
+}
+
+enum FavoriteType {
+  LISTING
+  USER
 }
