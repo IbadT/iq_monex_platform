@@ -6,6 +6,7 @@ import { prisma } from '@/lib/prisma';
 import { TransactionClient } from 'prisma/generated/internal/prismaNamespace';
 import { ReviewTargetType } from './enums/review-target-type.enum';
 import { CacheService } from '@/cache/cacheService.service';
+import { ListingStatus } from '@/listings/enums/listing-status.enum';
 
 @Injectable()
 export class ReviewsService {
@@ -15,8 +16,22 @@ export class ReviewsService {
   ) {}
 
   async create(authorId: string, body: CreateReviewDto) {
-    this.logger.log(`This action adds a new review: BODY: ${body}`);
+    // const cacheKey = `listings:${body.listingId}`;
+    // let hasListing = await this.cacheService.get(cacheKey);
     const { photos, ...review } = body;
+
+    const hasListing = await prisma.listing.findFirst({
+      where: {
+        id: body.listingId,
+        status: ListingStatus.PUBLISHED,
+      },
+    });
+
+    if (!hasListing) {
+      throw new NotFoundException(
+        `Объявления с id: ${body.listingId} не найдено`,
+      );
+    }
 
     try {
       return await prisma.$transaction(async (tx: TransactionClient) => {
@@ -81,31 +96,16 @@ export class ReviewsService {
     }
   }
 
-  async findByListingId(id: string) {
-    return await prisma.review.findMany({
-      where: {
-        listingId: id,
-      },
-      include: {
-        author: {
-          select: {
-            id: true,
-            name: true,
-            // TODO: аватар
-            // photo
-          },
-        },
-      },
-    });
-  }
-
-  async findAll() {
+  async findAll(listingId: string) {
     const cackeKey = 'reviews';
 
     const cachedData = await this.cacheService.get(cackeKey);
     if (cachedData) return cachedData;
 
     const reviews = await prisma.review.findMany({
+      where: {
+        listingId,
+      },
       include: {
         likes: true,
       },
@@ -148,8 +148,14 @@ export class ReviewsService {
   }
 
   async update(id: string, updateReviewDto: UpdateReviewDto) {
-    // TODO: добавить кэш
-    return `This action updates a #${id} review, DTO: ${updateReviewDto}`;
+    const cacheKey = `revies/id:${id}`;
+    const cachedData = await this.cacheService.get(cacheKey);
+    if (cachedData) return cachedData;
+
+    return await prisma.review.update({
+      where: { id },
+      data: updateReviewDto,
+    });
   }
 
   async remove(id: string) {

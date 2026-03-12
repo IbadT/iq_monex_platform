@@ -1,6 +1,7 @@
 import { prisma } from '@/lib/prisma';
 import { Injectable, NotFoundException } from '@nestjs/common';
 import { ChangeListingSlotDto } from './dto/change-listing-slot.dto';
+import { PAYMENT_ITEM_TYPE } from '@/payments/enums/payment-status.enum';
 
 @Injectable()
 export class SubscriptionService {
@@ -12,7 +13,7 @@ export class SubscriptionService {
         expiresAt: {
           gt: new Date(),
         },
-        // TODO: так же можно добавить и sourceType: SLOT_PACKAGE
+        sourceType: PAYMENT_ITEM_TYPE.SLOT_PACKAGE,
         listingSlot: null,
       },
       orderBy: {
@@ -87,7 +88,9 @@ export class SubscriptionService {
       }
 
       if (fromSlot.listingSlot.listingId !== body.listingId) {
-        throw new NotFoundException('В исходном слоте находится другое объявление');
+        throw new NotFoundException(
+          'В исходном слоте находится другое объявление',
+        );
       }
 
       // 3. Перемещаем объявление в новый слот

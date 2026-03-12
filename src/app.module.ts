@@ -23,6 +23,7 @@ import { S3Module } from './s3/s3.module';
 import { FileUploadModule } from './workers/file-upload.module';
 import { SubscriptionServiceModule } from './subscription/subscription.module';
 import { YookassaModule } from 'nestjs-yookassa';
+import { LikesModule } from './likes/likes.module';
 
 @Module({
   imports: [
@@ -56,6 +57,7 @@ import { YookassaModule } from 'nestjs-yookassa';
     S3Module,
     FileUploadModule,
     SubscriptionServiceModule,
+    LikesModule,
   ],
   controllers: [AppController],
   providers: [AppService, CacheService],

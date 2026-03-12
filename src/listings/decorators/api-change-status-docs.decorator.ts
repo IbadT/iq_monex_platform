@@ -46,6 +46,7 @@ export function ApiChangeStatusDocs() {
           description: 'Переводит черновик в статус опубликованного объявления',
           value: {
             status: 'PUBLISHED',
+            litingId: '123e4567-e89b-12d3-a456-426614174000',
           },
         },
         archive: {
@@ -53,13 +54,16 @@ export function ApiChangeStatusDocs() {
           description: 'Убирает объявление из публичного доступа',
           value: {
             status: 'ARCHIVED',
+            litingId: '123e4567-e89b-12d3-a456-426614174000',
           },
         },
         draft: {
           summary: 'Возврат в черновик',
-          description: 'Возвращает опубликованное объявление в статус черновика',
+          description:
+            'Возвращает опубликованное объявление в статус черновика',
           value: {
             status: 'DRAFT',
+            litingId: '123e4567-e89b-12d3-a456-426614174000',
           },
         },
         template: {
@@ -67,6 +71,7 @@ export function ApiChangeStatusDocs() {
           description: 'Сохраняет объявление как шаблон для будущих публикаций',
           value: {
             status: 'TEMPLATE',
+            litingId: '123e4567-e89b-12d3-a456-426614174000',
           },
         },
       },
@@ -117,7 +122,8 @@ export function ApiChangeStatusDocs() {
         properties: {
           message: {
             type: 'string',
-            example: 'Для публикации обязательны поля: title, description, price',
+            example:
+              'Для публикации обязательны поля: title, description, price',
             description: 'Описание ошибки валидации',
           },
           error: {

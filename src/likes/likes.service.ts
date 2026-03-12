@@ -1,14 +1,14 @@
-import {
-  Injectable,
-  BadRequestException,
-  NotFoundException,
-} from '@nestjs/common';
 import { AppLogger } from '@/common/logger/logger.service';
 import { prisma } from '@/lib/prisma';
+import {
+  BadRequestException,
+  Injectable,
+  NotFoundException,
+} from '@nestjs/common';
 import { TransactionClient } from 'prisma/generated/internal/prismaNamespace';
 
 @Injectable()
-export class ListingLikesService {
+export class LikesService {
   constructor(private readonly logger: AppLogger) {}
 
   async toggleLike(listingId: string, userId: string) {
@@ -159,99 +159,6 @@ export class ListingLikesService {
     });
   }
 
-  async removeLike(listingId: string, userId: string) {
-    this.logger.log(`User ${userId} removing like from listing ${listingId}`);
-
-    return await prisma.$transaction(async (tx) => {
-      // Получаем объявление с текущей версией
-      const listing = await tx.listing.findUnique({
-        where: { id: listingId },
-        select: { id: true, version: true },
-      });
-
-      if (!listing) {
-        throw new NotFoundException(`Объявление с id: ${listingId} не найдено`);
-      }
-
-      const existingLike = await tx.listingLike.findUnique({
-        where: {
-          listingId_userId: {
-            listingId,
-            userId,
-          },
-        },
-      });
-
-      if (!existingLike) {
-        throw new BadRequestException(
-          `Лайк от пользователя ${userId} на объявление ${listingId} не найден`,
-        );
-      }
-
-      // Удаляем лайк
-      await tx.listingLike.delete({
-        where: {
-          listingId_userId: {
-            listingId,
-            userId,
-          },
-        },
-      });
-
-      try {
-        // Обновляем счетчик лайков и версию с оптимистической блокировкой
-        await tx.listing.update({
-          where: {
-            id: listingId,
-            version: listing.version, // Оптимистическая блокировка
-          },
-          data: {
-            likesCount: {
-              decrement: 1,
-            },
-            version: {
-              increment: 1,
-            },
-          },
-        });
-      } catch (error: any) {
-        // Проверяем на конфликт версий
-        if (error.code === 'P2025') {
-          throw new BadRequestException(
-            'Конфликт изменений. Попробуйте еще раз.',
-          );
-        }
-        throw error;
-      }
-
-      return {
-        message: 'Лайк успешно удален',
-      };
-    });
-  }
-
-  async hasUserLiked(listingId: string, userId: string) {
-    this.logger.log(`Checking if user ${userId} liked listing ${listingId}`);
-
-    const like = await prisma.listingLike.findUnique({
-      where: {
-        listingId_userId: {
-          listingId,
-          userId,
-        },
-      },
-      select: {
-        id: true,
-        createdAt: true,
-      },
-    });
-
-    return {
-      hasLiked: !!like,
-      likeInfo: like,
-    };
-  }
-
   async getListingLikes(listingId: string) {
     this.logger.log(`Getting likes for listing ${listingId}`);
 
@@ -275,33 +182,6 @@ export class ListingLikesService {
       listingId,
       likesCount: likes.length,
       likes,
-    };
-  }
-
-  async getUserLikes(userId: string) {
-    this.logger.log(`Getting likes for user ${userId}`);
-
-    const likes = await prisma.listingLike.findMany({
-      where: { userId },
-      include: {
-        listing: {
-          include: {
-            category: true,
-            currency: true,
-            priceUnit: true,
-            files: true,
-          },
-        },
-      },
-      orderBy: {
-        createdAt: 'desc',
-      },
-    });
-
-    return {
-      userId,
-      likesCount: likes.length,
-      likedListings: likes.map((like) => like.listing),
     };
   }
 }

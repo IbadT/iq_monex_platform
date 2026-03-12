@@ -34,7 +34,7 @@ export class ReviewsController {
     // private readonly logger: AppLogger,
   ) {}
 
-  // добавить комментарий к объявлению
+  // оставить комментарий к объявлению
   @Post()
   @ApiCreateReviewDocs()
   @Protected()
@@ -46,10 +46,12 @@ export class ReviewsController {
     return this.reviewsService.create(user.id, body);
   }
 
-  @Get()
+  // получить все коментарии к объявлению
+  // TODO: limit, offset, has_photo, new_first, positive_rate_first
+  @Get(':listing_id')
   @ApiGetAllReviewsDocs()
-  findAll() {
-    return this.reviewsService.findAll();
+  findAll(@Param('listing_id', ParseUUIDPipe) listing_id: string) {
+    return this.reviewsService.findAll(listing_id);
   }
 
   @Get(':id')
@@ -58,6 +60,7 @@ export class ReviewsController {
     return this.reviewsService.findOne(id);
   }
 
+  // обновляет текущий коментарий(только для админа)
   @Patch(':id')
   @Admin()
   @ApiUpdateReviewDocs()

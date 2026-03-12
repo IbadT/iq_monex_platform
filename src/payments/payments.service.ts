@@ -211,6 +211,10 @@ export class PaymentsService {
     }
   }
 
+  //
+  //
+  //
+
   private getPaymentDescription(
     paymentType: PaymentType,
     packageCount?: number,
@@ -230,11 +234,6 @@ export class PaymentsService {
         return 'Платеж';
     }
   }
-
-  // вынести функцию в helper или utils и использоватьв appModule
-  // async getYooKassaConfig(): YookassaModuleOptions {
-  //   return;
-  // }
 
   async paymentList(limit: number, offset: number) {
     const cacheKey = 'payments';
@@ -372,6 +371,8 @@ export class PaymentsService {
       throw new UnauthorizedException('Invalid YooKassa signature');
     }
   }
+
+  //
 
   async processWebhook(payload: any) {
     const event = payload.event;
@@ -907,6 +908,8 @@ export class PaymentsService {
     // TODO: логика для отмененных платежей подписок/пакетов
     this.logger.log(`Payment ${payment.id} canceled`);
   }
+
+  //
 
   async handleCronExpired() {
     const now = new Date();

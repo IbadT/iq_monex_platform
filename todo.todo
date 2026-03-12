@@ -1,7 +1,7 @@
 тестовая нагрузка: npx ts-node test-performance.ts
 добавление дефолтных пакетов npx prisma db execute --stdin < create-test-slots.sql
 
-☐ !!!! для оплаты убрать логику simulatedWebhook !!!!
+
 
 ☐ добавить роут для combined категорий и тд
 
@@ -32,7 +32,8 @@
 ☐ добавить недостающие методы для чата
 
 // PAYMENTS
-☐ логика для оплаты
+✔ логика для оплаты @done(26-03-12 23:23)
+☐ !!!! для оплаты убрать логику simulatedWebhook !!!! (перед деплоем)
 
 
 Для cron:

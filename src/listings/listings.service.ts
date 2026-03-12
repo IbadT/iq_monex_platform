@@ -18,6 +18,9 @@ import { CacheService } from '@/cache/cacheService.service';
 import { S3Service } from '@/s3/s3.service';
 import { RabbitmqService } from '@/rabbitmq/rabbitmq.service';
 import { SubscriptionService } from '@/subscription/subscription.service';
+import { ChangeListingStatusDto } from './dto/request/change-listing-status.dto';
+import { UpdateListingDto } from './dto/request/update-listing.dto';
+import { JwtPayload } from '@/common/interfaces/jwt-payload.interface';
 
 @Injectable()
 export class ListingsService {
@@ -87,21 +90,22 @@ export class ListingsService {
     };
   }
 
-  async listingPublishFromDraft(id: string) {
+  async listingPublishFromDraft(body: ChangeListingStatusDto) {
+    const { listingId, status } = body;
     const checkIfListingIsInDraft = await this.listingById(
-      id,
+      listingId,
       new StatusQueryDto(ListingStatus.DRAFT),
     );
     if (!checkIfListingIsInDraft) {
       throw new BadRequestException(
-        `Объявление с id: ${id} не находится в архиве`,
+        `Объявление с id: ${listingId} не находится в архиве`,
       );
     }
 
     return await prisma.listing.update({
-      where: { id },
+      where: { id: listingId },
       data: {
-        status: 'PUBLISHED',
+        status: status,
       },
     });
   }
@@ -363,11 +367,18 @@ export class ListingsService {
     }
   }
 
-  async editListingById(id: string) {
-    return id;
+  async editListingById(id: string, user: JwtPayload, body: UpdateListingDto) {
+    return { id, user, body };
   }
 
-  async deleteListingById(id: string, status: StatusQueryDto) {
+  async deleteListingById(
+    id: string,
+    user: JwtPayload,
+    status: StatusQueryDto,
+  ) {
+    this.logger.log(
+      `Удаление объявления с параметрами id: ${id}, user: ${user}, status: ${status.status}`,
+    );
     const cacheKey = 'listings';
     const cackeKeyId = `listings:${id}`;
     const hasListing = await this.listingById(id, status);
