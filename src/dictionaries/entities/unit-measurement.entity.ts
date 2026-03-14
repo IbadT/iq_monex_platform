@@ -3,7 +3,10 @@ export class UnitMeasurement {
   name: Record<string, string>;
 
   static fromPrisma(unit: UnitMeasurement): UnitMeasurement {
-    return new UnitMeasurement(unit.id, unit.name);
+    return new UnitMeasurement(
+      unit.id,
+      typeof unit.name === 'string' ? JSON.parse(unit.name) : unit.name,
+    );
   }
 
   toResponse(lang: string = 'ru') {

@@ -129,7 +129,8 @@ export class DictionariesService {
   }
 
   async currenciesList(lang: Language) {
-    const cacheKey = 'currencies';
+    this.logger.log(`Currencies language: ${lang}`);
+    const cacheKey = `currencies:${lang}`;
 
     const cachedCurrencies = await this.cacheService.get(cacheKey);
     if (cachedCurrencies) return cachedCurrencies;
@@ -152,7 +153,7 @@ export class DictionariesService {
   }
 
   async unitMeasurements(lang: Language) {
-    const cacheKey = 'unit-measurements';
+    const cacheKey = `unit-measurements:${lang}`;
     const cacheData = await this.cacheService.get(cacheKey);
     if (cacheData) return cacheData;
 

@@ -12,7 +12,7 @@ import { DictionariesModule } from './dictionaries/dictionaries.module';
 import { AttributesModule } from './attributes/attributes.module';
 import { ChatsModule } from './chats/chats.module';
 import { NotificationsModule } from './notifications/notifications.module';
-import { EmailModule } from './email/email.module';
+// import { EmailModule } from './email/email.module';
 import { RabbitmqModule } from './rabbitmq/rabbitmq.module';
 import { ListingsModule } from './listings/listings.module';
 import { ReviewsModule } from './reviews/reviews.module';
@@ -24,6 +24,7 @@ import { SubscriptionServiceModule } from './subscription/subscription.module';
 import { YookassaModule } from 'nestjs-yookassa';
 import { LikesModule } from './likes/likes.module';
 import { FavoritesModule } from './favorites/favorites.module';
+import { SearchModule } from './search/search.module';
 
 @Module({
   imports: [
@@ -38,6 +39,7 @@ import { FavoritesModule } from './favorites/favorites.module';
       }),
       inject: [ConfigService],
     }),
+    SearchModule,
     ScheduleModule.forRoot(),
     LoggerModule,
     GuardsModule,
@@ -48,7 +50,7 @@ import { FavoritesModule } from './favorites/favorites.module';
     AttributesModule,
     ChatsModule,
     NotificationsModule,
-    EmailModule,
+    // EmailModule,
     RabbitmqModule,
     ListingsModule,
     ReviewsModule,

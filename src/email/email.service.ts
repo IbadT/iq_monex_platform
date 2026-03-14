@@ -1,8 +1,9 @@
 import { Injectable, Logger } from '@nestjs/common';
-import { ConfigService } from '@nestjs/config';
+// import { ConfigService } from '@nestjs/config';
 import * as nodemailer from 'nodemailer';
-const { MailtrapTransport } = require('mailtrap');
+// const { MailtrapTransport } = require('mailtrap');
 import { EmailMessage } from '@/rabbitmq/interfaces/email-message.interface';
+import { ConfigService } from '@nestjs/config';
 
 @Injectable()
 export class EmailService {
@@ -10,26 +11,28 @@ export class EmailService {
   private transporter!: nodemailer.Transporter;
 
   constructor(private configService: ConfigService) {
-    this.initializeTransporter();
+    // this.initializeTransporter();
   }
 
-  private initializeTransporter() {
-    const token = this.configService.get<string>('MAILTRAP_API_TOKEN');
-    
-    this.transporter = nodemailer.createTransport(
-      MailtrapTransport({
-        token: token,
-      })
-    );
-  }
+  // private initializeTransporter() {
+  //   const token = this.configService.get<string>('MAILTRAP_API_TOKEN');
+
+  //   this.transporter = nodemailer.createTransport(
+  //     MailtrapTransport({
+  //       token: token,
+  //     })
+  //   );
+  // }
 
   async sendEmail(message: EmailMessage): Promise<void> {
     try {
       const emailContent = this.generateEmailContent(message);
-      
+
       const mailOptions = {
         from: {
-          address: this.configService.get<string>('MAIL_FROM') || 'noreply@yourapp.com',
+          address:
+            this.configService.get<string>('MAIL_FROM') ||
+            'noreply@yourapp.com',
           name: 'Your App',
         },
         to: message.to,
@@ -39,7 +42,9 @@ export class EmailService {
       };
 
       const result = await this.transporter.sendMail(mailOptions);
-      this.logger.log(`Email отправлен успешно через Mailtrap: ${result.message_ids} на ${message.to}`);
+      this.logger.log(
+        `Email отправлен успешно через Mailtrap: ${result.message_ids} на ${message.to}`,
+      );
     } catch (error) {
       this.logger.error(`Ошибка отправки email на ${message.to}:`, error);
       throw error;
@@ -50,7 +55,7 @@ export class EmailService {
     if (message.data?.verificationCode) {
       return this.generateVerificationEmail(message.data.verificationCode);
     }
-    
+
     return this.generateDefaultEmail(message);
   }
 
@@ -123,25 +128,25 @@ export class EmailService {
     `;
   }
 
-  async verifyConnection(): Promise<boolean> {
-    try {
-      const testPayload = {
-        from: {
-          address: this.configService.get<string>('MAIL_FROM') || 'noreply@yourapp.com',
-          name: 'Test',
-        },
-        to: 'test@example.com',
-        subject: 'Connection Test',
-        text: 'Test email to verify Mailtrap connection',
-        category: 'Integration Test',
-      };
+  // async verifyConnection(): Promise<boolean> {
+  //   try {
+  //     const testPayload = {
+  //       from: {
+  //         address: this.configService.get<string>('MAIL_FROM') || 'noreply@yourapp.com',
+  //         name: 'Test',
+  //       },
+  //       to: 'test@example.com',
+  //       subject: 'Connection Test',
+  //       text: 'Test email to verify Mailtrap connection',
+  //       category: 'Integration Test',
+  //     };
 
-      await this.transporter.sendMail(testPayload);
-      this.logger.log('Mailtrap Transport подключение успешно');
-      return true;
-    } catch (error) {
-      this.logger.error('Ошибка проверки подключения к Mailtrap:', error);
-      return false;
-    }
-  }
+  //     await this.transporter.sendMail(testPayload);
+  //     this.logger.log('Mailtrap Transport подключение успешно');
+  //     return true;
+  //   } catch (error) {
+  //     this.logger.error('Ошибка проверки подключения к Mailtrap:', error);
+  //     return false;
+  //   }
+  // }
 }

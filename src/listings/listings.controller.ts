@@ -32,6 +32,9 @@ export class ListingsController {
   @Get('')
   @ApiListingQueryDocs()
   async listingList(@Query() query: ListingQueryDto) {
+    // if (query.search) {
+    //   return this.listingsService.searchListing(query.search);
+    // }
     return await this.listingsService.listingList(query);
   }
 

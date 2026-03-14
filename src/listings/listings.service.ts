@@ -21,16 +21,31 @@ import { SubscriptionService } from '@/subscription/subscription.service';
 import { ChangeListingStatusDto } from './dto/request/change-listing-status.dto';
 import { UpdateListingDto } from './dto/request/update-listing.dto';
 import { JwtPayload } from '@/common/interfaces/jwt-payload.interface';
+// import { ListingsSearchService } from './listing-search.service';
 
 @Injectable()
 export class ListingsService {
   constructor(
-    private readonly logger: AppLogger,
+    private readonly subscriptionService: SubscriptionService,
+    private readonly rabbitmqService: RabbitmqService,
     private readonly cacheSevice: CacheService,
     private readonly s3Service: S3Service,
-    private readonly rabbitmqService: RabbitmqService,
-    private readonly subscriptionService: SubscriptionService,
+    // private readonly listingSearchService: ListingsSearchService,
+    private readonly logger: AppLogger,
   ) {}
+
+  // async searchListing(text: string) {
+  //   const result = await this.listingSearchService.search(text);
+  //   const ids = result.map((result = result.id));
+  //   if (!ids.length) {
+  //     return [];
+  //   }
+  //   return prisma.listing.findMany({
+  //     where: {
+  //       id: ids,
+  //     },
+  //   });
+  // }
 
   async listingList(query: ListingQueryDto) {
     const { limit = 20, offset = 0, status, condition, search } = query;
@@ -222,6 +237,32 @@ export class ListingsService {
       }
     }
 
+    // Проверяем существование валюты
+    if (listing.currencyId) {
+      const currencyExists = await prisma.currency.findUnique({
+        where: { id: listing.currencyId },
+      });
+
+      if (!currencyExists) {
+        throw new BadRequestException(
+          `Валюта с ID ${listing.currencyId} не найдена`,
+        );
+      }
+    }
+
+    // Проверяем существование единицы измерения
+    if (listing.priceUnitId) {
+      const priceUnitExists = await prisma.unitMeasurement.findUnique({
+        where: { id: listing.priceUnitId },
+      });
+
+      if (!priceUnitExists) {
+        throw new BadRequestException(
+          `Единица измерения с ID ${listing.priceUnitId} не найдена`,
+        );
+      }
+    }
+
     try {
       const res = await prisma.$transaction(async (tx: TransactionClient) => {
         // Создаем объявление
@@ -355,6 +396,9 @@ export class ListingsService {
             data: photoRecords,
           });
         }
+
+        // записываем в elasticSearch
+        // await this.listingSearchService.indexListing(createdListing);
 
         return createdListing;
       });

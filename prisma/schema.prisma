@@ -110,6 +110,7 @@ model Category {
 
   @@index([parentId])
   @@index([name])
+  @@map("categories")
 }
 
 model Currency {
