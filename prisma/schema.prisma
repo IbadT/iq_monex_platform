@@ -20,6 +20,7 @@ model User {
   name          String
   accountNumber String @unique
   password      String
+  isVerified    Boolean @default(false) @map("is_verified")
 
   // Рейтинг пользователя (агрегированный)
   rating       Float? @default(0)

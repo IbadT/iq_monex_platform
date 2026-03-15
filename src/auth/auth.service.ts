@@ -7,6 +7,8 @@ import {
 } from '@nestjs/common';
 // import { ConfigService } from '@nestjs/config';
 import { HashService } from './hash.service';
+// import { EmailService } from '@/email/email.service';
+import { VerifyCodeDto, VerifyCodeResponseDto } from './dto/verify-code.dto';
 import { LoginUserDto } from './dto/request/login-user.dto';
 import { UsersService } from '@/users/users.service';
 import { LoginResponseDto } from './dto/response/login-response.dto';
@@ -32,6 +34,7 @@ export class AuthService {
     private readonly jwtTokenService: JwtTokenService,
     private readonly cacheService: CacheService,
     private readonly rabbitmqService: RabbitmqService,
+    // private readonly emailService: EmailService,
     private readonly logger: AppLogger,
   ) {}
 
@@ -64,6 +67,7 @@ export class AuthService {
       email: existUser.email,
       name: existUser.name || '',
       accountNumber: existUser.accountNumber,
+      isVerified: existUser.isVerified,
     };
 
     const tokens = await this.jwtTokenService.issueTokens(
@@ -85,7 +89,7 @@ export class AuthService {
     const { email, password } = loginUserDto;
     const cacheKey = `register:${email}`;
 
-    // Проверяем, существует ли пользователь
+    // 1. Проверяем, существует ли пользователь с таким email в базе данных
     const existingUser =
       await this.userService.getUserByEmailWithPassword(email);
     if (existingUser) {
@@ -94,16 +98,12 @@ export class AuthService {
       );
     }
 
-    // Генерируем 5-значный код подтверждения
+    // 2. Генерируем код подтверждения и хэшируем пароль
     const verificationCode = this.genRandomCode();
-
-    // генерируем 8 значный код для аккаунта пользователя
     const accountNumber = await this.generateUniqueAccountNumber();
-
-    // Хэшируем пароль для сохранения в Redis
     const hashedPassword = await this.hashService.hash(password);
 
-    // Сохраняем данные пользователя и код в Redis
+    // 3. Записываем все в Redis
     const registrationData = {
       email,
       password: hashedPassword,
@@ -112,21 +112,45 @@ export class AuthService {
       createdAt: new Date().toISOString(),
     };
 
-    // TODO: Сохранить в Redis с TTL (например, 15 минут)
+    this.logger.log(
+      `[REGISTER] Сохраняем в Redis ключ: ${cacheKey}, данные: ${JSON.stringify(registrationData)}`,
+    );
+
     await this.cacheService.set({
       baseKey: cacheKey,
-      ttl: 900,
+      ttl: 900, // 15 минут
       value: JSON.stringify(registrationData),
     });
 
-    // TODO: Отправить код подтверждения на email через RabbitMQ
-    await this.rabbitmqService.sendEmail({
+    // 4. НЕ создаем пользователя в БД сразу - только после верификации
+    // const newUser = await this.userService.createUser({
+    //   email,
+    //   accountNumber,
+    //   password: hashedPassword,
+    //   name: '', // Временно пустое имя
+    //   isVerified: false, // Поле для отслеживания верификации
+    // });
+
+    // 5. Отправляем через RabbitMQ код подтверждения
+    const emailData = {
       to: email,
       subject: 'Код подтверждения регистрации',
       data: {
+        // userId: newUser.id, // Пока нет пользователя
         verificationCode,
       },
-    });
+    };
+    
+    this.logger.log(
+      `[REGISTER] Отправляем через RabbitMQ: ${JSON.stringify(emailData)}`,
+    );
+
+    try {
+      await this.rabbitmqService.sendEmail(emailData);
+    } catch (error) {
+      this.logger.error(`[REGISTER] Ошибка отправки email:`, error);
+      throw new BadRequestException('Ошибка отправки кода подтверждения. Попробуйте позже.');
+    }
 
     return {
       message: 'Код подтверждения отправлен на ваш email',
@@ -134,38 +158,140 @@ export class AuthService {
     };
   }
 
-  async registerDirect(
-    loginUserDto: LoginUserDto,
-  ): Promise<RegisterResponseDto> {
-    const { email, password } = loginUserDto;
+  async verifyEmailCode(
+    verifyCodeDto: VerifyCodeDto,
+  ): Promise<VerifyCodeResponseDto> {
+    const { email, code } = verifyCodeDto;
 
-    // Проверяем, существует ли пользователь
-    const existingUser =
-      await this.userService.getUserByEmailWithPassword(email);
-    if (existingUser) {
-      throw new ConflictException(
-        `Пользователь с таким email: ${email} уже зарегистрирован`,
+    this.logger.logAuth('verify_code_attempt', undefined, email);
+
+    // Получаем данные из Redis
+    const cacheKey = `register:${email}`;
+    const registrationData = await this.cacheService.get(cacheKey);
+
+    this.logger.log(
+      `[VERIFY] Читаем из Redis ключ: ${cacheKey}, данные: ${registrationData}`,
+    );
+
+    if (!registrationData) {
+      throw new UnauthorizedException(
+        'Сессия регистрации истекла. Пожалуйста, зарегистрируйтесь заново.',
       );
     }
 
-    const accountNumber = await this.generateUniqueAccountNumber();
+    const parsedData = JSON.parse(registrationData as string);
+    this.logger.log(
+      `[VERIFY] Распарсенные данные: ${JSON.stringify(parsedData)}`,
+    );
+    this.logger.log(
+      `[VERIFY] Ожидаемый код: ${parsedData.verificationCode}, полученный код: ${code}`,
+    );
 
-    // Создаем пользователя сразу без email подтверждения
-    const hashedPassword = await this.hashService.hash(password);
+    // Проверяем код
+    if (parsedData.verificationCode !== code) {
+      throw new UnauthorizedException('Неверный код подтверждения');
+    }
 
+    // 4. Создаем пользователя в БД только после успешной верификации
     const newUser = await this.userService.createUser({
-      email,
-      accountNumber,
-      password: hashedPassword,
-      name: '', // Временно используем часть email как имя
+      email: parsedData.email,
+      accountNumber: parsedData.accountNumber,
+      password: parsedData.password,
+      name: '', // Имя по умолчанию
+      isVerified: true, // Пользователь сразу верифицирован
     });
 
-    this.logger.logAuth('register_direct_success', newUser.id, email);
+    this.logger.log(`[VERIFY] Пользователь создан: ${newUser.id}, email: ${newUser.email}`);
+
+    // 5. Удаляем данные из Redis
+    await this.cacheService.del(cacheKey);
+
+    // 6. Генерируем JWT токены
+    const { accessToken, refreshToken } = await this.jwtTokenService.issueTokens(
+      newUser.id,
+      newUser.name || '',
+      newUser.email,
+    );
+
+    this.logger.logAuth('verify_success', newUser.id, email);
 
     return {
-      message: 'Пользователь успешно создан',
-      status: 201,
-      userId: newUser.id,
+      message: 'Email успешно подтвержден',
+      status: 200,
+      user: {
+        id: newUser.id,
+        email: newUser.email,
+        name: newUser.name,
+        accountNumber: newUser.accountNumber,
+        isVerified: true,
+      },
+      tokens: {
+        accessToken,
+        refreshToken,
+      },
+    };
+  }
+
+  async resendVerificationCode(
+    email: string,
+  ): Promise<{ message: string; status: number }> {
+    this.logger.logAuth('resend_code_attempt', undefined, email);
+
+    // Проверяем, существует ли пользователь
+    const user = await this.userService.getUserByEmailWithPassword(email);
+    if (!user) {
+      throw new ConflictException('Пользователь с таким email не найден');
+    }
+
+    // Если пользователь уже верифицирован
+    if (user.isVerified) {
+      throw new ConflictException('Email уже подтвержден');
+    }
+
+    // Генерируем новый код
+    const verificationCode = this.genRandomCode();
+
+    // Обновляем код в Redis
+    const cacheKey = `register:${email}`;
+    const existingData = await this.cacheService.get(cacheKey);
+
+    if (existingData) {
+      const parsedData = JSON.parse(existingData as string);
+      parsedData.verificationCode = verificationCode;
+      await this.cacheService.set({
+        baseKey: cacheKey,
+        ttl: 900,
+        value: JSON.stringify(parsedData),
+      });
+    } else {
+      // Если данных нет в Redis, создаем новые
+      const registrationData = {
+        email,
+        verificationCode,
+        createdAt: new Date().toISOString(),
+      };
+      await this.cacheService.set({
+        baseKey: cacheKey,
+        ttl: 900,
+        value: JSON.stringify(registrationData),
+      });
+    }
+
+    // Отправляем через RabbitMQ
+    await this.rabbitmqService.sendEmail({
+      to: email,
+      subject: 'Код подтверждения регистрации',
+      data: {
+        userId: user.id,
+        verificationCode,
+      },
+    });
+
+    this.logger.logAuth('resend_code_success', user.id, email);
+
+    return {
+      message: 'Код подтверждения отправлен на ваш email',
+      status: 200,
     };
   }
 
@@ -234,7 +360,7 @@ export class AuthService {
     return accountNumber;
   }
 
-  private genRandomCode(length: number = 5): string {
+  private genRandomCode(length: number = 6): string {
     return Math.floor(
       10 ** (length - 1) + Math.random() * 9 * 10 ** (length - 1),
     ).toString();

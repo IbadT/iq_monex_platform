@@ -13,6 +13,11 @@ import { Response, Request } from 'express';
 import { ApiLoginOperation } from './decorators/login.decorator';
 import { ApiRegisterOperation } from './decorators/register.decorator';
 import { Public } from '@/common/decorators';
+import { VerifyCodeDto, VerifyCodeResponseDto } from './dto/verify-code.dto';
+import { ResendEmailDto } from './dto/resend-email.dto';
+// import { ApiRefreshTokenOperation } from './decorators/refresh-token.decorator';
+import { ApiVerifyEmailOperation } from './decorators/verify-email.decorator';
+import { ApiResendEmailOperation } from './decorators/resend-email.decorator';
 import { ApiRefreshTokenOperation } from '@/common/decorators/swagger.decorators';
 
 @ApiTags('Auth')
@@ -57,21 +62,21 @@ export class AuthController {
   @Public()
   @ApiRegisterOperation()
   async register(@Body() body: RegisterUserDto): Promise<RegisterResponseDto> {
-    // return this.authService.register(body);
-    return this.authService.registerDirect(body);
+    return this.authService.register(body);
   }
 
-  // TODO: объединить
   @Post('sign-up/confirm')
   @Public()
-  async registerConfirm() {
-    return;
+  @ApiVerifyEmailOperation()
+  async registerConfirm(@Body() verifyCodeDto: VerifyCodeDto): Promise<VerifyCodeResponseDto> {
+    return this.authService.verifyEmailCode(verifyCodeDto);
   }
 
   @Post('sign-up/resend-email')
   @Public()
-  async registerResendEmail() {
-    return;
+  @ApiResendEmailOperation()
+  async registerResendEmail(@Body() resendEmailDto: ResendEmailDto): Promise<{ message: string; status: number }> {
+    return this.authService.resendVerificationCode(resendEmailDto.email);
   }
 
   @Post('reset-password')

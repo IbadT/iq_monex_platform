@@ -7,19 +7,23 @@ import {
 import { EmailMessage } from './interfaces/email-message.interface';
 import { FileUploadMessage } from './interfaces/file-upload-message.interface';
 import { AppLogger } from '@/common/logger/logger.service';
+import { ConfigService } from '@nestjs/config';
 
 @Injectable()
 export class RabbitmqService implements OnModuleInit, OnModuleDestroy {
   private client!: ClientProxy;
 
-  constructor(private readonly logger: AppLogger) {}
+  constructor(
+    private readonly configService: ConfigService,
+    private readonly logger: AppLogger
+  ) {}
 
   async onModuleInit() {
     try {
       this.client = ClientProxyFactory.create({
         transport: Transport.RMQ,
         options: {
-          urls: ['amqp://admin:admin123@localhost:5672'],
+          urls: [this.configService.get('RABBITMQ_URL')],
           queue: 'auth_queue',
           queueOptions: {
             durable: true,

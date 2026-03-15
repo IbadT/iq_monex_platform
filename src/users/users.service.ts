@@ -36,6 +36,7 @@ export class UsersService {
         email: user.email,
         name: user.name,
         accountNumber: user.accountNumber,
+        isVerified: user.isVerified,
       };
 
       // await this.cacheService.setUserByEmail(email, userEntity, 3600);
@@ -69,6 +70,7 @@ export class UsersService {
         email: user.email,
         name: user.name,
         accountNumber: user.accountNumber,
+        isVerified: user.isVerified,
       };
 
       await this.cacheService.setUserById(id, userEntity, 3600);
@@ -139,6 +141,7 @@ export class UsersService {
     accountNumber: string;
     password: string;
     name: string;
+    isVerified?: boolean;
   }): Promise<User> {
     const { email } = data;
     const role = email === 'admin@admin.com' ? RoleType.ADMIN : RoleType.USER;
@@ -165,6 +168,7 @@ export class UsersService {
       email: user.email,
       name: user.name,
       accountNumber: user.accountNumber,
+      isVerified: user.isVerified || false,
     };
 
     // Кэшируем нового пользователя

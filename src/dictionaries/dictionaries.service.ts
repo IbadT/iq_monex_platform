@@ -81,7 +81,7 @@ export class DictionariesService {
     // },
     // converted: result,
     // date: allRates[0]?.date,
-    // };
+    // }
   }
 
   async categoryRates() {

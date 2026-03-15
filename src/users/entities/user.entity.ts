@@ -13,13 +13,21 @@ export class User {
   @ApiProperty({ example: 'John Doe', description: 'User name' })
   name: string;
 
-  @ApiProperty({ example: 'John Doe', description: 'User name' })
+  @ApiProperty({ example: '12345678', description: 'User account number' })
   accountNumber: string;
 
-  constructor(id: string, email: string, name: string, accountNumber: string) {
+  @ApiProperty({ 
+    example: false, 
+    description: 'Whether user email is verified',
+    default: false,
+  })
+  isVerified: boolean;
+
+  constructor(id: string, email: string, name: string, accountNumber: string, isVerified: boolean = false) {
     this.id = id;
     this.email = email;
     this.name = name;
     this.accountNumber = accountNumber;
+    this.isVerified = isVerified;
   }
 }
