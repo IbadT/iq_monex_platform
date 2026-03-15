@@ -1,4 +1,8 @@
-import { BadRequestException, Injectable } from '@nestjs/common';
+import {
+  BadRequestException,
+  ConflictException,
+  Injectable,
+} from '@nestjs/common';
 import { prisma } from '@/lib/prisma';
 import { CacheService } from '@/cache/cacheService.service';
 import { User } from './entities/user.entity';
@@ -8,6 +12,8 @@ import { RoleType } from './enums/role-type.enum';
 import { roles } from './default/roleData';
 import { FavoriteType } from '@/favorites/enums/favorite-type.enum';
 import { AddFavoriteToUserDto } from './dto/add-favorite-to-user.dto';
+import { MakeComplaintToUser } from './dto/make-complaint-to-user.dto';
+import { ComplaintType } from './enums/complaint-type.enum';
 
 @Injectable()
 export class UsersService {
@@ -93,6 +99,28 @@ export class UsersService {
       where: {
         userId,
         type: FavoriteType.USER,
+      },
+    });
+  }
+
+  async makeComplaintToUser(userId: string, body: MakeComplaintToUser) {
+    const checkComplaintAlreadyExist = await prisma.complaint.findFirst({
+      where: {
+        authorId: userId,
+      },
+    });
+
+    if (checkComplaintAlreadyExist) {
+      throw new ConflictException('Вы уже подали жалобу на этот профиль');
+    }
+
+    return await prisma.complaint.create({
+      data: {
+        complaintType: ComplaintType.USER,
+        type: body.type,
+        text: body.text,
+        authorId: userId,
+        targetUserId: body.userId,
       },
     });
   }

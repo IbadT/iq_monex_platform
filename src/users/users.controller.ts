@@ -14,6 +14,7 @@ import { UpdateUserDto } from './dto/update-user.dto';
 import { CurrentUser } from '@/common/decorators/current-user.decorator';
 import { JwtPayload } from '@/common/interfaces/jwt-payload.interface';
 import { AddFavoriteToUserDto } from './dto/add-favorite-to-user.dto';
+import { MakeComplaintToUser } from './dto/make-complaint-to-user.dto';
 
 @ApiTags('Users')
 @Controller('users')
@@ -47,6 +48,15 @@ export class UsersController {
     @Body() body: AddFavoriteToUserDto,
   ) {
     return await this.usersService.addFavoriteToUser(user.id, body);
+  }
+
+  @Post('users/:id/complaint')
+  @Protected()
+  async makeComplaintToUser(
+    @CurrentUser() user: JwtPayload,
+    @Body() body: MakeComplaintToUser,
+  ) {
+    return await this.usersService.makeComplaintToUser(user.id, body);
   }
 
   @Post('seed-roles')

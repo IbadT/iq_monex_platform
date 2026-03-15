@@ -1,6 +1,7 @@
 import { AppLogger } from '@/common/logger/logger.service';
 import {
   BadRequestException,
+  ConflictException,
   Injectable,
   NotFoundException,
 } from '@nestjs/common';
@@ -23,6 +24,11 @@ import { JwtPayload } from '@/common/interfaces/jwt-payload.interface';
 import { SearchService } from '@/search/search.service';
 import { ListingDocument } from '@/search/interfaces/listing.interface';
 import { RabbitmqService } from '@/rabbitmq/rabbitmq.service';
+import { AddFavoriteListingDto } from './dto/request/add-favorite-listing.dto';
+import { FavoriteType } from '@/favorites/enums/favorite-type.enum';
+import { GetFavoritesQueryDto } from './dto/request/get-favorites-query.dto';
+import { ComplaintType } from '@/users/enums/complaint-type.enum';
+import { MakeComplaintToListing } from './dto/request/make-complaint-to-listing.dto';
 
 @Injectable()
 export class ListingsService {
@@ -47,6 +53,83 @@ export class ListingsService {
   //     },
   //   });
   // }
+
+  async makeComplaintToListing(userId: string, body: MakeComplaintToListing) {
+    const hasComplaint = await prisma.complaint.findFirst({
+      where: {
+        authorId: userId,
+        listingId: body.listingId,
+        complaintType: ComplaintType.LISTING,
+      },
+    });
+
+    if (hasComplaint) {
+      throw new ConflictException('Вы уже подали жалобу на это объявление');
+    }
+
+    return await prisma.complaint.create({
+      data: {
+        type: body.type,
+        text: body.text,
+        complaintType: ComplaintType.LISTING,
+        authorId: userId,
+      },
+    });
+  }
+
+  async getFavoritesUserListings(userId: string, query: GetFavoritesQueryDto) {
+    return await prisma.favorite.findMany({
+      where: {
+        userId,
+      },
+      take: query.limit,
+      skip: query.offset,
+      orderBy: {
+        createdAt: 'desc',
+      },
+    });
+  }
+
+  async addListingToFavorite(userId: string, body: AddFavoriteListingDto) {
+    const checkIfListingIsInDraft = await this.listingById(
+      body.listingId,
+      new StatusQueryDto(ListingStatus.DRAFT),
+    );
+    if (checkIfListingIsInDraft) {
+      throw new BadRequestException(
+        `Объявление с id: ${body.listingId} находится в архиве`,
+      );
+    }
+
+    // Проверяем если объявление уже находится в избранном или нет
+    const favorite = await prisma.favorite.findFirst({
+      where: {
+        userId,
+        listingId: body.listingId,
+        type: FavoriteType.LISTING,
+      },
+    });
+
+    if (favorite) {
+      // Если уже в избранном - удаляем
+      await prisma.favorite.delete({
+        where: {
+          id: favorite.id,
+        },
+      });
+      return { action: 'removed', favoriteId: favorite.id };
+    } else {
+      // Если нет в избранном - добавляем
+      const newFavorite = await prisma.favorite.create({
+        data: {
+          userId,
+          listingId: body.listingId,
+          type: FavoriteType.LISTING,
+        },
+      });
+      return { action: 'added', favorite: newFavorite };
+    }
+  }
 
   async listingList(query: ListingQueryDto) {
     const { limit = 20, offset = 0, status, condition, search } = query;

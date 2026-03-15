@@ -68,14 +68,18 @@ export class AuthController {
   @Post('sign-up/confirm')
   @Public()
   @ApiVerifyEmailOperation()
-  async registerConfirm(@Body() verifyCodeDto: VerifyCodeDto): Promise<VerifyCodeResponseDto> {
+  async registerConfirm(
+    @Body() verifyCodeDto: VerifyCodeDto,
+  ): Promise<VerifyCodeResponseDto> {
     return this.authService.verifyEmailCode(verifyCodeDto);
   }
 
   @Post('sign-up/resend-email')
   @Public()
   @ApiResendEmailOperation()
-  async registerResendEmail(@Body() resendEmailDto: ResendEmailDto): Promise<{ message: string; status: number }> {
+  async registerResendEmail(
+    @Body() resendEmailDto: ResendEmailDto,
+  ): Promise<{ message: string; status: number }> {
     return this.authService.resendVerificationCode(resendEmailDto.email);
   }
 

@@ -1,29 +1,36 @@
 import {
   Body,
   Controller,
-  Delete,
   Get,
-  Param,
-  ParseUUIDPipe,
   Post,
   Query,
+  Param,
+  Patch,
+  Delete,
   HttpCode,
   HttpStatus,
-  Patch,
 } from '@nestjs/common';
 import { ListingsService } from './listings.service';
-import { CreateListingDto } from './dto/request/create-listing.dto';
-import { CreateListingApiDocs } from './decorators/api-create-listing-docs.decorator';
-import { ApiListingQueryDocs } from './decorators/api-listing-query-docs.decorator';
-import { ApiListingByIdDocs } from './decorators/api-listing-by-id-docs.decorator';
-import { Protected } from '@/common/decorators';
-import { CurrentUser } from '@/common/decorators/current-user.decorator';
-import { JwtPayload } from '@/common/interfaces/jwt-payload.interface';
 import { ListingQueryDto } from './dto/request/listing-query.dto';
+import { CreateListingDto } from './dto/request/create-listing.dto';
+import { UpdateListingDto } from './dto/request/update-listing.dto';
+// import { AddFavoriteListingDto } from './dto/request/add-favorite-listing.dto';
+import { Protected } from '@/common/decorators/protected.decorator';
+// import {
+//   ApiToggleFavoriteDocs,
+//   // ApiGetFavoritesDocs,
+// } from './decorators/api-toggle-favorite-docs.decorator';
 import { StatusQueryDto } from './dto/request/status-query.dto';
 import { ApiChangeStatusDocs } from './decorators/api-change-status-docs.decorator';
 import { ChangeListingStatusDto } from './dto/request/change-listing-status.dto';
-import { UpdateListingDto } from './dto/request/update-listing.dto';
+import { ParseUUIDPipe } from '@nestjs/common';
+import { CreateListingApiDocs } from './decorators/api-create-listing-docs.decorator';
+import { ApiListingQueryDocs } from './decorators/api-listing-query-docs.decorator';
+import { ApiListingByIdDocs } from './decorators/api-listing-by-id-docs.decorator';
+import { JwtPayload } from '@/common/interfaces/jwt-payload.interface';
+import { CurrentUser } from '@/common/decorators/current-user.decorator';
+import { MakeComplaintToListing } from './dto/request/make-complaint-to-listing.dto';
+// import { GetFavoritesQueryDto } from './dto/request/get-favorites-query.dto';
 
 @Controller('listings')
 export class ListingsController {
@@ -47,6 +54,26 @@ export class ListingsController {
     return await this.listingsService.listingById(id, query);
   }
 
+  // @Get('favorites')
+  // // @ApiGetFavoritesDocs()
+  // @Protected()
+  // async getFavoritesUserListings(
+  //   @CurrentUser() user: JwtPayload,
+  //   @Query() query: GetFavoritesQueryDto,
+  // ) {
+  //   return await this.listingsService.getFavoritesUserListings(user.id, query);
+  // }
+
+  // @Post('favorites')
+  // @Protected()
+  // @ApiToggleFavoriteDocs()
+  // async addListingToFavorite(
+  //   @Body() body: AddFavoriteListingDto,
+  //   @CurrentUser() user: JwtPayload,
+  // ) {
+  //   return await this.listingsService.addListingToFavorite(user.id, body);
+  // }
+
   @Get('users/:user_id')
   async listingsByUserId(@Param('user_id', ParseUUIDPipe) user_id: string) {
     return await this.listingsService.listingsByUserId(user_id);
@@ -67,8 +94,17 @@ export class ListingsController {
   @Post('change-status')
   @ApiChangeStatusDocs()
   @Protected()
-  async addListingToFavorite(@Body() body: ChangeListingStatusDto) {
+  async changeListingStatus(@Body() body: ChangeListingStatusDto) {
     return await this.listingsService.listingPublishFromDraft(body);
+  }
+
+  @Post('complaint')
+  @Protected()
+  async makeComplaintToListing(
+    @CurrentUser() user: JwtPayload,
+    @Body() body: MakeComplaintToListing,
+  ) {
+    return await this.listingsService.makeComplaintToListing(user.id, body);
   }
 
   // редактировать объявление

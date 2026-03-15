@@ -15,10 +15,10 @@ datasource db {
 // ================ USER ================
 
 model User {
-  id            String @id @default(uuid()) @db.Uuid
-  email         String @unique
+  id            String  @id @default(uuid()) @db.Uuid
+  email         String  @unique
   name          String
-  accountNumber String @unique
+  accountNumber String  @unique
   password      String
   isVerified    Boolean @default(false) @map("is_verified")
 
@@ -54,7 +54,40 @@ model User {
   favorites   Favorite[] @relation("UserFavorites") // Что пользователь добавил в избранное
   favoritedBy Favorite[] @relation("UserFavoritedBy") // Кто добавил этого пользователя
 
+  // Жалобы
+  authoredComplaints Complaint[] @relation("ComplaintAuthor") // Жалобы, поданные этим пользователем
+  receivedComplaints Complaint[] @relation("UserComplaints") // Жалобы на этого пользователя
+
   @@map("users")
+}
+
+model Complaint {
+  id            String        @id @default(uuid()) @db.Uuid
+  complaintType ComplaintType
+  type          String
+  text          String
+
+  // Кто подал жалобу
+  authorId String @map("author_id") @db.Uuid
+  author   User   @relation("ComplaintAuthor", fields: [authorId], references: [id], onDelete: Cascade)
+
+  // На кого подана жалоба (заполняется в зависимости от complaintType)
+  listingId    String?  @map("listing_id") @db.Uuid
+  targetUserId String?  @map("target_user_id") @db.Uuid
+
+  listing    Listing? @relation("ListingComplaints", fields: [listingId], references: [id], onDelete: Cascade)
+  targetUser User?    @relation("UserComplaints", fields: [targetUserId], references: [id], onDelete: Cascade)
+  
+  // Фотографии (только для жалоб на объявления)
+  photos File[]
+
+  createdAt DateTime @default(now()) @map("created_at")
+  updatedAt DateTime @updatedAt @map("updated_at")
+
+  @@index([authorId])
+  @@index([complaintType, listingId])
+  @@index([complaintType, targetUserId])
+  @@map("complaints")
 }
 
 // ================ WORKERS ================
@@ -329,6 +362,9 @@ model Listing {
 
   listingSlot ListingSlot?
 
+  // Жалобы на объявление
+  complaints Complaint[] @relation("ListingComplaints")
+
   createdAt DateTime @default(now()) @map("created_at")
   updatedAt DateTime @updatedAt @map("updated_at")
 
@@ -434,19 +470,24 @@ model File {
 
   userId    String? @map("user_id") @db.Uuid
   listingId String? @map("listing_id") @db.Uuid
+  complaintId String? @map("complaint_id") @db.Uuid
 
   // Relations (опциональные, т.к. ownerId универсальный)
   user    User?    @relation(fields: [userId], references: [id], map: "file_user_fk", onDelete: Cascade)
   listing Listing? @relation(fields: [listingId], references: [id], map: "file_listing_fk", onDelete: Cascade)
+  complaint Complaint? @relation(fields: [complaintId], references: [id], map: "file_complaint_fk", onDelete: Cascade)
 
   // TODO: один аватар у одного ползователя
   // @@unique([userId, kind])
   @@index([userId])
   @@index([listingId])
+  @@index([complaintId])
   @@index([ownerType, userId])
   @@index([ownerType, listingId])
+  @@index([ownerType, complaintId])
   @@index([ownerType, userId, kind])
   @@index([ownerType, listingId, kind])
+  @@index([ownerType, complaintId, kind])
   @@index([uploadStatus, expiresAt])
   @@map("files")
 }
@@ -892,6 +933,7 @@ enum MapLocationType {
 enum FileOwnerType {
   USER // Файлы пользователя
   LISTING // Файлы объявления
+  COMPLAINT // Файлы жалоб
 
   @@map("file_owner_type")
 }
@@ -900,6 +942,7 @@ enum FileKind {
   AVATAR // Аватар пользователя
   PHOTO // Фото объявления (макс 10)
   DOCUMENT // Документ (макс 5)
+  COMPLAINT_PHOTO // Фото к жалобе
 
   @@map("file_kind")
 }
@@ -929,6 +972,11 @@ enum RoleType {
 }
 
 enum FavoriteType {
+  LISTING
+  USER
+}
+
+enum ComplaintType {
   LISTING
   USER
 }
