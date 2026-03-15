@@ -1,14 +1,17 @@
-import { Body, Controller, Get, Post, Query } from '@nestjs/common';
+import { Controller, Get, Post, Body, Query } from '@nestjs/common';
+import { ApiTags, ApiQuery } from '@nestjs/swagger';
 import { DictionariesService } from './dictionaries.service';
-import { Public } from '@/common/decorators';
-import { GetCurrencyDto, Language } from './dto/request/get-currency.dto';
-import { ApiQuery } from '@nestjs/swagger';
-import { Cron, CronExpression } from '@nestjs/schedule';
+import { GetCurrencyDto } from './dto/request/get-currency.dto';
 import { GetConvertValueFromAmountDto } from './dto/request/get-convert-valut-from-amount.dto';
+import { Language } from './dto/request/get-currency.dto';
+import { Public } from '@/common/decorators/public.decorator';
+import { ApiGetMeasurementsGroupsOperation } from './decorators/swagger.decorators';
+import { Cron, CronExpression } from '@nestjs/schedule';
 
 // валюты и единицы изменения
 // TODO: добавить redis
 // TODO: добавить объединения с категориями (combined)
+@ApiTags('Dictionaries')
 @Controller('dictionaries')
 export class DictionariesController {
   constructor(private readonly dictionariesService: DictionariesService) {}
@@ -19,6 +22,7 @@ export class DictionariesController {
   }
 
   @Cron(CronExpression.EVERY_DAY_AT_8PM)
+  @Get('valutes') // ДЛЯ ЗАПУСКА ВРУЧНУЮ
   async categoryRates() {
     return await this.dictionariesService.categoryRates();
   }
@@ -59,5 +63,13 @@ export class DictionariesController {
   async getUnitMeasurements(@Query() query: GetCurrencyDto) {
     const lang = query.lang ?? Language.RU;
     return await this.dictionariesService.unitMeasurements(lang);
+  }
+
+  @Get('groups')
+  @Public()
+  @ApiGetMeasurementsGroupsOperation()
+  async getMeasurementsGroups(@Query() query: GetCurrencyDto) {
+    const lang = query.lang ?? Language.RU;
+    return await this.dictionariesService.getMeasurementsGroups(lang);
   }
 }

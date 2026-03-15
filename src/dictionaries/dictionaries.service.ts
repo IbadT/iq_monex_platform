@@ -1,22 +1,33 @@
 import { Injectable, NotFoundException } from '@nestjs/common';
-import { CacheService } from '@/cache/cacheService.service';
-import { prisma } from '@/lib/prisma';
-import { Currency } from './entities/currency.entity';
-import {
-  currenciesData,
-  unitMeasurementsData,
-} from './default/dictionariesData';
-import { AppLogger } from '@/common/logger/logger.service';
-import { Language } from './dto/request/get-currency.dto';
-import { UnitMeasurement } from './entities/unit-measurement.entity';
-import axios from 'axios';
 import { ConfigService } from '@nestjs/config';
+import axios from 'axios';
+import { Language } from './dto/request/get-currency.dto';
+import { prisma } from '@/lib/prisma';
+import { CacheService } from '@/cache/cacheService.service';
+import { AppLogger } from '@/common/logger/logger.service';
+import { UnitMeasurement } from './entities/unit-measurement.entity';
+import { Specification } from '@/attributes/entities/specification.entity';
 import { CURRENCY_SYMBOL, VALUT_CODE } from './enums/valut-code.enum';
 import {
   CurrencyDetails,
   CurrencyRateEntity,
 } from './dto/response/valut-response.dto';
 import { GetConvertValueFromAmountDto } from './dto/request/get-convert-valut-from-amount.dto';
+import {
+  currenciesData,
+  unitMeasurementsData,
+} from './default/dictionariesData';
+import { categoryNames } from './default/categoryNames';
+import { Currency } from './entities/currency.entity';
+
+// Интерфейсы для типов данных
+interface UnitMeasurementData {
+  name: {
+    ru: string;
+    en: string;
+    kz: string;
+  };
+}
 
 @Injectable()
 export class DictionariesService {
@@ -85,12 +96,15 @@ export class DictionariesService {
   }
 
   async categoryRates() {
+    this.logger.log('Вызвана функция получения курса валют');
     const ratesData = await axios.get(
       this.configService.getOrThrow<string>('BANK_API_URL'),
     );
 
     const data = ratesData.data;
+    this.logger.log(`Получены данные: ${JSON.stringify(data)}`);
     const ratesDate = new Date(data.Date);
+    this.logger.log(`Получена дата: ${JSON.stringify(ratesDate)}`);
 
     // 1. Удаляем все записи за эту дату
     await prisma.currencyRate.deleteMany({
@@ -126,6 +140,125 @@ export class DictionariesService {
       `Перезаписано ${result.count} курсов за ${ratesDate.toDateString()}`,
     );
     return ratesToSave;
+  }
+
+  async getMeasurementsGroups(lang: Language) {
+    const cacheKey = `measurements/groups:${lang}`;
+    const cachedData = await this.cacheService.get(cacheKey);
+    if (cachedData) return cachedData;
+
+    // Получаем все спецификации
+    const specifications = await prisma.specification.findMany();
+
+    // Создаем структуру категорий на основе данных из dictionariesData.ts
+    const categories: Record<string, string[]> = {};
+
+    // Используем данные из dictionariesData.ts для группировки
+    unitMeasurementsData.forEach((unit: UnitMeasurementData) => {
+      const name = unit.name[lang] || unit.name['ru'] || unit.name.en || '';
+      
+      // Определяем категорию на основе позиции в массиве данных
+      // Штучные (индексы 0-15)
+      if (
+        unitMeasurementsData.indexOf(unit) >= 0 &&
+        unitMeasurementsData.indexOf(unit) <= 15
+      ) {
+        if (!categories['количество штук']) categories['количество штук'] = [];
+        categories['количество штук'].push(name);
+      }
+      // Весовые (индексы 16-24)
+      else if (
+        unitMeasurementsData.indexOf(unit) >= 16 &&
+        unitMeasurementsData.indexOf(unit) <= 24
+      ) {
+        if (!categories['вес']) categories['вес'] = [];
+        categories['вес'].push(name);
+      }
+      // Объемные (индексы 25-29)
+      else if (
+        unitMeasurementsData.indexOf(unit) >= 25 &&
+        unitMeasurementsData.indexOf(unit) <= 29
+      ) {
+        if (!categories['объем']) categories['объем'] = [];
+        categories['объем'].push(name);
+      }
+      // Длина (индексы 30-36)
+      else if (
+        unitMeasurementsData.indexOf(unit) >= 30 &&
+        unitMeasurementsData.indexOf(unit) <= 36
+      ) {
+        if (!categories['длина']) categories['длина'] = [];
+        categories['длина'].push(name);
+      }
+      // Площадь (индексы 37-39)
+      else if (
+        unitMeasurementsData.indexOf(unit) >= 37 &&
+        unitMeasurementsData.indexOf(unit) <= 39
+      ) {
+        if (!categories['площадь']) categories['площадь'] = [];
+        categories['площадь'].push(name);
+      }
+      // Время (индексы 40-46)
+      else if (
+        unitMeasurementsData.indexOf(unit) >= 40 &&
+        unitMeasurementsData.indexOf(unit) <= 46
+      ) {
+        if (!categories['время']) categories['время'] = [];
+        categories['время'].push(name);
+      }
+      // Услуги (индексы 47-52)
+      else if (
+        unitMeasurementsData.indexOf(unit) >= 47 &&
+        unitMeasurementsData.indexOf(unit) <= 52
+      ) {
+        if (!categories['цифровые услуги']) categories['цифровые услуги'] = [];
+        categories['цифровые услуги'].push(name);
+      }
+      // Логистика (индексы 53-56)
+      else if (
+        unitMeasurementsData.indexOf(unit) >= 53 &&
+        unitMeasurementsData.indexOf(unit) <= 56
+      ) {
+        if (!categories['транспорт']) categories['транспорт'] = [];
+        categories['транспорт'].push(name);
+      }
+    });
+
+    // Локализуем названия категорий
+    const localizedCategories: Record<string, string[]> = {};
+    Object.keys(categories).forEach(key => {
+      if (categories[key].length > 0) {
+        const categoryKey = key as keyof typeof categoryNames;
+        const localizedCategoryName = categoryNames[categoryKey]?.[lang] || categoryNames[categoryKey]?.['ru'] || key;
+        localizedCategories[localizedCategoryName] = categories[key];
+      }
+    });
+
+    // Удаляем пустые категории
+    Object.keys(categories).forEach((key) => {
+      if (categories[key].length === 0) {
+        delete categories[key];
+      }
+    });
+
+    // Формируем список спецификаций
+    const specificationsList = specifications.map((spec: Specification) =>
+      Specification.fromPrisma(spec).toResponse(lang),
+    );
+
+    const result = {
+      categories: localizedCategories,
+      specifications: specificationsList.map((spec) => spec.name),
+    };
+
+    // Кэшируем результат
+    await this.cacheService.set({
+      baseKey: cacheKey,
+      ttl: 3600,
+      value: result,
+    });
+
+    return result;
   }
 
   async currenciesList(lang: Language) {

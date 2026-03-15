@@ -26,9 +26,11 @@ import { YookassaModule } from 'nestjs-yookassa';
 import { LikesModule } from './likes/likes.module';
 import { FavoritesModule } from './favorites/favorites.module';
 import { SearchModule } from './search/search.module';
+import { JwtAuthModule } from './auth/jwt/jwt.module';
 
 @Module({
   imports: [
+    JwtAuthModule,
     ConfigModule.forRoot({
       isGlobal: true,
     }),
