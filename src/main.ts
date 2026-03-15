@@ -5,6 +5,7 @@ import { ValidationPipe } from '@nestjs/common';
 import { AppModule } from './app.module';
 import { swaggerCustomOptions } from '@/common/swagger-response-time.plugin';
 import { HttpExceptionFilter } from '@/common/filters/http-exception.filter';
+import * as express from 'express';
 
 async function bootstrap() {
   const app = await NestFactory.create(AppModule);
@@ -13,6 +14,10 @@ async function bootstrap() {
     origin: '*',
     credentials: true,
   });
+
+  // Увеличиваем лимит для загрузки файлов (10MB)
+  app.use(express.json({ limit: '10mb' }));
+  app.use(express.urlencoded({ limit: '10mb', extended: true }));
 
   const configService = new ConfigService();
 

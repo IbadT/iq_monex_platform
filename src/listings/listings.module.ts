@@ -6,9 +6,10 @@ import { CacheService } from '@/cache/cacheService.service';
 import { S3Service } from '@/s3/s3.service';
 import { RabbitmqService } from '@/rabbitmq/rabbitmq.service';
 import { SubscriptionService } from '@/subscription/subscription.service';
+import { SearchModule } from '@/search/search.module';
 
 @Module({
-  imports: [JwtAuthModule],
+  imports: [JwtAuthModule, SearchModule],
   controllers: [ListingsController],
   providers: [
     CacheService,

@@ -16,21 +16,22 @@ import {
 } from 'prisma/generated/internal/prismaNamespace';
 import { CacheService } from '@/cache/cacheService.service';
 import { S3Service } from '@/s3/s3.service';
-import { RabbitmqService } from '@/rabbitmq/rabbitmq.service';
 import { SubscriptionService } from '@/subscription/subscription.service';
 import { ChangeListingStatusDto } from './dto/request/change-listing-status.dto';
 import { UpdateListingDto } from './dto/request/update-listing.dto';
 import { JwtPayload } from '@/common/interfaces/jwt-payload.interface';
-// import { ListingsSearchService } from './listing-search.service';
+import { SearchService } from '@/search/search.service';
+import { ListingDocument } from '@/search/interfaces/listing.interface';
+import { ConfigService } from '@nestjs/config';
 
 @Injectable()
 export class ListingsService {
   constructor(
     private readonly subscriptionService: SubscriptionService,
-    private readonly rabbitmqService: RabbitmqService,
     private readonly cacheSevice: CacheService,
     private readonly s3Service: S3Service,
-    // private readonly listingSearchService: ListingsSearchService,
+    private readonly searchService: SearchService,
+    private readonly configService: ConfigService,
     private readonly logger: AppLogger,
   ) {}
 
@@ -212,6 +213,7 @@ export class ListingsService {
     // TODO: проверка доступных(пустых) слотов
     const availableSlots =
       await this.subscriptionService.getUserAvailableSlots(userId);
+    this.logger.log(`Доступных слотов: ${availableSlots.length}`);
 
     if (!availableSlots || availableSlots.length === 0) {
       throw new BadRequestException(
@@ -222,7 +224,7 @@ export class ListingsService {
     // TODO: вынести логику в ресурсы для map, photos/files и там использовать cacheService
 
     const { map, photos, files, ...listing } = body;
-    this.logger.log(`Объявление для создания: ${JSON.stringify(body)}`);
+    // this.logger.log(`Объявление для создания: ${JSON.stringify(body)}`);
 
     // Проверяем существование категории
     if (listing.categoryId) {
@@ -306,7 +308,7 @@ export class ListingsService {
             const fileName = this.s3Service.generateFileNameFromBase64(
               fileData,
               index,
-              'document',
+              'file',
             );
             const s3Key = this.s3Service.generateDocumentKey(
               createdListing.id,
@@ -316,29 +318,27 @@ export class ListingsService {
               this.s3Service.getContentTypeFromBase64(fileData);
             const fileSize = this.s3Service.getFileSizeFromBase64(fileData);
 
-            // Отправляем задачу загрузки в RabbitMQ
-            this.rabbitmqService.sendFileUpload({
-              listingId: createdListing.id,
-              fileType: 'document',
-              fileIndex: index,
-              fileData,
-              fileName,
-              contentType,
-              fileSize,
+            // Сразу загружаем файл в S3
+            const buffer = this.s3Service.base64ToBuffer(fileData);
+            const s3Url = await this.s3Service.upload(
+              buffer,
               s3Key,
-            });
+              contentType,
+            );
 
             fileRecords.push({
               ownerType: FileOwnerType.LISTING,
               listingId: createdListing.id,
-              url: fileData, // Временно храним base64, обновится после загрузки
+              url: s3Url || fileData, // S3 URL или base64 если загрузка не удалась
               fileType: contentType,
               fileName,
               fileSize,
               kind: FileKind.DOCUMENT,
               sortOrder: index,
               s3Key,
-              s3Bucket: '', // Обновится после загрузки
+              s3Bucket: s3Url
+                ? this.configService.get<string>('S3_BUCKET_NAME') || ''
+                : '',
             });
           }
 
@@ -366,29 +366,27 @@ export class ListingsService {
               this.s3Service.getContentTypeFromBase64(photoData);
             const fileSize = this.s3Service.getFileSizeFromBase64(photoData);
 
-            // Отправляем задачу загрузки в RabbitMQ
-            this.rabbitmqService.sendFileUpload({
-              listingId: createdListing.id,
-              fileType: 'photo',
-              fileIndex: index,
-              fileData: photoData,
-              fileName,
-              contentType,
-              fileSize,
+            // Сразу загружаем файл в S3
+            const buffer = this.s3Service.base64ToBuffer(photoData);
+            const s3Url = await this.s3Service.upload(
+              buffer,
               s3Key,
-            });
+              contentType,
+            );
 
             photoRecords.push({
               ownerType: FileOwnerType.LISTING,
               listingId: createdListing.id,
-              url: photoData, // Временно храним base64, обновится после загрузки
+              url: s3Url || photoData, // S3 URL или base64 если загрузка не удалась
               fileType: contentType,
               fileName,
               fileSize,
               kind: FileKind.PHOTO,
               sortOrder: index,
               s3Key,
-              s3Bucket: '', // Обновится после загрузки
+              s3Bucket: s3Url
+                ? this.configService.get<string>('S3_BUCKET_NAME') || ''
+                : '',
             });
           }
 
@@ -398,11 +396,14 @@ export class ListingsService {
         }
 
         // записываем в elasticSearch
-        // await this.listingSearchService.indexListing(createdListing);
+        // await this.indexListingInElasticsearch(createdListing);
 
         return createdListing;
       });
       await this.cacheSevice.del(cacheKey);
+
+      // Индексируем в Elasticsearch после успешной транзакции
+      await this.indexListingInElasticsearch(res);
 
       return res;
     } catch (error) {
@@ -442,5 +443,57 @@ export class ListingsService {
     }
 
     return deleted;
+  }
+
+  /**
+   * Индексация объявления в Elasticsearch
+   */
+  private async indexListingInElasticsearch(listing: any) {
+    try {
+      // Получаем связанные данные для полноты индекса
+      const listingWithRelations = await prisma.listing.findUnique({
+        where: { id: listing.id },
+        include: {
+          category: true,
+          currency: true,
+          priceUnit: true,
+          locations: true,
+          specifications: true,
+        },
+      });
+
+      if (!listingWithRelations) {
+        this.logger.error(`Listing not found for indexing: ${listing.id}`);
+        return;
+      }
+
+      // Преобразуем данные для Elasticsearch
+      const document: ListingDocument = {
+        ...listingWithRelations,
+        price: listingWithRelations.price
+          ? Number(listingWithRelations.price)
+          : null,
+        rating: listingWithRelations.rating
+          ? Number(listingWithRelations.rating)
+          : null,
+        locations: listingWithRelations.locations.map((loc: any) => ({
+          ...loc,
+          latitude: Number(loc.latitude),
+          longtitude: Number(loc.longtitude),
+        })),
+      };
+
+      // Индексируем в Elasticsearch
+      await this.searchService.indexDocument<ListingDocument>(
+        'listings',
+        listing.id,
+        document,
+      );
+
+      this.logger.log(`Listing indexed in Elasticsearch: ${listing.id}`);
+    } catch (error) {
+      this.logger.error(`Error indexing listing ${listing.id}:`, error);
+      // Не прерываем создание объявления из-за ошибки индексации
+    }
   }
 }

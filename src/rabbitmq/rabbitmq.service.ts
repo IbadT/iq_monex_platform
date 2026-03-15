@@ -11,7 +11,8 @@ import { ConfigService } from '@nestjs/config';
 
 @Injectable()
 export class RabbitmqService implements OnModuleInit, OnModuleDestroy {
-  private client!: ClientProxy;
+  private emailClient!: ClientProxy;
+  private fileUploadClient!: ClientProxy;
 
   constructor(
     private readonly configService: ConfigService,
@@ -20,7 +21,8 @@ export class RabbitmqService implements OnModuleInit, OnModuleDestroy {
 
   async onModuleInit() {
     try {
-      this.client = ClientProxyFactory.create({
+      // Клиент для email сообщений
+      this.emailClient = ClientProxyFactory.create({
         transport: Transport.RMQ,
         options: {
           urls: [this.configService.get('RABBITMQ_URL')],
@@ -32,8 +34,22 @@ export class RabbitmqService implements OnModuleInit, OnModuleDestroy {
         },
       });
 
-      await this.client.connect();
-      this.logger.log('RabbitMQ клиент успешно подключен');
+      // Клиент для загрузки файлов
+      this.fileUploadClient = ClientProxyFactory.create({
+        transport: Transport.RMQ,
+        options: {
+          urls: [this.configService.get('RABBITMQ_URL')],
+          queue: 'file_upload_queue',
+          queueOptions: {
+            durable: true,
+          },
+          prefetchCount: 1,
+        },
+      });
+
+      await this.emailClient.connect();
+      await this.fileUploadClient.connect();
+      this.logger.log('RabbitMQ клиенты успешно подключены');
     } catch (error) {
       this.logger.error('Ошибка подключения к RabbitMQ:', error);
       throw error;
@@ -41,15 +57,16 @@ export class RabbitmqService implements OnModuleInit, OnModuleDestroy {
   }
 
   async onModuleDestroy() {
-    await this.client.close();
+    await this.emailClient.close();
+    await this.fileUploadClient.close();
   }
 
   async sendEmail(message: EmailMessage): Promise<void> {
-    this.client.emit('send_email', message);
+    this.emailClient.emit('send_email', message);
   }
 
   async sendFileUpload(message: FileUploadMessage): Promise<void> {
-    this.client.emit('file_upload', message);
+    this.fileUploadClient.emit('file_upload', message);
     this.logger.log(`File upload task sent to queue: ${message.s3Key}`);
   }
 }

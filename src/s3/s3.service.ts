@@ -9,29 +9,34 @@ export class S3Service {
   private readonly logger = new Logger(S3Service.name);
 
   constructor(private readonly configService: ConfigService) {
-    const awsRegion = this.configService.get<string>('AWS_REGION');
     const accessKeyId = this.configService.get<string>('AWS_ACCESS_KEY_ID');
     const secretAccessKey = this.configService.get<string>(
       'AWS_SECRET_ACCESS_KEY',
     );
     const bucketName = this.configService.get<string>('S3_BUCKET_NAME');
+    const customEndpoint = this.configService.get<string>('S3_PATH_STYLE'); // https://storage.clo.ru/adverts
 
-    if (!awsRegion || !accessKeyId || !secretAccessKey || !bucketName) {
+    if (!accessKeyId || !secretAccessKey || !bucketName) {
       this.logger.warn(
-        'AWS S3 configuration is missing. S3Service will be disabled.',
+        'S3 configuration is missing. S3Service will be disabled.',
       );
       return;
     }
 
+    // Используем кастомный S3 провайдер (Selectel)
     this.s3Client = new S3Client({
-      region: awsRegion,
       credentials: {
         accessKeyId,
         secretAccessKey,
       },
+      // Указываем endpoint для Selectel
+      endpoint: customEndpoint?.replace(/\/[^\/]*$/, '') || 'https://storage.clo.ru', // Убираем /adverts
+      region: 'us-east-1', // Selectel требует указания региона
+      forcePathStyle: true, // Для S3-совместимых API
     });
+
     this.bucketName = bucketName;
-    this.logger.log(`S3Service initialized with bucket: ${bucketName}`);
+    this.logger.log(`S3Service initialized with bucket: ${bucketName} using Selectel S3`);
   }
 
   async upload(
@@ -55,7 +60,9 @@ export class S3Service {
 
       await this.s3Client.send(object);
 
-      const url = `https://${this.bucketName}.s3.${this.configService.get<string>('AWS_REGION')}.amazonaws.com/${key}`;
+      // Используем URL для Selectel
+      const customEndpoint = this.configService.get<string>('S3_PATH_STYLE') || 'https://storage.clo.ru';
+      const url = `${customEndpoint}/${key}`;
       this.logger.log(`Successfully uploaded file to S3: ${key}`);
 
       return url;

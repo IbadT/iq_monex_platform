@@ -8,9 +8,10 @@ import { CacheService } from '@/cache/cacheService.service';
 import { S3Service } from '@/s3/s3.service';
 import { RabbitmqService } from '@/rabbitmq/rabbitmq.service';
 import { SubscriptionServiceModule } from '@/subscription/subscription.module';
+import { SearchModule } from '@/search/search.module';
 
 @Module({
-  imports: [JwtAuthModule, RedisCacheModule, SubscriptionServiceModule],
+  imports: [JwtAuthModule, RedisCacheModule, SubscriptionServiceModule, SearchModule],
   controllers: [ReviewsController],
   providers: [ReviewsService, ListingsService, CacheService, S3Service, RabbitmqService],
 })

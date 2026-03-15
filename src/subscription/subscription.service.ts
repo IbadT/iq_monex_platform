@@ -3,6 +3,7 @@ import { Injectable, NotFoundException } from '@nestjs/common';
 import { ChangeListingSlotDto } from './dto/change-listing-slot.dto';
 import { PAYMENT_ITEM_TYPE } from '@/payments/enums/payment-status.enum';
 
+
 @Injectable()
 export class SubscriptionService {
   async getUserAvailableSlots(userId: string) {
@@ -13,7 +14,10 @@ export class SubscriptionService {
         expiresAt: {
           gt: new Date(),
         },
-        sourceType: PAYMENT_ITEM_TYPE.SLOT_PACKAGE,
+        sourceType: {
+          // in: ['SUBSCRIPTION', 'SLOT_PACKAGE'],
+          in: [PAYMENT_ITEM_TYPE.SUBSCRIPTION, PAYMENT_ITEM_TYPE.SLOT_PACKAGE],
+        },
         listingSlot: null,
       },
       orderBy: {
