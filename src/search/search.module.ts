@@ -2,12 +2,15 @@ import { Module } from '@nestjs/common';
 import { ConfigModule, ConfigService } from '@nestjs/config';
 import { ElasticsearchModule } from '@nestjs/elasticsearch';
 import { SearchService } from './search.service';
+import { AppLogger } from '@/common/logger/logger.service';
+import { LoggerModule } from '@/common/logger/logger.module';
 
 @Module({
   imports: [
+    LoggerModule,
     ElasticsearchModule.registerAsync({
       imports: [ConfigModule],
-      useFactory: (configService: ConfigService) => {
+      useFactory: (configService: ConfigService, logger: AppLogger) => {
         const username = configService.get('ELASTICSEARCH_USERNAME');
         const password = configService.get('ELASTICSEARCH_PASSWORD');
         
@@ -21,10 +24,10 @@ import { SearchService } from './search.service';
             password,
           };
         }
-        
+        logger.log(`Elasticsearch успешно подключен к: ${config.node}`);
         return config;
       },
-      inject: [ConfigService],
+      inject: [ConfigService, AppLogger],
     }),
   ],
   providers: [SearchService],
