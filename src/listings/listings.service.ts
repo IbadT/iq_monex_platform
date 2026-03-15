@@ -22,7 +22,7 @@ import { UpdateListingDto } from './dto/request/update-listing.dto';
 import { JwtPayload } from '@/common/interfaces/jwt-payload.interface';
 import { SearchService } from '@/search/search.service';
 import { ListingDocument } from '@/search/interfaces/listing.interface';
-import { ConfigService } from '@nestjs/config';
+import { RabbitmqService } from '@/rabbitmq/rabbitmq.service';
 
 @Injectable()
 export class ListingsService {
@@ -31,7 +31,7 @@ export class ListingsService {
     private readonly cacheSevice: CacheService,
     private readonly s3Service: S3Service,
     private readonly searchService: SearchService,
-    private readonly configService: ConfigService,
+    private readonly rabbitmqService: RabbitmqService,
     private readonly logger: AppLogger,
   ) {}
 
@@ -301,10 +301,8 @@ export class ListingsService {
 
         // Создаем файлы если указаны
         if (files && files.length > 0) {
-          const fileRecords = [];
-
-          for (let index = 0; index < files.length; index++) {
-            const fileData = files[index];
+          // Сначала создаем записи в БД с base64 данными
+          const fileRecords = files.map((fileData, index) => {
             const fileName = this.s3Service.generateFileNameFromBase64(
               fileData,
               index,
@@ -318,41 +316,46 @@ export class ListingsService {
               this.s3Service.getContentTypeFromBase64(fileData);
             const fileSize = this.s3Service.getFileSizeFromBase64(fileData);
 
-            // Сразу загружаем файл в S3
-            const buffer = this.s3Service.base64ToBuffer(fileData);
-            const s3Url = await this.s3Service.upload(
-              buffer,
-              s3Key,
-              contentType,
-            );
-
-            fileRecords.push({
+            return {
               ownerType: FileOwnerType.LISTING,
               listingId: createdListing.id,
-              url: s3Url || fileData, // S3 URL или base64 если загрузка не удалась
+              url: fileData, // Пока храним base64
               fileType: contentType,
               fileName,
               fileSize,
               kind: FileKind.DOCUMENT,
               sortOrder: index,
               s3Key,
-              s3Bucket: s3Url
-                ? this.configService.get<string>('S3_BUCKET_NAME') || ''
-                : '',
-            });
-          }
+              s3Bucket: '', // Будет заполнено после загрузки в S3
+              uploadStatus: 'pending', // Статус ожидания загрузки
+            };
+          });
 
+          // Сохраняем файлы в БД
           await tx.file.createMany({
             data: fileRecords,
+          });
+
+          // Отправляем задачи в RabbitMQ для асинхронной загрузки в S3
+          files.forEach(async (fileData, index) => {
+            const fileRecord = fileRecords[index];
+            await this.rabbitmqService.sendFileUpload({
+              listingId: createdListing.id,
+              fileType: 'document',
+              fileIndex: index,
+              fileData, // base64 данные
+              fileName: fileRecord.fileName,
+              contentType: fileRecord.fileType,
+              fileSize: fileRecord.fileSize,
+              s3Key: fileRecord.s3Key,
+            });
           });
         }
 
         // Создаем фото если указаны
         if (photos && photos.length > 0) {
-          const photoRecords = [];
-
-          for (let index = 0; index < photos.length; index++) {
-            const photoData = photos[index];
+          // Сначала создаем записи в БД с base64 данными
+          const photoRecords = photos.map((photoData, index) => {
             const fileName = this.s3Service.generateFileNameFromBase64(
               photoData,
               index,
@@ -366,32 +369,39 @@ export class ListingsService {
               this.s3Service.getContentTypeFromBase64(photoData);
             const fileSize = this.s3Service.getFileSizeFromBase64(photoData);
 
-            // Сразу загружаем файл в S3
-            const buffer = this.s3Service.base64ToBuffer(photoData);
-            const s3Url = await this.s3Service.upload(
-              buffer,
-              s3Key,
-              contentType,
-            );
-
-            photoRecords.push({
+            return {
               ownerType: FileOwnerType.LISTING,
               listingId: createdListing.id,
-              url: s3Url || photoData, // S3 URL или base64 если загрузка не удалась
+              url: photoData, // Пока храним base64
               fileType: contentType,
               fileName,
               fileSize,
               kind: FileKind.PHOTO,
               sortOrder: index,
               s3Key,
-              s3Bucket: s3Url
-                ? this.configService.get<string>('S3_BUCKET_NAME') || ''
-                : '',
-            });
-          }
+              s3Bucket: '', // Будет заполнено после загрузки в S3
+              uploadStatus: 'pending', // Статус ожидания загрузки
+            };
+          });
 
+          // Сохраняем фото в БД
           await tx.file.createMany({
             data: photoRecords,
+          });
+
+          // Отправляем задачи в RabbitMQ для асинхронной загрузки в S3
+          photos.forEach(async (photoData, index) => {
+            const photoRecord = photoRecords[index];
+            await this.rabbitmqService.sendFileUpload({
+              listingId: createdListing.id,
+              fileType: 'photo',
+              fileIndex: index,
+              fileData: photoData, // base64 данные
+              fileName: photoRecord.fileName,
+              contentType: photoRecord.fileType,
+              fileSize: photoRecord.fileSize,
+              s3Key: photoRecord.s3Key,
+            });
           });
         }
 

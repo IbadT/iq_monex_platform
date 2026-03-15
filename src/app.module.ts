@@ -20,7 +20,6 @@ import { ReviewsModule } from './reviews/reviews.module';
 import { PaymentsModule } from './payments/payments.module';
 import { ScheduleModule } from '@nestjs/schedule';
 import { S3Module } from './s3/s3.module';
-import { FileUploadModule } from './workers/file-upload.module';
 import { WorkersModule } from './workers/workers.module';
 import { SubscriptionServiceModule } from './subscription/subscription.module';
 import { YookassaModule } from 'nestjs-yookassa';
@@ -59,7 +58,6 @@ import { SearchModule } from './search/search.module';
     ReviewsModule,
     PaymentsModule,
     S3Module,
-    FileUploadModule,
     WorkersModule,
     SubscriptionServiceModule,
     LikesModule,

@@ -4,17 +4,16 @@ import { ListingsController } from './listings.controller';
 import { JwtAuthModule } from '@/auth/jwt/jwt.module';
 import { CacheService } from '@/cache/cacheService.service';
 import { S3Service } from '@/s3/s3.service';
-import { RabbitmqService } from '@/rabbitmq/rabbitmq.service';
+import { RabbitmqModule } from '@/rabbitmq/rabbitmq.module';
 import { SubscriptionService } from '@/subscription/subscription.service';
 import { SearchModule } from '@/search/search.module';
 
 @Module({
-  imports: [JwtAuthModule, SearchModule],
+  imports: [JwtAuthModule, SearchModule, RabbitmqModule],
   controllers: [ListingsController],
   providers: [
     CacheService,
     ListingsService,
-    RabbitmqService,
     S3Service,
     SubscriptionService,
   ],
