@@ -8,14 +8,10 @@ import {
 } from 'class-validator';
 import { Type } from 'class-transformer';
 import { CreateMapLocationDto } from './create-map-location.dto';
-import { ListingStatus } from '../../enums/listing-status.enum';
+import { ListingCondition, ListingStatus } from '../../enums/listing-status.enum';
 import { ConditionalRequired } from '../../decorators/conditional-required.decorator';
 
-// Enum для состояния
-enum ListingCondition {
-  NEW = 'NEW',
-  USED = 'USED',
-}
+
 
 export class CreateListingDto {
   @IsNumber()

@@ -30,6 +30,7 @@ import { ApiListingByIdDocs } from './decorators/api-listing-by-id-docs.decorato
 import { JwtPayload } from '@/common/interfaces/jwt-payload.interface';
 import { CurrentUser } from '@/common/decorators/current-user.decorator';
 import { MakeComplaintToListing } from './dto/request/make-complaint-to-listing.dto';
+import { GetRecomentQueryDto } from './dto/request/get-recoment-query.dto';
 // import { GetFavoritesQueryDto } from './dto/request/get-favorites-query.dto';
 
 @Controller('listings')
@@ -54,6 +55,14 @@ export class ListingsController {
     @Query() query: StatusQueryDto,
   ) {
     return await this.listingsService.listingById(id, query);
+  }
+
+  @Get(':listingId/recomends')
+  async getRecomendsByListingId(
+    @Param('listingId') listingId: string,
+    @Query() query: GetRecomentQueryDto,
+  ) {
+    return await this.listingsService.getRecomendsByListingId(listingId, query);
   }
 
   @Get('users/:user_id')
@@ -112,9 +121,7 @@ export class ListingsController {
   ) {
     return await this.listingsService.deleteListingById(id, user, query);
   }
-
-  // получить рекомендованные объявления при просмотре объявления
-
+  
   // ??? получить подробную информацию по объявлению ???
 
   // ??? ЗАМЕТКИ ???

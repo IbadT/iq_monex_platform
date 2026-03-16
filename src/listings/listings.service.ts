@@ -29,6 +29,9 @@ import { FavoriteType } from '@/favorites/enums/favorite-type.enum';
 import { GetFavoritesQueryDto } from './dto/request/get-favorites-query.dto';
 import { ComplaintType } from '@/users/enums/complaint-type.enum';
 import { MakeComplaintToListing } from './dto/request/make-complaint-to-listing.dto';
+import { GetRecomentQueryDto } from './dto/request/get-recoment-query.dto';
+import { ListingEntityWithFiles, ListingWhereCondition } from './entities/listing.entity';
+import { FORBIDDEN_WORDS } from './forbidden-words/forbidden-words';
 
 @Injectable()
 export class ListingsService {
@@ -41,18 +44,76 @@ export class ListingsService {
     private readonly logger: AppLogger,
   ) {}
 
-  // async searchListing(text: string) {
-  //   const result = await this.listingSearchService.search(text);
-  //   const ids = result.map((result = result.id));
-  //   if (!ids.length) {
-  //     return [];
-  //   }
-  //   return prisma.listing.findMany({
-  //     where: {
-  //       id: ids,
-  //     },
-  //   });
-  // }
+  async getRecomendsByListingId(listingId: string, query: GetRecomentQueryDto) {
+    const listing = await prisma.listing.findUnique({
+      where: {
+        id: listingId,
+      },
+    });
+
+    if (!listing) {
+      throw new NotFoundException('Объявление не найдено');
+    }
+
+    let minPrice: number;
+    let maxPrice: number;
+
+    if (!listing.price) {
+      minPrice = 0;
+      maxPrice = 0;
+    } else {
+      // Вычисляем диапазон цен: ±25% от текущей цены
+      const price = Number(listing.price);
+      minPrice = price * 0.75; // 25% меньше
+      maxPrice = price * 1.25; // 25% больше
+    }
+
+    const whereCondition: ListingWhereCondition = {
+      // Исключаем текущее объявление
+      id: {
+        not: listingId,
+      },
+      status: ListingStatus.PUBLISHED,
+      categoryId: listing.categoryId, // Та же категория
+    };
+
+    // Добавляем фильтр по цене только если она существует
+    if (listing.price) {
+      whereCondition.price = {
+        gte: minPrice,
+        lte: maxPrice,
+      };
+    }
+
+    const listings = await prisma.listing.findMany({
+      where: whereCondition,
+      take: query.limit,
+      skip: query.offset,
+      include: {
+        category: true,
+        currency: true,
+        priceUnit: true,
+        files: true,
+        locations: true,
+        specifications: true,
+        listingSlot: {
+          include: {
+            userSlot: true,
+          },
+        },
+      },
+      orderBy: {
+        createdAt: 'desc',
+      },
+    });
+
+    // Используем статический метод для разделения файлов
+    const processedListings = listings.map((listing: any) => 
+      ListingEntityWithFiles.fromPrismaWithFiles(listing)
+    );
+
+    return processedListings;
+  }
 
   async makeComplaintToListing(userId: string, body: MakeComplaintToListing) {
     const hasComplaint = await prisma.complaint.findFirst({
@@ -492,6 +553,14 @@ export class ListingsService {
   }
 
   async createListing(userId: string, body: CreateListingDto) {
+    // Проверка текста на запрещенные слова
+    if (body.title) {
+      this.validateText(body.title);
+    }
+    if (body.description) {
+      this.validateText(body.description);
+    }
+
     const cacheKey = 'listings';
 
     // TODO: проверка доступных(пустых) слотов
@@ -788,6 +857,32 @@ export class ListingsService {
     } catch (error) {
       this.logger.error(`Error indexing listing ${listing.id}:`, error);
       // Не прерываем создание объявления из-за ошибки индексации
+    }
+  }
+
+  /**
+   * Проверяет текст на наличие запрещенных слов
+   * @param text Текст для проверки
+   * @throws BadRequestException если найдены запрещенные слова
+   */
+  private validateText(text: string): void {
+    if (!text) return;
+
+    const lowerText = text.toLowerCase();
+    const foundWords: string[] = [];
+    
+    // Проверка простых слов
+    for (const word of FORBIDDEN_WORDS) {
+      if (lowerText.includes(word)) {
+        foundWords.push(word);
+      }
+    }
+    
+    // Если найдены запрещенные слова, выбрасываем ошибку
+    if (foundWords.length > 0) {
+      throw new BadRequestException(
+        `Объявление содержит запрещенные слова: ${foundWords.join(', ')}. Пожалуйста, удалите их и попробуйте снова.`
+      );
     }
   }
 }
