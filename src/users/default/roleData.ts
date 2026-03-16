@@ -11,3 +11,5 @@ export const roles = [
   { code: 'MANAGER', role: 'Менеджер', type: RoleType.WORKER },
   { code: 'FINANCE', role: 'Финансы', type: RoleType.WORKER },
 ];
+
+export const rolesCode = ["SUPER_ADMIN", "USER", "USER_PREMIUM", "ADMIN", "MODERATOR", "SUPPORT", "INSTALLER", "MANAGER", "FINANCE"];

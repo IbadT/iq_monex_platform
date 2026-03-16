@@ -576,7 +576,7 @@ export class ListingsService {
 
     // TODO: вынести логику в ресурсы для map, photos/files и там использовать cacheService
 
-    const { map, photos, files, ...listing } = body;
+    const { maps, photos, files, ...listing } = body;
     // this.logger.log(`Объявление для создания: ${JSON.stringify(body)}`);
 
     // Проверяем существование категории
@@ -641,15 +641,23 @@ export class ListingsService {
         });
 
         // Создаем геолокацию если указана
-        if (map) {
-          await tx.mapLocation.create({
-            data: {
+        if (maps && maps.length > 0) {
+          await tx.mapLocation.createMany({
+            data: maps.map((map) => ({
               type: map.type,
               latitude: new Decimal(map.latitude),
               longtitude: new Decimal(map.longtitude),
               listingId: createdListing.id,
-            },
+            })),
           });
+          // await tx.mapLocation.create({
+          //   data: {
+          //     type: maps[0].type,
+          //     latitude: new Decimal(maps[0].latitude),
+          //     longtitude: new Decimal(maps[0].longtitude),
+          //     listingId: createdListing.id,
+          //   },
+          // });
         }
 
         // Создаем файлы если указаны

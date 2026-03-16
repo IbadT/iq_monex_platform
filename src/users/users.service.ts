@@ -159,11 +159,6 @@ export class UsersService {
     }
   }
 
-  // TODO: нужен ли?
-  async invalidateUserCache(userId: string, email: string): Promise<void> {
-    await this.cacheService.invalidateUserCache(userId, email);
-  }
-
   async createUser(data: {
     email: string;
     accountNumber: string;
@@ -174,9 +169,9 @@ export class UsersService {
     const { email } = data;
     const role = email === 'admin@admin.com' ? RoleType.ADMIN : RoleType.USER;
 
-    const userRole = await prisma.role.findUnique({
+    const userRole = await prisma.role.findFirst({
       where: {
-        type: role,
+        code: role,
       },
     });
 
@@ -216,14 +211,23 @@ export class UsersService {
 
   async seedRoles() {
     for (const role of roles) {
-      await prisma.role.upsert({
-        where: { type: role.type }, // или where: { code: role.code }
-        update: {
-          role: role.role,
-          // обновляем только название, не трогаем связи
-        },
-        create: role,
+      const existingRole = await prisma.role.findFirst({
+        where: { code: role.code }
       });
+
+      if (!existingRole) {
+        await prisma.role.create({
+          data: role,
+        });
+      } else {
+        await prisma.role.update({
+          where: { id: existingRole.id },
+          data: {
+            role: role.role,
+            // обновляем только название, не трогаем связи
+          },
+        });
+      }
     }
   }
 }

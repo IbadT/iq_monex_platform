@@ -59,9 +59,11 @@ export class CreateListingDto {
   @ArrayMaxSize(10)
   photos?: string[]; // Массив base64 строк для изображений (макс. 10)
 
+  // specifications?: 
+
   // Геолокация
   @IsOptional()
-  map?: CreateMapLocationDto;
+  maps?: CreateMapLocationDto[];
 
   constructor(
     categoryId: number,
@@ -74,7 +76,7 @@ export class CreateListingDto {
     status?: ListingStatus,
     files?: string[],
     photos?: string[],
-    map?: CreateMapLocationDto,
+    maps?: CreateMapLocationDto[],
   ) {
     this.categoryId = categoryId;
 
@@ -105,8 +107,8 @@ export class CreateListingDto {
     if (photos !== undefined) {
       this.photos = photos;
     }
-    if (map !== undefined) {
-      this.map = map;
+    if (maps !== undefined) {
+      this.maps = maps;
     }
   }
 }

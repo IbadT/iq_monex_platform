@@ -42,6 +42,7 @@ model User {
   listingLikes     ListingLike[]
 
   files File[]
+  workers Worker[]
 
   subscriptions Subscription[]
   payments      Payment[]
@@ -102,18 +103,23 @@ model Worker {
   roleId String @map("role_id") @db.Uuid
   role   Role   @relation(fields: [roleId], references: [id])
 
+  userId String @map("user_id") @db.Uuid
+  user   User   @relation(fields: [userId], references: [id])
+
   createdAt DateTime @default(now()) @map("created_at")
   updatedAt DateTime @updatedAt @map("updated_at")
 
   @@index([roleId])
+  @@index([userId])
   @@map("workers")
 }
 
 model Role {
   id   String   @id @default(uuid()) @db.Uuid
-  role String
-  code String
-  type RoleType @unique
+  role String @unique
+  code String 
+  // type RoleType @unique
+  type RoleType 
 
   users   User[]
   workers Worker[]

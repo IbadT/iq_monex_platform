@@ -103,6 +103,24 @@ export class AuthService {
     const accountNumber = await this.generateUniqueAccountNumber();
     const hashedPassword = await this.hashService.hash(password);
 
+    // TODO: убалить на проде
+    if (email === "admin@admin.com") {
+      const res = await prisma.user.create({
+        data: {
+          email,
+          password: hashedPassword,
+          accountNumber,
+          isVerified: true,
+          name: 'Admin',
+          roleId: "0418d130-f898-433b-b771-18594e61569f",
+        },
+      })
+      return {
+        ...res,
+        status: 200,
+      }
+    }
+
     // 3. Записываем все в Redis
     const registrationData = {
       email,
