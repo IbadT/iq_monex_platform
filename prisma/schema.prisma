@@ -510,21 +510,6 @@ model File {
 }
 
 // ================ FAVORITES ================
-// model Favorite {
-//   id        String @id @default(uuid()) @db.Uuid
-//   userId    String @map("user_id") @db.Uuid
-//   listingId String @map("listing_id") @db.Uuid
-
-//   createdAt DateTime @default(now()) @map("created_at")
-
-//   user    User    @relation(fields: [userId], references: [id], onDelete: Cascade)
-//   listing Listing @relation(fields: [listingId], references: [id], onDelete: Cascade)
-
-//   @@unique([userId, listingId]) // Один пользователь — одно избранное на объявление
-//   @@index([userId])
-//   @@index([listingId])
-//   @@map("favorites")
-// }
 
 model Favorite {
   id     String       @id @default(uuid()) @db.Uuid

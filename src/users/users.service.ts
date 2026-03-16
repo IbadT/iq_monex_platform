@@ -14,6 +14,7 @@ import { FavoriteType } from '@/favorites/enums/favorite-type.enum';
 import { AddFavoriteToUserDto } from './dto/add-favorite-to-user.dto';
 import { MakeComplaintToUser } from './dto/make-complaint-to-user.dto';
 import { ComplaintType } from './enums/complaint-type.enum';
+import { PaginationDto } from '@/common/dto/pagintation.dto';
 
 @Injectable()
 export class UsersService {
@@ -21,6 +22,16 @@ export class UsersService {
     private readonly cacheService: CacheService,
     private readonly logger: AppLogger,
   ) {}
+
+  async getUserReviews(userId: string, query: PaginationDto) {
+    return await prisma.review.findMany({
+      where: {
+        targetUserId: userId
+      },
+      take: query.limit,
+      skip: query.offset
+    });
+  };
 
   async getUserByEmail(email: string): Promise<User | null> {
     // Сначала пытаемся получить из кэша

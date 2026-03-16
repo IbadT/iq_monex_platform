@@ -2,6 +2,7 @@ import { Injectable, OnModuleInit, OnModuleDestroy } from '@nestjs/common';
 import * as amqp from 'amqplib';
 import { EmailMessage } from './interfaces/email-message.interface';
 import { FileUploadMessage } from './interfaces/file-upload-message.interface';
+import { ReviewFileUploadMessage } from './interfaces/review-file-upload-message.interface';
 import { AppLogger } from '@/common/logger/logger.service';
 import { ConfigService } from '@nestjs/config';
 import { Channel, ChannelModel } from 'amqplib';
@@ -36,6 +37,7 @@ export class RabbitmqService implements OnModuleInit, OnModuleDestroy {
       // Объявляем очереди
       await this.emailChannel.assertQueue('auth_queue', { durable: true });
       await this.fileUploadChannel.assertQueue('file_upload_queue', { durable: true });
+      await this.fileUploadChannel.assertQueue('review_file_upload_queue', { durable: true });
       
       this.logger.log('RabbitMQ клиенты успешно подключены');
     } catch (error) {
@@ -78,5 +80,14 @@ export class RabbitmqService implements OnModuleInit, OnModuleDestroy {
     
     this.fileUploadChannel.sendToQueue('file_upload_queue', Buffer.from(JSON.stringify(message)), { persistent: true });
     this.logger.log(`File upload task sent to queue: ${message.s3Key}`);
+  }
+
+  async sendReviewFileUpload(message: ReviewFileUploadMessage): Promise<void> {
+    if (!this.fileUploadChannel) {
+      throw new Error('File upload channel not initialized');
+    }
+    
+    this.fileUploadChannel.sendToQueue('review_file_upload_queue', Buffer.from(JSON.stringify(message)), { persistent: true });
+    this.logger.log(`Review file upload task sent to queue: ${message.s3Key}`);
   }
 }
