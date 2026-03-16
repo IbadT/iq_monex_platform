@@ -39,9 +39,11 @@ export class ListingsController {
   @Get('')
   @ApiListingQueryDocs()
   async listingList(@Query() query: ListingQueryDto) {
-    // if (query.search) {
-    //   return this.listingsService.searchListing(query.search);
-    // }
+    // Если есть поисковый запрос, используем Elasticsearch
+    if (query.search) {
+      return await this.listingsService.searchListings(query);
+    }
+    // Иначе используем обычный поиск из БД
     return await this.listingsService.listingList(query);
   }
 
@@ -53,26 +55,6 @@ export class ListingsController {
   ) {
     return await this.listingsService.listingById(id, query);
   }
-
-  // @Get('favorites')
-  // // @ApiGetFavoritesDocs()
-  // @Protected()
-  // async getFavoritesUserListings(
-  //   @CurrentUser() user: JwtPayload,
-  //   @Query() query: GetFavoritesQueryDto,
-  // ) {
-  //   return await this.listingsService.getFavoritesUserListings(user.id, query);
-  // }
-
-  // @Post('favorites')
-  // @Protected()
-  // @ApiToggleFavoriteDocs()
-  // async addListingToFavorite(
-  //   @Body() body: AddFavoriteListingDto,
-  //   @CurrentUser() user: JwtPayload,
-  // ) {
-  //   return await this.listingsService.addListingToFavorite(user.id, body);
-  // }
 
   @Get('users/:user_id')
   async listingsByUserId(@Param('user_id', ParseUUIDPipe) user_id: string) {
@@ -131,13 +113,7 @@ export class ListingsController {
     return await this.listingsService.deleteListingById(id, user, query);
   }
 
-  // объявления по фильтрам + elasticsearch
-
   // получить рекомендованные объявления при просмотре объявления
-
-  // отправить жалобу на объявление
-
-  //
 
   // ??? получить подробную информацию по объявлению ???
 

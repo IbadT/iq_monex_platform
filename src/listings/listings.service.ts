@@ -131,6 +131,183 @@ export class ListingsService {
     }
   }
 
+  /**
+   * Поиск объявлений через Elasticsearch
+   */
+  async searchListings(query: ListingQueryDto) {
+    const startTime = Date.now();
+    const { limit = 20, offset = 0, search, status, condition, minPrice, maxPrice, categoryId } = query;
+
+    this.logger.log(`🔍 Search request: ${JSON.stringify({ search, status, condition, minPrice, maxPrice, categoryId, limit, offset })}`);
+
+    // Если нет поискового запроса, используем обычный поиск из БД
+    if (!search) {
+      this.logger.log('📄 No search query provided, using database search');
+      return await this.listingList(query);
+    }
+
+    try {
+      this.logger.log(`🚀 Starting Elasticsearch search for: "${search}"`);
+      
+      // Строим Elasticsearch query
+      const esQuery: any = {
+        query: {
+          bool: {
+            must: [],
+            filter: [],
+          },
+        },
+        from: offset,
+        size: limit,
+        sort: [
+          { createdAt: { order: 'desc' } },
+          { _score: { order: 'desc' } },
+        ],
+      };
+
+      // Добавляем полнотекстовый поиск
+      if (search) {
+        esQuery.query.bool.must.push({
+          multi_match: {
+            query: search,
+            fields: ['title^3', 'description^2', 'category.name^1.5'],
+            type: 'best_fields',
+            fuzziness: 'AUTO',
+            operator: 'and',
+          },
+        });
+        this.logger.log(`📝 Multi-match query configured for fields: title^3, description^2, category.name^1.5`);
+      }
+
+      // Добавляем фильтры
+      if (status) {
+        esQuery.query.bool.filter.push({
+          term: { "status.keyword": status },
+        });
+        this.logger.log(`🎯 Status filter applied: ${status}`);
+      }
+
+      if (condition) {
+        esQuery.query.bool.filter.push({
+          term: { "condition.keyword": condition },
+        });
+        this.logger.log(`🎯 Condition filter applied: ${condition}`);
+      }
+
+      if (categoryId) {
+        esQuery.query.bool.filter.push({
+          term: { categoryId: parseInt(categoryId) },
+        });
+        this.logger.log(`🎯 Category filter applied: ${categoryId}`);
+      }
+
+      // Фильтр по цене
+      if (minPrice || maxPrice) {
+        const priceRange: any = {};
+        if (minPrice) priceRange.gte = minPrice;
+        if (maxPrice) priceRange.lte = maxPrice;
+        
+        esQuery.query.bool.filter.push({
+          range: { price: priceRange },
+        });
+        this.logger.log(`💰 Price filter applied: ${JSON.stringify(priceRange)}`);
+      }
+
+      // Если нет must условий, но есть поиск, заменяем на match_all
+      if (esQuery.query.bool.must.length === 0 && search) {
+        esQuery.query.bool.must.push({ match_all: {} });
+      }
+
+      this.logger.log(`🔍 Elasticsearch query: ${JSON.stringify(esQuery)}`);
+
+      // Выполняем поиск в Elasticsearch
+      const esStartTime = Date.now();
+      const result = await this.searchService.search<ListingDocument>('listings', esQuery);
+      const esDuration = Date.now() - esStartTime;
+      
+      this.logger.log(`⚡ Elasticsearch search completed in ${esDuration}ms, found ${result.hits.total.value} documents`);
+
+      // Получаем ID найденных документов
+      const listingIds = result.hits.hits.map(hit => hit._source.id);
+
+      if (!listingIds.length) {
+        const totalDuration = Date.now() - startTime;
+        this.logger.log(`📭 No results found in ${totalDuration}ms`);
+        
+        return {
+          rows: [],
+          pagination: {
+            total: 0,
+            limit,
+            offset,
+            hasMore: false,
+          },
+        };
+      }
+
+      this.logger.log(`📋 Found ${listingIds.length} listing IDs: ${listingIds.slice(0, 5).join(', ')}${listingIds.length > 5 ? '...' : ''}`);
+
+      // Получаем полные данные из Prisma для найденных ID с сортировкой
+      const dbStartTime = Date.now();
+      const listings = await prisma.listing.findMany({
+        where: {
+          id: { in: listingIds },
+        },
+        include: {
+          category: true,
+          currency: true,
+          priceUnit: true,
+          files: true,
+          locations: true,
+          specifications: true,
+          listingSlot: {
+            include: {
+              userSlot: true,
+            },
+          },
+        },
+        orderBy: {
+          createdAt: 'desc',
+        },
+      });
+      const dbDuration = Date.now() - dbStartTime;
+      
+      this.logger.log(`🗄️ Database query completed in ${dbDuration}ms, retrieved ${listings.length} full listings`);
+
+      // Разделяем файлы на фотографии и документы
+      const processedListings = listings.map(listing => ({
+        ...listing,
+        photos: listing.files.filter(file => file.kind === FileKind.PHOTO),
+        files: listing.files.filter(file => file.kind === FileKind.DOCUMENT),
+      }));
+
+      const totalDuration = Date.now() - startTime;
+      this.logger.log(`✅ Search completed successfully in ${totalDuration}ms (ES: ${esDuration}ms, DB: ${dbDuration}ms)`);
+
+      return {
+        rows: processedListings,
+        pagination: {
+          total: result.hits.total.value,
+          limit,
+          offset,
+          hasMore: offset + limit < result.hits.total.value,
+        },
+        searchMeta: {
+          query: search,
+          totalFound: result.hits.total.value,
+          maxScore: Math.max(...result.hits.hits.map(hit => hit._score)),
+        },
+      };
+    } catch (error) {
+      const totalDuration = Date.now() - startTime;
+      this.logger.error(`❌ Elasticsearch search error after ${totalDuration}ms:`, error);
+      
+      // В случае ошибки Elasticsearch, fallback к обычному поиску в БД
+      this.logger.warn('🔄 Falling back to database search due to Elasticsearch error');
+      return await this.listingList(query);
+    }
+  }
+
   async listingList(query: ListingQueryDto) {
     const { limit = 20, offset = 0, status, condition, search } = query;
 
@@ -178,8 +355,15 @@ export class ListingsService {
       skip: offset,
     });
 
+    // Разделяем файлы на фотографии и документы
+    const processedListings = listings.map(listing => ({
+      ...listing,
+      photos: listing.files.filter(file => file.kind === FileKind.PHOTO),
+      files: listing.files.filter(file => file.kind === FileKind.DOCUMENT),
+    }));
+
     return {
-      rows: listings,
+      rows: processedListings,
       pagination: {
         total,
         limit,
@@ -244,6 +428,16 @@ export class ListingsService {
       },
     });
 
+    // Разделяем файлы на фотографии и документы
+    if (listing) {
+      const processedListing = {
+        ...listing,
+        photos: listing.files.filter(file => file.kind === FileKind.PHOTO),
+        files: listing.files.filter(file => file.kind === FileKind.DOCUMENT),
+      };
+      return processedListing;
+    }
+
     // if (listing) {
     //   await this.cacheSevice.set({
     //     baseKey: cachedKey,
@@ -279,15 +473,22 @@ export class ListingsService {
       },
     });
 
-    if (listings && listings.length > 0) {
+    // Разделяем файлы на фотографии и документы
+    const processedListings = listings.map(listing => ({
+      ...listing,
+      photos: listing.files.filter(file => file.kind === FileKind.PHOTO),
+      files: listing.files.filter(file => file.kind === FileKind.DOCUMENT),
+    }));
+
+    if (processedListings && processedListings.length > 0) {
       await this.cacheSevice.set({
         baseKey: cacheKey,
         ttl: 900,
-        value: listings,
+        value: processedListings,
       });
     }
 
-    return listings;
+    return processedListings;
   }
 
   async createListing(userId: string, body: CreateListingDto) {

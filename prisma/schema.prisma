@@ -144,6 +144,7 @@ model Category {
 
   @@index([parentId])
   @@index([name])
+  @@index([parentId, name]) // Для поиска подкатегорий в рамках родителя
   @@map("categories")
 }
 
@@ -373,6 +374,15 @@ model Listing {
   @@index([status, autoDeleteAt])
   @@index([categoryId, status, publishedAt])
   @@index([status, lastUsedAt])
+  
+  // Дополнительные индексы для поиска и фильтрации
+  @@index([status, createdAt]) // Для сортировки по дате в рамках статуса
+  @@index([categoryId, status]) // Для фильтрации по категории и статусу
+  @@index([condition, status]) // Для фильтрации по состоянию и статусу
+  @@index([price, status]) // Для фильтрации по цене и статусу
+  @@index([status, condition, categoryId]) // Композитный индекс для популярных фильтров
+  @@index([createdAt]) // Для общей сортировки по дате
+  
   @@map("listings")
 }
 
@@ -489,6 +499,7 @@ model File {
   @@index([ownerType, listingId, kind])
   @@index([ownerType, complaintId, kind])
   @@index([uploadStatus, expiresAt])
+  @@index([listingId, kind, sortOrder]) // Для фото объявлений с сортировкой
   @@map("files")
 }
 
