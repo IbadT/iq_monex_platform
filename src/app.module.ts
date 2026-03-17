@@ -1,5 +1,5 @@
 import { Module } from '@nestjs/common';
-import { ConfigModule } from '@nestjs/config';
+import { ConfigModule, ConfigService } from '@nestjs/config';
 import { AppController } from './app.controller';
 import { AppService } from './app.service';
 import { UsersModule } from './users/users.module';
@@ -14,12 +14,36 @@ import { ChatsModule } from './chats/chats.module';
 import { NotificationsModule } from './notifications/notifications.module';
 import { EmailModule } from './email/email.module';
 import { RabbitmqModule } from './rabbitmq/rabbitmq.module';
+import { RabbitmqConsumerModule } from './rabbitmq/rabbitmq-consumer.module';
+import { ListingsModule } from './listings/listings.module';
+import { ReviewsModule } from './reviews/reviews.module';
+import { PaymentsModule } from './payments/payments.module';
+import { ScheduleModule } from '@nestjs/schedule';
+import { S3Module } from './s3/s3.module';
+import { WorkersModule } from './workers/workers.module';
+import { SubscriptionServiceModule } from './subscription/subscription.module';
+import { YookassaModule } from 'nestjs-yookassa';
+import { LikesModule } from './likes/likes.module';
+import { FavoritesModule } from './favorites/favorites.module';
+import { SearchModule } from './search/search.module';
+import { JwtAuthModule } from './auth/jwt/jwt.module';
 
 @Module({
   imports: [
+    JwtAuthModule,
     ConfigModule.forRoot({
       isGlobal: true,
     }),
+    YookassaModule.forRootAsync({
+      imports: [ConfigModule],
+      useFactory: (configService: ConfigService) => ({
+        shopId: configService.getOrThrow<string>('YOOKASSA_SHOP_ID'),
+        apiKey: configService.getOrThrow<string>('YOOKASSA_SECRET_KEY'),
+      }),
+      inject: [ConfigService],
+    }),
+    SearchModule,
+    ScheduleModule.forRoot(),
     LoggerModule,
     GuardsModule,
     UsersModule,
@@ -31,6 +55,15 @@ import { RabbitmqModule } from './rabbitmq/rabbitmq.module';
     NotificationsModule,
     EmailModule,
     RabbitmqModule,
+    RabbitmqConsumerModule,
+    ListingsModule,
+    ReviewsModule,
+    PaymentsModule,
+    S3Module,
+    WorkersModule,
+    SubscriptionServiceModule,
+    LikesModule,
+    FavoritesModule,
   ],
   controllers: [AppController],
   providers: [AppService, CacheService],

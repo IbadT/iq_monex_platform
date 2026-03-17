@@ -13,7 +13,7 @@ export class AttributesService {
     private readonly logger: AppLogger,
   ) {}
   async list(lang: Language) {
-    const cachekey = 'specifications';
+    const cachekey = `specifications:${lang}`;
 
     // получаем из redis
     const cachedSpecifications =
@@ -37,14 +37,15 @@ export class AttributesService {
     return response;
   }
 
+  // TODO: добавить redis при создании
   async seedSpecifications() {
-    const cachekey = 'specifications';
+    // const cachekey = 'specifications';
     try {
       this.logger.log('Начинаю сидирование specifications...');
 
       // Очищаем таблицу
       await prisma.specification.deleteMany();
-      await this.cacheService.del(cachekey);
+      // await this.cacheService.del(cachekey);
       this.logger.log('Таблица specifications очищена');
 
       // Сидирование

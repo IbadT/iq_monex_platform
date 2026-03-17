@@ -17,23 +17,28 @@
     "test:watch": "jest --watch",
     "test:cov": "jest --coverage",
     "test:debug": "node --inspect-brk -r tsconfig-paths/register -r ts-node/register node_modules/.bin/jest --runInBand",
-    "test:e2e": "jest --config ./test/jest-e2e.json"
+    "test:e2e": "jest --config ./test/jest-e2e.json",
+    "prisma:generate": "prisma generate"
   },
   "dependencies": {
+    "@aws-sdk/client-s3": "^3.1005.0",
+    "@elastic/elasticsearch": "^8.15.0",
     "@nestjs-modules/ioredis": "^2.0.2",
     "@nestjs/common": "^11.0.1",
     "@nestjs/config": "^4.0.3",
     "@nestjs/core": "^11.0.1",
+    "@nestjs/elasticsearch": "^11.1.0",
     "@nestjs/jwt": "^11.0.2",
     "@nestjs/mapped-types": "*",
     "@nestjs/microservices": "^11.1.16",
     "@nestjs/passport": "^11.0.5",
     "@nestjs/platform-express": "^11.0.1",
     "@nestjs/platform-socket.io": "^11.1.16",
+    "@nestjs/schedule": "^6.1.1",
     "@nestjs/swagger": "^11.2.6",
     "@nestjs/websockets": "^11.1.16",
     "@prisma/adapter-pg": "^7.4.2",
-    "@prisma/client": "^7.4.2",
+    "@prisma/client": "^7.5.0",
     "@socket.io/redis-adapter": "^8.3.0",
     "@types/bcrypt": "^6.0.0",
     "@types/nodemailer": "^7.0.11",
@@ -41,13 +46,14 @@
     "amqp-connection-manager": "^5.0.0",
     "amqplib": "^0.10.9",
     "argon2": "^0.44.0",
+    "axios": "^1.13.6",
     "chalk": "^5.6.2",
     "class-transformer": "^0.5.1",
     "class-validator": "^0.14.4",
     "cookie-parser": "^1.4.7",
     "dotenv": "^17.3.1",
     "ioredis": "^5.10.0",
-    "mailtrap": "^4.4.0",
+    "nestjs-yookassa": "^2.3.6",
     "nodemailer": "^8.0.1",
     "passport": "^0.7.0",
     "passport-jwt": "^4.0.1",
@@ -58,7 +64,8 @@
     "socket.io": "^4.8.3",
     "socket.io-client": "^4.8.3",
     "swagger-ui-express": "^5.0.1",
-    "uuid": "^13.0.0"
+    "uuid": "^13.0.0",
+    "yookassa": "^0.1.1"
   },
   "devDependencies": {
     "@eslint/eslintrc": "^3.2.0",
@@ -66,6 +73,7 @@
     "@nestjs/cli": "^11.0.0",
     "@nestjs/schematics": "^11.0.0",
     "@nestjs/testing": "^11.0.1",
+    "@types/amqplib": "^0.10.8",
     "@types/cookie-parser": "^1.4.10",
     "@types/express": "^5.0.0",
     "@types/jest": "^30.0.0",
@@ -105,6 +113,14 @@
       "**/*.(t|j)s"
     ],
     "coverageDirectory": "../coverage",
-    "testEnvironment": "node"
+    "testEnvironment": "node",
+    "moduleNameMapper": {
+      "^@/(.*)$": "<rootDir>/$1",
+      "^chalk$": "<rootDir>/../node_modules/chalk/source/index.js"
+    },
+    "transformIgnorePatterns": [
+      "node_modules/(?!(chalk|uuid|nestjs-yookassa)/)"
+    ],
+    "setupFilesAfterEnv": ["<rootDir>/../test/setup.ts"]
   }
 }

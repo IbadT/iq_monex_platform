@@ -1,0 +1,896 @@
+import { AppLogger } from '@/common/logger/logger.service';
+import {
+  BadRequestException,
+  ConflictException,
+  Injectable,
+  NotFoundException,
+} from '@nestjs/common';
+import { CreateListingDto } from './dto/request/create-listing.dto';
+import { ListingQueryDto } from './dto/request/listing-query.dto';
+import { prisma } from '@/lib/prisma';
+import { StatusQueryDto } from './dto/request/status-query.dto';
+import { ListingStatus } from './enums/listing-status.enum';
+import { FileOwnerType, FileKind } from '../../prisma/generated/enums';
+import {
+  Decimal,
+  TransactionClient,
+} from '../../prisma/generated/internal/prismaNamespace';
+import { CacheService } from '@/cache/cacheService.service';
+import { S3Service } from '@/s3/s3.service';
+import { SubscriptionService } from '@/subscription/subscription.service';
+import { ChangeListingStatusDto } from './dto/request/change-listing-status.dto';
+import { UpdateListingDto } from './dto/request/update-listing.dto';
+import { JwtPayload } from '@/common/interfaces/jwt-payload.interface';
+import { SearchService } from '@/search/search.service';
+import { ListingDocument } from '@/search/interfaces/listing.interface';
+import { RabbitmqService } from '@/rabbitmq/rabbitmq.service';
+import { AddFavoriteListingDto } from './dto/request/add-favorite-listing.dto';
+import { FavoriteType } from '@/favorites/enums/favorite-type.enum';
+import { GetFavoritesQueryDto } from './dto/request/get-favorites-query.dto';
+import { ComplaintType } from '@/users/enums/complaint-type.enum';
+import { MakeComplaintToListing } from './dto/request/make-complaint-to-listing.dto';
+import { GetRecomentQueryDto } from './dto/request/get-recoment-query.dto';
+import { ListingEntityWithFiles, ListingWhereCondition } from './entities/listing.entity';
+import { FORBIDDEN_WORDS } from './forbidden-words/forbidden-words';
+
+@Injectable()
+export class ListingsService {
+  constructor(
+    private readonly subscriptionService: SubscriptionService,
+    private readonly cacheSevice: CacheService,
+    private readonly s3Service: S3Service,
+    private readonly searchService: SearchService,
+    private readonly rabbitmqService: RabbitmqService,
+    private readonly logger: AppLogger,
+  ) {}
+
+  async getRecomendsByListingId(listingId: string, query: GetRecomentQueryDto) {
+    const listing = await prisma.listing.findUnique({
+      where: {
+        id: listingId,
+      },
+    });
+
+    if (!listing) {
+      throw new NotFoundException('Объявление не найдено');
+    }
+
+    let minPrice: number;
+    let maxPrice: number;
+
+    if (!listing.price) {
+      minPrice = 0;
+      maxPrice = 0;
+    } else {
+      // Вычисляем диапазон цен: ±25% от текущей цены
+      const price = Number(listing.price);
+      minPrice = price * 0.75; // 25% меньше
+      maxPrice = price * 1.25; // 25% больше
+    }
+
+    const whereCondition: ListingWhereCondition = {
+      // Исключаем текущее объявление
+      id: {
+        not: listingId,
+      },
+      status: ListingStatus.PUBLISHED,
+      categoryId: listing.categoryId, // Та же категория
+    };
+
+    // Добавляем фильтр по цене только если она существует
+    if (listing.price) {
+      whereCondition.price = {
+        gte: minPrice,
+        lte: maxPrice,
+      };
+    }
+
+    const listings = await prisma.listing.findMany({
+      where: whereCondition,
+      take: query.limit,
+      skip: query.offset,
+      include: {
+        category: true,
+        currency: true,
+        priceUnit: true,
+        files: true,
+        locations: true,
+        specifications: true,
+        listingSlot: {
+          include: {
+            userSlot: true,
+          },
+        },
+      },
+      orderBy: {
+        createdAt: 'desc',
+      },
+    });
+
+    // Используем статический метод для разделения файлов
+    const processedListings = listings.map((listing: any) => 
+      ListingEntityWithFiles.fromPrismaWithFiles(listing)
+    );
+
+    return processedListings;
+  }
+
+  async makeComplaintToListing(userId: string, body: MakeComplaintToListing) {
+    const hasComplaint = await prisma.complaint.findFirst({
+      where: {
+        authorId: userId,
+        listingId: body.listingId,
+        complaintType: ComplaintType.LISTING,
+      },
+    });
+
+    if (hasComplaint) {
+      throw new ConflictException('Вы уже подали жалобу на это объявление');
+    }
+
+    return await prisma.complaint.create({
+      data: {
+        type: body.type,
+        text: body.text,
+        complaintType: ComplaintType.LISTING,
+        authorId: userId,
+      },
+    });
+  }
+
+  async getFavoritesUserListings(userId: string, query: GetFavoritesQueryDto) {
+    return await prisma.favorite.findMany({
+      where: {
+        userId,
+      },
+      take: query.limit,
+      skip: query.offset,
+      orderBy: {
+        createdAt: 'desc',
+      },
+    });
+  }
+
+  async addListingToFavorite(userId: string, body: AddFavoriteListingDto) {
+    const checkIfListingIsInDraft = await this.listingById(
+      body.listingId,
+      new StatusQueryDto(ListingStatus.DRAFT),
+    );
+    if (checkIfListingIsInDraft) {
+      throw new BadRequestException(
+        `Объявление с id: ${body.listingId} находится в архиве`,
+      );
+    }
+
+    // Проверяем если объявление уже находится в избранном или нет
+    const favorite = await prisma.favorite.findFirst({
+      where: {
+        userId,
+        listingId: body.listingId,
+        type: FavoriteType.LISTING,
+      },
+    });
+
+    if (favorite) {
+      // Если уже в избранном - удаляем
+      await prisma.favorite.delete({
+        where: {
+          id: favorite.id,
+        },
+      });
+      return { action: 'removed', favoriteId: favorite.id };
+    } else {
+      // Если нет в избранном - добавляем
+      const newFavorite = await prisma.favorite.create({
+        data: {
+          userId,
+          listingId: body.listingId,
+          type: FavoriteType.LISTING,
+        },
+      });
+      return { action: 'added', favorite: newFavorite };
+    }
+  }
+
+  /**
+   * Поиск объявлений через Elasticsearch
+   */
+  async searchListings(query: ListingQueryDto) {
+    const startTime = Date.now();
+    const { limit = 20, offset = 0, search, status, condition, minPrice, maxPrice, categoryId } = query;
+
+    this.logger.log(`🔍 Search request: ${JSON.stringify({ search, status, condition, minPrice, maxPrice, categoryId, limit, offset })}`);
+
+    // Если нет поискового запроса, используем обычный поиск из БД
+    if (!search) {
+      this.logger.log('📄 No search query provided, using database search');
+      return await this.listingList(query);
+    }
+
+    try {
+      this.logger.log(`🚀 Starting Elasticsearch search for: "${search}"`);
+      
+      // Строим Elasticsearch query
+      const esQuery: any = {
+        query: {
+          bool: {
+            must: [],
+            filter: [],
+          },
+        },
+        from: offset,
+        size: limit,
+        sort: [
+          { createdAt: { order: 'desc' } },
+          { _score: { order: 'desc' } },
+        ],
+      };
+
+      // Добавляем полнотекстовый поиск
+      if (search) {
+        esQuery.query.bool.must.push({
+          multi_match: {
+            query: search,
+            fields: ['title^3', 'description^2', 'category.name^1.5'],
+            type: 'best_fields',
+            fuzziness: 'AUTO',
+            operator: 'and',
+          },
+        });
+        this.logger.log(`📝 Multi-match query configured for fields: title^3, description^2, category.name^1.5`);
+      }
+
+      // Добавляем фильтры
+      if (status) {
+        esQuery.query.bool.filter.push({
+          term: { "status.keyword": status },
+        });
+        this.logger.log(`🎯 Status filter applied: ${status}`);
+      }
+
+      if (condition) {
+        esQuery.query.bool.filter.push({
+          term: { "condition.keyword": condition },
+        });
+        this.logger.log(`🎯 Condition filter applied: ${condition}`);
+      }
+
+      if (categoryId) {
+        esQuery.query.bool.filter.push({
+          term: { categoryId: parseInt(categoryId) },
+        });
+        this.logger.log(`🎯 Category filter applied: ${categoryId}`);
+      }
+
+      // Фильтр по цене
+      if (minPrice || maxPrice) {
+        const priceRange: any = {};
+        if (minPrice) priceRange.gte = minPrice;
+        if (maxPrice) priceRange.lte = maxPrice;
+        
+        esQuery.query.bool.filter.push({
+          range: { price: priceRange },
+        });
+        this.logger.log(`💰 Price filter applied: ${JSON.stringify(priceRange)}`);
+      }
+
+      // Если нет must условий, но есть поиск, заменяем на match_all
+      if (esQuery.query.bool.must.length === 0 && search) {
+        esQuery.query.bool.must.push({ match_all: {} });
+      }
+
+      this.logger.log(`🔍 Elasticsearch query: ${JSON.stringify(esQuery)}`);
+
+      // Выполняем поиск в Elasticsearch
+      const esStartTime = Date.now();
+      const result = await this.searchService.search<ListingDocument>('listings', esQuery);
+      const esDuration = Date.now() - esStartTime;
+      
+      this.logger.log(`⚡ Elasticsearch search completed in ${esDuration}ms, found ${result.hits.total.value} documents`);
+
+      // Получаем ID найденных документов
+      const listingIds = result.hits.hits.map(hit => hit._source.id);
+
+      if (!listingIds.length) {
+        const totalDuration = Date.now() - startTime;
+        this.logger.log(`📭 No results found in ${totalDuration}ms`);
+        
+        return {
+          rows: [],
+          pagination: {
+            total: 0,
+            limit,
+            offset,
+            hasMore: false,
+          },
+        };
+      }
+
+      this.logger.log(`📋 Found ${listingIds.length} listing IDs: ${listingIds.slice(0, 5).join(', ')}${listingIds.length > 5 ? '...' : ''}`);
+
+      // Получаем полные данные из Prisma для найденных ID с сортировкой
+      const dbStartTime = Date.now();
+      const listings = await prisma.listing.findMany({
+        where: {
+          id: { in: listingIds },
+        },
+        include: {
+          category: true,
+          currency: true,
+          priceUnit: true,
+          files: true,
+          locations: true,
+          specifications: true,
+          listingSlot: {
+            include: {
+              userSlot: true,
+            },
+          },
+        },
+        orderBy: {
+          createdAt: 'desc',
+        },
+      });
+      const dbDuration = Date.now() - dbStartTime;
+      
+      this.logger.log(`🗄️ Database query completed in ${dbDuration}ms, retrieved ${listings.length} full listings`);
+
+      // Разделяем файлы на фотографии и документы
+      const processedListings = listings.map((listing: any) => ({
+        ...listing,
+        photos: listing.files.filter((file: any) => file.kind === FileKind.PHOTO),
+        files: listing.files.filter((file: any) => file.kind === FileKind.DOCUMENT),
+      }));
+
+      const totalDuration = Date.now() - startTime;
+      this.logger.log(`✅ Search completed successfully in ${totalDuration}ms (ES: ${esDuration}ms, DB: ${dbDuration}ms)`);
+
+      return {
+        rows: processedListings,
+        pagination: {
+          total: result.hits.total.value,
+          limit,
+          offset,
+          hasMore: offset + limit < result.hits.total.value,
+        },
+        searchMeta: {
+          query: search,
+          totalFound: result.hits.total.value,
+          maxScore: Math.max(...result.hits.hits.map(hit => hit._score)),
+        },
+      };
+    } catch (error) {
+      const totalDuration = Date.now() - startTime;
+      this.logger.error(`❌ Elasticsearch search error after ${totalDuration}ms:`, error);
+      
+      // В случае ошибки Elasticsearch, fallback к обычному поиску в БД
+      this.logger.warn('🔄 Falling back to database search due to Elasticsearch error');
+      return await this.listingList(query);
+    }
+  }
+
+  async listingList(query: ListingQueryDto) {
+    const { limit = 20, offset = 0, status, condition, search } = query;
+
+    // Создаем условия фильтрации
+    const where: any = {};
+
+    if (status) {
+      where.status = status;
+    }
+
+    if (condition) {
+      where.condition = condition;
+    }
+
+    if (search) {
+      where.OR = [
+        { title: { contains: search, mode: 'insensitive' } },
+        { description: { contains: search, mode: 'insensitive' } },
+      ];
+    }
+
+    // Получаем общее количество записей для пагинации
+    const total = await prisma.listing.count({ where });
+
+    // Получаем объявления с пагинацией и фильтрацией
+    const listings = await prisma.listing.findMany({
+      where,
+      include: {
+        category: true,
+        currency: true,
+        priceUnit: true,
+        files: true,
+        locations: true,
+        specifications: true,
+        listingSlot: {
+          include: {
+            userSlot: true,
+          },
+        },
+      },
+      orderBy: {
+        createdAt: 'desc',
+      },
+      take: limit,
+      skip: offset,
+    });
+
+    // Разделяем файлы на фотографии и документы
+    const processedListings = listings.map((listing: any) => ({
+      ...listing,
+      photos: listing.files.filter((file: any) => file.kind === FileKind.PHOTO),
+      files: listing.files.filter((file: any) => file.kind === FileKind.DOCUMENT),
+    }));
+
+    return {
+      rows: processedListings,
+      pagination: {
+        total,
+        limit,
+        offset,
+        hasMore: offset + limit < total,
+      },
+    };
+  }
+
+  async listingPublishFromDraft(body: ChangeListingStatusDto) {
+    const { listingId, status } = body;
+    const checkIfListingIsInDraft = await this.listingById(
+      listingId,
+      new StatusQueryDto(ListingStatus.DRAFT),
+    );
+    if (!checkIfListingIsInDraft) {
+      throw new BadRequestException(
+        `Объявление с id: ${listingId} не находится в архиве`,
+      );
+    }
+
+    return await prisma.listing.update({
+      where: { id: listingId },
+      data: {
+        status: status,
+      },
+    });
+  }
+
+  async hasListing(id: string, status: StatusQueryDto): Promise<boolean> {
+    const cacheKey = `listings:${id}`;
+    const cachedListing = await this.cacheSevice.get(cacheKey);
+    if (cachedListing) return !!cachedListing;
+
+    const listing = await prisma.listing.findFirst({
+      where: { id, status: status.status },
+    });
+
+    return !!listing;
+  }
+
+  async listingById(id: string, status: StatusQueryDto) {
+    // const cachedKey = `listings:${id}`;
+    // const cachedListing = await this.cacheSevice.get(cachedKey);
+    // if (cachedListing) return cachedListing;
+
+    this.logger.log(`Listing ID: ${id}, Status: ${status.status}`);
+    const listing = await prisma.listing.findFirst({
+      where: { id, status: status.status },
+      include: {
+        category: true,
+        currency: true,
+        priceUnit: true,
+        files: true,
+        locations: true,
+        specifications: true,
+        listingSlot: {
+          include: {
+            userSlot: true,
+          },
+        },
+      },
+    });
+
+    // Разделяем файлы на фотографии и документы
+    if (listing) {
+      const processedListing = {
+        ...listing,
+        photos: listing.files.filter((file: any) => file.kind === FileKind.PHOTO),
+        files: listing.files.filter((file: any) => file.kind === FileKind.DOCUMENT),
+      };
+      return processedListing;
+    }
+
+    // if (listing) {
+    //   await this.cacheSevice.set({
+    //     baseKey: cachedKey,
+    //     ttl: 900,
+    //     value: listing,
+    //   });
+    // }
+
+    return listing;
+  }
+
+  async listingsByUserId(userId: string) {
+    const cacheKey = `listings:userId:${userId}`;
+    const cachedListings = await this.cacheSevice.get(cacheKey);
+    if (cachedListings) return cachedListings;
+
+    this.logger.log(`User ID: ${userId}`);
+
+    const listings = await prisma.listing.findMany({
+      where: { userId },
+      include: {
+        category: true,
+        currency: true,
+        priceUnit: true,
+        files: true,
+        locations: true,
+        specifications: true,
+        listingSlot: {
+          include: {
+            userSlot: true,
+          },
+        },
+      },
+    });
+
+    // Разделяем файлы на фотографии и документы
+    const processedListings = listings.map((listing: any) => ({
+      ...listing,
+      photos: listing.files.filter((file: any) => file.kind === FileKind.PHOTO),
+      files: listing.files.filter((file: any) => file.kind === FileKind.DOCUMENT),
+    }));
+
+    if (processedListings && processedListings.length > 0) {
+      await this.cacheSevice.set({
+        baseKey: cacheKey,
+        ttl: 900,
+        value: processedListings,
+      });
+    }
+
+    return processedListings;
+  }
+
+  async createListing(userId: string, body: CreateListingDto) {
+    // Проверка текста на запрещенные слова
+    if (body.title) {
+      this.validateText(body.title);
+    }
+    if (body.description) {
+      this.validateText(body.description);
+    }
+
+    const cacheKey = 'listings';
+
+    // TODO: проверка доступных(пустых) слотов
+    const availableSlots =
+      await this.subscriptionService.getUserAvailableSlots(userId);
+    this.logger.log(`Доступных слотов: ${availableSlots.length}`);
+
+    if (!availableSlots || availableSlots.length === 0) {
+      throw new BadRequestException(
+        'Нет доступных слотов для создания объявления',
+      );
+    }
+
+    // TODO: вынести логику в ресурсы для map, photos/files и там использовать cacheService
+
+    const { maps, photos, files, ...listing } = body;
+    // this.logger.log(`Объявление для создания: ${JSON.stringify(body)}`);
+
+    // Проверяем существование категории
+    if (listing.categoryId) {
+      const categoryExists = await prisma.category.findUnique({
+        where: { id: listing.categoryId },
+      });
+
+      if (!categoryExists) {
+        throw new BadRequestException(
+          `Категория с ID ${listing.categoryId} не найдена`,
+        );
+      }
+    }
+
+    // Проверяем существование валюты
+    if (listing.currencyId) {
+      const currencyExists = await prisma.currency.findUnique({
+        where: { id: listing.currencyId },
+      });
+
+      if (!currencyExists) {
+        throw new BadRequestException(
+          `Валюта с ID ${listing.currencyId} не найдена`,
+        );
+      }
+    }
+
+    // Проверяем существование единицы измерения
+    if (listing.priceUnitId) {
+      const priceUnitExists = await prisma.unitMeasurement.findUnique({
+        where: { id: listing.priceUnitId },
+      });
+
+      if (!priceUnitExists) {
+        throw new BadRequestException(
+          `Единица измерения с ID ${listing.priceUnitId} не найдена`,
+        );
+      }
+    }
+
+    try {
+      const res = await prisma.$transaction(async (tx: TransactionClient) => {
+        // Создаем объявление
+        const createdListing = await tx.listing.create({
+          data: {
+            ...listing, // Распространяем все остальные поля
+            status: listing.status || 'DRAFT',
+            // price: listing.price ? new Decimal(listing.price) : null,
+            price: listing.price ? new Decimal(listing.price) : null,
+            userId,
+          },
+        });
+
+        // Создаем связь объявления со слотом
+        await tx.listingSlot.create({
+          data: {
+            listingId: createdListing.id,
+            userSlotId: availableSlots[0].id,
+            assignedAt: new Date(),
+          },
+        });
+
+        // Создаем геолокацию если указана
+        if (maps && maps.length > 0) {
+          await tx.mapLocation.createMany({
+            data: maps.map((map) => ({
+              type: map.type,
+              latitude: new Decimal(map.latitude),
+              longtitude: new Decimal(map.longtitude),
+              listingId: createdListing.id,
+            })),
+          });
+          // await tx.mapLocation.create({
+          //   data: {
+          //     type: maps[0].type,
+          //     latitude: new Decimal(maps[0].latitude),
+          //     longtitude: new Decimal(maps[0].longtitude),
+          //     listingId: createdListing.id,
+          //   },
+          // });
+        }
+
+        // Создаем файлы если указаны
+        if (files && files.length > 0) {
+          // Сначала создаем записи в БД с base64 данными
+          const fileRecords = files.map((fileData, index) => {
+            const fileName = this.s3Service.generateFileNameFromBase64(
+              fileData,
+              index,
+              'file',
+            );
+            const s3Key = this.s3Service.generateDocumentKey(
+              createdListing.id,
+              index,
+            );
+            const contentType =
+              this.s3Service.getContentTypeFromBase64(fileData);
+            const fileSize = this.s3Service.getFileSizeFromBase64(fileData);
+
+            return {
+              ownerType: FileOwnerType.LISTING,
+              listingId: createdListing.id,
+              url: fileData, // Пока храним base64
+              fileType: contentType,
+              fileName,
+              fileSize,
+              kind: FileKind.DOCUMENT,
+              sortOrder: index,
+              s3Key,
+              s3Bucket: '', // Будет заполнено после загрузки в S3
+              uploadStatus: 'pending', // Статус ожидания загрузки
+            };
+          });
+
+          // Сохраняем файлы в БД
+          await tx.file.createMany({
+            data: fileRecords,
+          });
+
+          // Отправляем задачи в RabbitMQ для асинхронной загрузки в S3
+          files.forEach(async (fileData, index) => {
+            const fileRecord = fileRecords[index];
+            await this.rabbitmqService.sendFileUpload({
+              listingId: createdListing.id,
+              fileType: 'document',
+              fileIndex: index,
+              fileData, // base64 данные
+              fileName: fileRecord.fileName,
+              contentType: fileRecord.fileType,
+              fileSize: fileRecord.fileSize,
+              s3Key: fileRecord.s3Key,
+            });
+          });
+        }
+
+        // Создаем фото если указаны
+        if (photos && photos.length > 0) {
+          // Сначала создаем записи в БД с base64 данными
+          const photoRecords = photos.map((photoData, index) => {
+            const fileName = this.s3Service.generateFileNameFromBase64(
+              photoData,
+              index,
+              'photo',
+            );
+            const s3Key = this.s3Service.generatePhotoKey(
+              createdListing.id,
+              index,
+            );
+            const contentType =
+              this.s3Service.getContentTypeFromBase64(photoData);
+            const fileSize = this.s3Service.getFileSizeFromBase64(photoData);
+
+            return {
+              ownerType: FileOwnerType.LISTING,
+              listingId: createdListing.id,
+              url: photoData, // Пока храним base64
+              fileType: contentType,
+              fileName,
+              fileSize,
+              kind: FileKind.PHOTO,
+              sortOrder: index,
+              s3Key,
+              s3Bucket: '', // Будет заполнено после загрузки в S3
+              uploadStatus: 'pending', // Статус ожидания загрузки
+            };
+          });
+
+          // Сохраняем фото в БД
+          await tx.file.createMany({
+            data: photoRecords,
+          });
+
+          // Отправляем задачи в RabbitMQ для асинхронной загрузки в S3
+          photos.forEach(async (photoData, index) => {
+            const photoRecord = photoRecords[index];
+            await this.rabbitmqService.sendFileUpload({
+              listingId: createdListing.id,
+              fileType: 'photo',
+              fileIndex: index,
+              fileData: photoData, // base64 данные
+              fileName: photoRecord.fileName,
+              contentType: photoRecord.fileType,
+              fileSize: photoRecord.fileSize,
+              s3Key: photoRecord.s3Key,
+            });
+          });
+        }
+
+        // записываем в elasticSearch
+        // await this.indexListingInElasticsearch(createdListing);
+
+        return createdListing;
+      });
+      await this.cacheSevice.del(cacheKey);
+
+      // Индексируем в Elasticsearch после успешной транзакции
+      await this.indexListingInElasticsearch(res);
+
+      return res;
+    } catch (error) {
+      this.logger.error('Ошибка создания объявления:', error);
+      throw error;
+    }
+  }
+
+  async editListingById(id: string, user: JwtPayload, body: UpdateListingDto) {
+    return { id, user, body };
+  }
+
+  async deleteListingById(
+    id: string,
+    user: JwtPayload,
+    status: StatusQueryDto,
+  ) {
+    this.logger.log(
+      `Удаление объявления с параметрами id: ${id}, user: ${user}, status: ${status.status}`,
+    );
+    const cacheKey = 'listings';
+    const cackeKeyId = `listings:${id}`;
+    const hasListing = await this.listingById(id, status);
+    if (!hasListing) {
+      throw new NotFoundException(`Объявление с id: ${id} не найдено`);
+    }
+    const deleted = await prisma.listing.delete({
+      where: {
+        id,
+        status: status.status,
+      },
+    });
+
+    if (deleted) {
+      await this.cacheSevice.del(cacheKey);
+      await this.cacheSevice.del(cackeKeyId);
+    }
+
+    return deleted;
+  }
+
+  /**
+   * Индексация объявления в Elasticsearch
+   */
+  private async indexListingInElasticsearch(listing: any) {
+    try {
+      // Получаем связанные данные для полноты индекса
+      const listingWithRelations = await prisma.listing.findUnique({
+        where: { id: listing.id },
+        include: {
+          category: true,
+          currency: true,
+          priceUnit: true,
+          locations: true,
+          specifications: true,
+        },
+      });
+
+      if (!listingWithRelations) {
+        this.logger.error(`Listing not found for indexing: ${listing.id}`);
+        return;
+      }
+
+      // Преобразуем данные для Elasticsearch
+      const document: ListingDocument = {
+        ...listingWithRelations,
+        price: listingWithRelations.price
+          ? Number(listingWithRelations.price)
+          : null,
+        rating: listingWithRelations.rating
+          ? Number(listingWithRelations.rating)
+          : null,
+        locations: listingWithRelations.locations.map((loc: any) => ({
+          ...loc,
+          latitude: Number(loc.latitude),
+          longtitude: Number(loc.longtitude),
+        })),
+      };
+
+      // Индексируем в Elasticsearch
+      await this.searchService.indexDocument<ListingDocument>(
+        'listings',
+        listing.id,
+        document,
+      );
+
+      this.logger.log(`Listing indexed in Elasticsearch: ${listing.id}`);
+    } catch (error) {
+      this.logger.error(`Error indexing listing ${listing.id}:`, error);
+      // Не прерываем создание объявления из-за ошибки индексации
+    }
+  }
+
+  /**
+   * Проверяет текст на наличие запрещенных слов
+   * @param text Текст для проверки
+   * @throws BadRequestException если найдены запрещенные слова
+   */
+  private validateText(text: string): void {
+    if (!text) return;
+
+    const lowerText = text.toLowerCase();
+    const foundWords: string[] = [];
+    
+    // Проверка простых слов
+    for (const word of FORBIDDEN_WORDS) {
+      if (lowerText.includes(word)) {
+        foundWords.push(word);
+      }
+    }
+    
+    // Если найдены запрещенные слова, выбрасываем ошибку
+    if (foundWords.length > 0) {
+      throw new BadRequestException(
+        `Объявление содержит запрещенные слова: ${foundWords.join(', ')}. Пожалуйста, удалите их и попробуйте снова.`
+      );
+    }
+  }
+}

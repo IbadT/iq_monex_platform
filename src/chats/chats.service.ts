@@ -85,7 +85,7 @@ export class ChatsService {
       },
     });
 
-    return participants.map(participant => ({
+    return participants.map((participant: any) => ({
       userId: participant.userId,
       user: {
         id: participant.user.id,
@@ -148,8 +148,8 @@ export class ChatsService {
 
     // Собираем уникальные ID контактов
     const contacts = new Set<string>();
-    participants.forEach((participant) => {
-      participant.chat.chatParticipants.forEach((contact) => {
+    participants.forEach((participant: any) => {
+      participant.chat.chatParticipants.forEach((contact: any) => {
         contacts.add(contact.userId);
       });
     });

@@ -8,9 +8,10 @@ import { UsersService } from '@/users/users.service';
 import { CacheService } from '@/cache/cacheService.service';
 import { RedisCacheModule } from '@/cache/redis.module';
 import { RabbitmqModule } from '@/rabbitmq/rabbitmq.module';
+import { EmailModule } from '@/email/email.module';
 
 @Module({
-  imports: [ConfigModule, JwtAuthModule, RedisCacheModule, RabbitmqModule],
+  imports: [ConfigModule, JwtAuthModule, RedisCacheModule, RabbitmqModule, EmailModule],
   controllers: [AuthController],
   providers: [
     AuthService,

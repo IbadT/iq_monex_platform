@@ -5,4 +5,8 @@ export class AppService {
   ping(): string {
     return 'Pong';
   }
+
+  async seedDefaultData() {
+    return 'OK';
+  }
 }

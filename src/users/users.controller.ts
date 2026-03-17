@@ -5,6 +5,7 @@ import {
   Patch,
   Param,
   ParseUUIDPipe,
+  Post,
 } from '@nestjs/common';
 import { UsersService } from './users.service';
 import { ApiTags } from '@nestjs/swagger';
@@ -12,6 +13,8 @@ import { Protected } from '@/common/decorators';
 import { UpdateUserDto } from './dto/update-user.dto';
 import { CurrentUser } from '@/common/decorators/current-user.decorator';
 import { JwtPayload } from '@/common/interfaces/jwt-payload.interface';
+import { AddFavoriteToUserDto } from './dto/add-favorite-to-user.dto';
+import { MakeComplaintToUser } from './dto/make-complaint-to-user.dto';
 
 @ApiTags('Users')
 @Controller('users')
@@ -25,12 +28,50 @@ export class UsersController {
     return await this.usersService.getUserById(id);
   }
 
+  @Get(':account_number')
+  async getUserByAccountNumber(
+    @Param('account_number') account_number: string,
+  ) {
+    return await this.usersService.getUserByAccountNumber(account_number);
+  }
+
+  @Get('favorites')
+  @Protected()
+  async getUserFavoritesProfiles(@CurrentUser() user: JwtPayload) {
+    return await this.usersService.getUserFavoritesProfiles(user.id);
+  }
+
+  @Post('favorites')
+  @Protected()
+  async addFavoriteToUser(
+    @CurrentUser() user: JwtPayload,
+    @Body() body: AddFavoriteToUserDto,
+  ) {
+    return await this.usersService.addFavoriteToUser(user.id, body);
+  }
+
+  @Post('users/:id/complaint')
+  @Protected()
+  async makeComplaintToUser(
+    @CurrentUser() user: JwtPayload,
+    @Body() body: MakeComplaintToUser,
+  ) {
+    return await this.usersService.makeComplaintToUser(user.id, body);
+  }
+
+
+
+  @Post('seed-roles')
+  async seedRoles() {
+    return await this.usersService.seedRoles();
+  }
+
   // редактирование профиля
   @Patch()
   @Protected()
   async updateProfile(
-    @Body() body: UpdateUserDto,
     @CurrentUser() user: JwtPayload,
+    @Body() body: UpdateUserDto,
   ) {
     return await this.usersService.updateUser(user.id, body);
   }

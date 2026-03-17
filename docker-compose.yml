@@ -1,6 +1,22 @@
 version: '3.8'
 
 services:
+  postgres:
+    image: postgres:14
+    container_name: platform_nest_postgres
+    restart: unless-stopped
+    ports:
+      - "5432:5432"
+    environment:
+      POSTGRES_USER: postgres
+      POSTGRES_PASSWORD: postgres
+      POSTGRES_DB: iq_monex_dev
+    volumes:
+      - postgres_data:/var/lib/postgresql/data
+      - ./init.sql:/docker-entrypoint-initdb.d/init.sql
+    networks:
+      - rabbitmq_network
+
   rabbitmq:
     image: rabbitmq:3.12-management
     container_name: platform_nest_rabbitmq
@@ -17,8 +33,45 @@ services:
     networks:
       - rabbitmq_network
 
+  elasticsearch:
+    image: docker.elastic.co/elasticsearch/elasticsearch:8.11.0
+    container_name: platform_nest_elasticsearch
+    restart: unless-stopped
+    ports:
+      - "9200:9200"
+      - "9300:9300"
+    environment:
+      - discovery.type=single-node
+      - xpack.security.enabled=false
+      - "ES_JAVA_OPTS=-Xms512m -Xmx512m"
+    volumes:
+      - elasticsearch_data:/usr/share/elasticsearch/data
+    networks:
+      - rabbitmq_network
+
+  pgadmin:
+    image: dpage/pgadmin4:latest
+    container_name: platform_nest_pgadmin
+    restart: unless-stopped
+    ports:
+      - "5050:80"
+    environment:
+      PGADMIN_DEFAULT_EMAIL: admin@admin.com
+      PGADMIN_DEFAULT_PASSWORD: admin123
+      PGADMIN_CONFIG_SERVER_MODE: 'False'
+    volumes:
+      - pgadmin_data:/var/lib/pgadmin
+    networks:
+      - rabbitmq_network
+    depends_on:
+      - postgres
+      - rabbitmq
+
 volumes:
+  postgres_data:
   rabbitmq_data:
+  pgadmin_data:
+  elasticsearch_data:
 
 networks:
   rabbitmq_network:

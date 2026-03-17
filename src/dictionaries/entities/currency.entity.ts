@@ -9,7 +9,9 @@ export class Currency {
       currency.id,
       currency.symbol,
       currency.code,
-      currency.name,
+      typeof currency.name === 'string'
+        ? JSON.parse(currency.name)
+        : currency.name,
     );
   }
 

@@ -14,10 +14,20 @@ export class RegisterResponseDto {
   })
   message?: string;
 
-  constructor(status: number, message?: string) {
+  @ApiProperty({
+    description: 'ID созданного пользователя',
+    example: '123e4567-e89b-12d3-a456-426614174000',
+    required: false,
+  })
+  userId?: string;
+
+  constructor(status: number, message?: string, userId?: string) {
     this.status = status;
     if (message !== undefined) {
       this.message = message;
+    }
+    if (userId !== undefined) {
+      this.userId = userId;
     }
   }
 }
