@@ -11,6 +11,7 @@ import { PaginationDto } from '@/common/dto/pagintation.dto';
 import { CreateReviewToUserDto } from './dto/create-review.to-user.dto';
 import { S3Service } from '@/s3/s3.service';
 import { RabbitmqService } from '@/rabbitmq/rabbitmq.service';
+import { PrismaClient } from 'prisma/generated/client';
 
 @Injectable()
 export class ReviewsService {
@@ -50,7 +51,7 @@ export class ReviewsService {
       throw new NotFoundException("Пользователь не найден");
     }
 
-    return await prisma.$transaction(async (tx) => {
+    return await prisma.$transaction(async (tx: PrismaClient) => {
       // Создаем отзыв
       const review = await tx.review.create({
         data: {

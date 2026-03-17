@@ -37,7 +37,7 @@
     "@nestjs/swagger": "^11.2.6",
     "@nestjs/websockets": "^11.1.16",
     "@prisma/adapter-pg": "^7.4.2",
-    "@prisma/client": "^7.4.2",
+    "@prisma/client": "^7.5.0",
     "@socket.io/redis-adapter": "^8.3.0",
     "@types/bcrypt": "^6.0.0",
     "@types/nodemailer": "^7.0.11",
@@ -112,6 +112,14 @@
       "**/*.(t|j)s"
     ],
     "coverageDirectory": "../coverage",
-    "testEnvironment": "node"
+    "testEnvironment": "node",
+    "moduleNameMapper": {
+      "^@/(.*)$": "<rootDir>/$1",
+      "^chalk$": "<rootDir>/../node_modules/chalk/source/index.js"
+    },
+    "transformIgnorePatterns": [
+      "node_modules/(?!(chalk|uuid|nestjs-yookassa)/)"
+    ],
+    "setupFilesAfterEnv": ["<rootDir>/../test/setup.ts"]
   }
 }

@@ -19,6 +19,7 @@ import { VALUT_CODE } from '@/dictionaries/enums/valut-code.enum';
 import { PAYMENT_ITEM_TYPE, PAYMENT_STATUS } from './enums/payment-status.enum';
 import { TransactionClient } from 'prisma/generated/internal/prismaNamespace';
 import { v4 as uuidv4 } from 'uuid';
+import { PrismaClient } from 'prisma/generated/client';
 
 @Injectable()
 export class PaymentsService {
@@ -328,7 +329,7 @@ export class PaymentsService {
     this.logger.log(`Seeding initial data for user ${userId}`);
 
     try {
-      await prisma.$transaction(async (tx) => {
+      await prisma.$transaction(async (tx: PrismaClient) => {
         // 1. Создаем базовый тариф если не существует
         const existingTariff = await tx.tariff.findFirst({
           where: { code: 'BASE' },
@@ -426,7 +427,7 @@ export class PaymentsService {
     );
 
     try {
-      await prisma.$transaction(async (tx) => {
+      await prisma.$transaction(async (tx: PrismaClient) => {
         // Обновляем статус доната как успешный
         const donation = await tx.donation.update({
           where: { id: donationId },
@@ -954,7 +955,7 @@ export class PaymentsService {
       if (listingSlots.length > 0) {
         await prisma.listingSlot.updateMany({
           where: {
-            id: { in: listingSlots.map((ls) => ls.id) },
+            id: { in: listingSlots.map((ls: any) => ls.id) },
           },
           data: {
             releasedAt: new Date(),
@@ -980,7 +981,7 @@ export class PaymentsService {
     );
 
     try {
-      const result = await prisma.$transaction(async (tx) => {
+      const result = await prisma.$transaction(async (tx: PrismaClient) => {
         // Создаем запись о донате в БД (пока без paymentId)
         const donation = await tx.donation.create({
           data: {

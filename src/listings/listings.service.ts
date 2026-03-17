@@ -10,11 +10,11 @@ import { ListingQueryDto } from './dto/request/listing-query.dto';
 import { prisma } from '@/lib/prisma';
 import { StatusQueryDto } from './dto/request/status-query.dto';
 import { ListingStatus } from './enums/listing-status.enum';
-import { FileOwnerType, FileKind } from 'prisma/generated/enums';
+import { FileOwnerType, FileKind } from '../../prisma/generated/enums';
 import {
   Decimal,
   TransactionClient,
-} from 'prisma/generated/internal/prismaNamespace';
+} from '../../prisma/generated/internal/prismaNamespace';
 import { CacheService } from '@/cache/cacheService.service';
 import { S3Service } from '@/s3/s3.service';
 import { SubscriptionService } from '@/subscription/subscription.service';
@@ -336,10 +336,10 @@ export class ListingsService {
       this.logger.log(`🗄️ Database query completed in ${dbDuration}ms, retrieved ${listings.length} full listings`);
 
       // Разделяем файлы на фотографии и документы
-      const processedListings = listings.map(listing => ({
+      const processedListings = listings.map((listing: any) => ({
         ...listing,
-        photos: listing.files.filter(file => file.kind === FileKind.PHOTO),
-        files: listing.files.filter(file => file.kind === FileKind.DOCUMENT),
+        photos: listing.files.filter((file: any) => file.kind === FileKind.PHOTO),
+        files: listing.files.filter((file: any) => file.kind === FileKind.DOCUMENT),
       }));
 
       const totalDuration = Date.now() - startTime;
@@ -417,10 +417,10 @@ export class ListingsService {
     });
 
     // Разделяем файлы на фотографии и документы
-    const processedListings = listings.map(listing => ({
+    const processedListings = listings.map((listing: any) => ({
       ...listing,
-      photos: listing.files.filter(file => file.kind === FileKind.PHOTO),
-      files: listing.files.filter(file => file.kind === FileKind.DOCUMENT),
+      photos: listing.files.filter((file: any) => file.kind === FileKind.PHOTO),
+      files: listing.files.filter((file: any) => file.kind === FileKind.DOCUMENT),
     }));
 
     return {
@@ -493,8 +493,8 @@ export class ListingsService {
     if (listing) {
       const processedListing = {
         ...listing,
-        photos: listing.files.filter(file => file.kind === FileKind.PHOTO),
-        files: listing.files.filter(file => file.kind === FileKind.DOCUMENT),
+        photos: listing.files.filter((file: any) => file.kind === FileKind.PHOTO),
+        files: listing.files.filter((file: any) => file.kind === FileKind.DOCUMENT),
       };
       return processedListing;
     }
@@ -535,10 +535,10 @@ export class ListingsService {
     });
 
     // Разделяем файлы на фотографии и документы
-    const processedListings = listings.map(listing => ({
+    const processedListings = listings.map((listing: any) => ({
       ...listing,
-      photos: listing.files.filter(file => file.kind === FileKind.PHOTO),
-      files: listing.files.filter(file => file.kind === FileKind.DOCUMENT),
+      photos: listing.files.filter((file: any) => file.kind === FileKind.PHOTO),
+      files: listing.files.filter((file: any) => file.kind === FileKind.DOCUMENT),
     }));
 
     if (processedListings && processedListings.length > 0) {

@@ -2,6 +2,7 @@ import { prisma } from '@/lib/prisma';
 import { Injectable, NotFoundException } from '@nestjs/common';
 import { ChangeListingSlotDto } from './dto/change-listing-slot.dto';
 import { PAYMENT_ITEM_TYPE } from '@/payments/enums/payment-status.enum';
+import { PrismaClient } from 'prisma/generated/client';
 
 
 @Injectable()
@@ -35,7 +36,7 @@ export class SubscriptionService {
   }
 
   async changeListingSlot(userId: string, body: ChangeListingSlotDto) {
-    return await prisma.$transaction(async (tx) => {
+    return await prisma.$transaction(async (tx: PrismaClient) => {
       // 1. Находим объявление и проверяем, что оно принадлежит пользователю
       const listing = await tx.listing.findFirst({
         where: {
