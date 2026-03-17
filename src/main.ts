@@ -6,6 +6,7 @@ import { AppModule } from './app.module';
 import { swaggerCustomOptions } from '@/common/swagger-response-time.plugin';
 import { HttpExceptionFilter } from '@/common/filters/http-exception.filter';
 import * as express from 'express';
+import * as cookieParser from 'cookie-parser';
 
 async function bootstrap() {
   const app = await NestFactory.create(AppModule);
@@ -18,6 +19,9 @@ async function bootstrap() {
   // Увеличиваем лимит для загрузки файлов (10MB)
   app.use(express.json({ limit: '10mb' }));
   app.use(express.urlencoded({ limit: '10mb', extended: true }));
+  
+  // Добавляем cookie parser middleware
+  app.use(cookieParser());
 
   const configService = new ConfigService();
 

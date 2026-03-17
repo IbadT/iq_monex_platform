@@ -15,10 +15,11 @@ import { ApiRegisterOperation } from './decorators/register.decorator';
 import { Public } from '@/common/decorators';
 import { VerifyCodeDto, VerifyCodeResponseDto } from './dto/verify-code.dto';
 import { ResendEmailDto } from './dto/resend-email.dto';
-// import { ApiRefreshTokenOperation } from './decorators/refresh-token.decorator';
+import { ResetPasswordDto } from './dto/reset-password.dto';
+import { ConfirmResetPasswordDto } from './dto/confirm-reset-password.dto';
+import { ApiRefreshTokenOperation } from '@/common/decorators/swagger.decorators';
 import { ApiVerifyEmailOperation } from './decorators/verify-email.decorator';
 import { ApiResendEmailOperation } from './decorators/resend-email.decorator';
-import { ApiRefreshTokenOperation } from '@/common/decorators/swagger.decorators';
 
 @ApiTags('Auth')
 @Controller('auth')
@@ -40,6 +41,8 @@ export class AuthController {
   ): Promise<LoginResponseDto> {
     const tokens = await this.authService.login(loginUserDto);
 
+    console.log('Login tokens:', tokens);
+
     // Устанавливаем cookies
     response.cookie('refreshToken', tokens.refreshToken, {
       httpOnly: true,
@@ -54,6 +57,8 @@ export class AuthController {
       sameSite: 'strict',
       maxAge: 15 * 60 * 1000, // 15 минут
     });
+
+    console.log('Cookies set in login response');
 
     return tokens;
   }
@@ -85,23 +90,21 @@ export class AuthController {
 
   @Post('reset-password')
   @Public()
-  async resetPassword() {
-    return;
+  async resetPassword(@Body() resetPasswordDto: ResetPasswordDto): Promise<{ message: string; status: number }> {
+    return this.authService.resetPassword(resetPasswordDto);
   }
 
-  @Post('reset-password/resend-email')
+  @Post('reset-password/confirm')
   @Public()
-  async resetPasswordResendEmail() {
-    return;
+  async confirmResetPassword(@Body() confirmResetPasswordDto: ConfirmResetPasswordDto): Promise<{ message: string; status: number }> {
+    return this.authService.confirmResetPassword(confirmResetPasswordDto);
   }
 
   //
 
   @Post('refresh-token')
-  @Public()
   @ApiRefreshTokenOperation()
   async refreshToken(
-    @CurrentUser() user: JwtPayload,
     @Req() request: Request,
     @Res({ passthrough: true }) response: Response,
   ): Promise<TokensDto> {
@@ -109,7 +112,6 @@ export class AuthController {
 
     const tokens = await this.authService.refreshToken(
       { refreshToken: refreshTokenFromCookie },
-      user,
     );
 
     // Устанавливаем cookies
@@ -131,14 +133,14 @@ export class AuthController {
   }
 
   @Post('sign-out')
-  @Public()
+  @Protected()
   async logOut(
-    // @CurrentUser() user: JwtPayload,
+    @CurrentUser() user: JwtPayload,
     @Res({ passthrough: true }) res: Response,
   ) {
-    await this.authService.logout();
+    await this.authService.logout(user.id);
     res.clearCookie('refreshToken');
     res.clearCookie('accessToken');
-    return;
+    return { message: 'Вы успешно вышли из системы' };
   }
 }

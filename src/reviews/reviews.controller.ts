@@ -28,6 +28,7 @@ import { CreateReviewToUserDto } from '@/reviews/dto/create-review.to-user.dto';
 
 
 // TODO: добавить логику для выставления лайков коментариям
+// TODO: добавить логику удаления коментария
 @Controller('reviews')
 export class ReviewsController {
   constructor(

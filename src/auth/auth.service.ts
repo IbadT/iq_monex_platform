@@ -14,6 +14,8 @@ import { UsersService } from '@/users/users.service';
 import { LoginResponseDto } from './dto/response/login-response.dto';
 import { TokensDto } from './dto/tokens.dto';
 import { RefreshTokenDto } from './dto/refresh-token.dto';
+import { ResetPasswordDto } from './dto/reset-password.dto';
+import { ConfirmResetPasswordDto } from './dto/confirm-reset-password.dto';
 
 import { User } from '@/users/entities/user.entity';
 import { JwtTokenService } from './jwt/jwt.service';
@@ -21,7 +23,6 @@ import { AppLogger } from '@/common/logger/logger.service';
 import { RegisterResponseDto } from './dto/response/register-response.dto';
 import { CacheService } from '@/cache/cacheService.service';
 import { RabbitmqService } from '@/rabbitmq/rabbitmq.service';
-import { JwtPayload } from '@/common/interfaces/jwt-payload.interface';
 import { randomInt } from 'crypto';
 import { prisma } from '@/lib/prisma';
 
@@ -315,7 +316,6 @@ export class AuthService {
 
   async refreshToken(
     refreshTokenDto: RefreshTokenDto,
-    user: JwtPayload,
   ): Promise<TokensDto> {
     const { refreshToken } = refreshTokenDto;
 
@@ -324,24 +324,24 @@ export class AuthService {
       throw new BadRequestException('Refresh token обязателен');
     }
 
-    let userId: string;
-
-    // 2. Если пользователь авторизован, использовать его ID
-    if (user) {
-      userId = user.id;
-    } else {
-      // 3. Проверить refresh token из cookies
-      // TODO: Извлечь refresh token из cookies в контроллере и передать сюда
-      throw new UnauthorizedException('Refresh token не найден в cookies');
+    // 2. Проверить валидность refresh token
+    let decodedToken: any;
+    try {
+      decodedToken = await this.jwtTokenService.verifyToken(refreshToken);
+    } catch (error) {
+      throw new UnauthorizedException('Невалидный refresh token');
     }
 
-    // 5. Получить данные пользователя
+    // 3. Получить ID пользователя из refresh token
+    const userId = decodedToken.id;
+
+    // 4. Получить данные пользователя
     const userData = await this.userService.getUserById(userId);
     if (!userData) {
       throw new NotFoundException('Пользователь не найден');
     }
 
-    // 6. Сгенерировать новую пару токенов
+    // 5. Сгенерировать новую пару токенов
     const tokenRecord = await this.jwtTokenService.issueTokens(
       userData.id,
       userData.name,
@@ -353,17 +353,95 @@ export class AuthService {
       refreshToken: tokenRecord.refreshToken,
     };
 
-    // 7. Сохранить новый refresh token в cookies (без Redis)
-    // Refresh токены хранятся в cookies, а не в Redis
-    // TODO: Реализовать сохранение в cookies через Response объект
-
     this.logger.logAuth('refresh_token_success', userData.id, userData.email);
 
     return tokens;
   }
 
-  async logout(): Promise<void> {
-    this.logger.logAuth('logout_success', 'user');
+  async logout(userId: string): Promise<void> {
+  // Здесь можно добавить дополнительную логику:
+  // - Удалить refresh token из blacklist/Redis
+  // - Обновить lastActivity пользователя
+  // - Очистить сессии
+  
+  this.logger.logAuth('logout_success', userId);
+}
+
+  async resetPassword(resetPasswordDto: ResetPasswordDto): Promise<{ message: string; status: number }> {
+    const { email } = resetPasswordDto;
+
+    // Проверяем что пользователь существует
+    const user = await this.userService.getUserByEmail(email);
+    if (!user) {
+      throw new NotFoundException('Пользователь с таким email не найден');
+    }
+
+    // Генерируем код сброса пароля
+    const resetCode = this.genRandomCode();
+
+    // Сохраняем код в Redis
+    const cacheKey = `reset-password:${email}`;
+    await this.cacheService.set({
+      baseKey: cacheKey,
+      value: resetCode,
+      ttl: 600, // 10 минут
+    });
+
+    // Отправляем email с кодом
+    await this.rabbitmqService.sendEmail({
+      to: email,
+      subject: 'Сброс пароля',
+      template: 'reset-password',
+      data: {
+        userId: user.id,
+        verificationCode: resetCode,
+        userName: user.name || user.email,
+      },
+    });
+
+    this.logger.logAuth('reset_password_code_sent', user.id, email);
+
+    return {
+      message: 'Код для сброса пароля отправлен на ваш email',
+      status: 200,
+    };
+  }
+
+  async confirmResetPassword(confirmResetPasswordDto: ConfirmResetPasswordDto): Promise<{ message: string; status: number }> {
+    const { email, code, newPassword } = confirmResetPasswordDto;
+
+    // Проверяем код из Redis
+    const cacheKey = `reset-password:${email}`;
+    const storedCode = await this.cacheService.get(cacheKey);
+
+    if (!storedCode || storedCode !== code) {
+      throw new UnauthorizedException('Неверный или истекший код сброса пароля');
+    }
+
+    // Получаем пользователя
+    const user = await this.userService.getUserByEmail(email);
+    if (!user) {
+      throw new NotFoundException('Пользователь не найден');
+    }
+
+    // Хешируем новый пароль
+    const hashedPassword = await this.hashService.hash(newPassword);
+
+    // Обновляем пароль
+    await prisma.user.update({
+      where: { id: user.id },
+      data: { password: hashedPassword },
+    });
+
+    // Удаляем код из Redis
+    await this.cacheService.del(cacheKey);
+
+    this.logger.logAuth('password_reset_success', user.id, email);
+
+    return {
+      message: 'Пароль успешно изменен',
+      status: 200,
+    };
   }
 
   private async generateUniqueAccountNumber(): Promise<string> {
