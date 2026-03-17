@@ -39,6 +39,17 @@ export class AuthService {
     private readonly logger: AppLogger,
   ) {}
 
+  async getMe(userId: string) {
+    return prisma.user.findFirst({
+      where: {
+        id: userId
+      },
+      select: {
+        id: true,
+      }
+    })
+  }
+
   async login(loginUserDto: LoginUserDto): Promise<LoginResponseDto> {
     const { email, password } = loginUserDto;
 

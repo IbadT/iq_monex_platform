@@ -28,8 +28,10 @@ export class AuthController {
 
   @Get('me')
   @Protected()
-  async me() {
-    return;
+  async getMe(
+    @CurrentUser() user: JwtPayload,
+  ) {
+    return await this.authService.getMe(user.id);
   }
 
   @Post('login')
@@ -40,8 +42,6 @@ export class AuthController {
     @Res({ passthrough: true }) response: Response,
   ): Promise<LoginResponseDto> {
     const tokens = await this.authService.login(loginUserDto);
-
-    console.log('Login tokens:', tokens);
 
     // Устанавливаем cookies
     response.cookie('refreshToken', tokens.refreshToken, {
