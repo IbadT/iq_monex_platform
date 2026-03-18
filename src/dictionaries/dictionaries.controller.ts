@@ -10,7 +10,6 @@ import { Cron, CronExpression } from '@nestjs/schedule';
 
 // валюты и единицы изменения
 // TODO: добавить redis
-// TODO: добавить объединения с категориями (combined)
 @ApiTags('Dictionaries')
 @Controller('dictionaries')
 export class DictionariesController {

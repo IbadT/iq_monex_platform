@@ -27,6 +27,7 @@ import { LikesModule } from './likes/likes.module';
 import { FavoritesModule } from './favorites/favorites.module';
 import { SearchModule } from './search/search.module';
 import { JwtAuthModule } from './auth/jwt/jwt.module';
+import { CronTasksModule } from './cron_tasks/cron_tasks.module';
 
 @Module({
   imports: [
@@ -64,6 +65,7 @@ import { JwtAuthModule } from './auth/jwt/jwt.module';
     SubscriptionServiceModule,
     LikesModule,
     FavoritesModule,
+    CronTasksModule,
   ],
   controllers: [AppController],
   providers: [AppService, CacheService],
