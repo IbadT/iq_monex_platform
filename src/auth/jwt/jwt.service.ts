@@ -9,8 +9,8 @@ export class JwtTokenService {
     private readonly configService: ConfigService,
   ) {}
 
-  async issueTokens(userId: string, name?: string, email?: string): Promise<Record<string, string>> {
-    const data = { id: userId, name, email };
+  async issueTokens(userId: string, role: string, name?: string, email?: string): Promise<Record<string, string>> {
+    const data = { id: userId, name, email, role };
 
     const accessToken = await this.jwtService.signAsync(data, {
       expiresIn: '15m', // Явно указываем 15 минут
