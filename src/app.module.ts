@@ -28,9 +28,12 @@ import { FavoritesModule } from './favorites/favorites.module';
 import { SearchModule } from './search/search.module';
 import { JwtAuthModule } from './auth/jwt/jwt.module';
 import { CronTasksModule } from './cron_tasks/cron_tasks.module';
+import { SentryGlobalFilter, SentryModule } from "@sentry/nestjs/setup"
+import { APP_FILTER } from '@nestjs/core';
 
 @Module({
   imports: [
+    SentryModule.forRoot(),
     JwtAuthModule,
     ConfigModule.forRoot({
       isGlobal: true,
@@ -68,6 +71,13 @@ import { CronTasksModule } from './cron_tasks/cron_tasks.module';
     CronTasksModule,
   ],
   controllers: [AppController],
-  providers: [AppService, CacheService],
+  providers: [
+    AppService, 
+    CacheService,
+    {
+      provide: APP_FILTER,
+      useClass: SentryGlobalFilter,
+    }
+  ],
 })
 export class AppModule {}

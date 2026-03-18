@@ -7,6 +7,7 @@ import { swaggerCustomOptions } from '@/common/swagger-response-time.plugin';
 import { HttpExceptionFilter } from '@/common/filters/http-exception.filter';
 import * as express from 'express';
 import * as cookieParser from 'cookie-parser';
+import "./instrument"
 
 async function bootstrap() {
   const app = await NestFactory.create(AppModule);

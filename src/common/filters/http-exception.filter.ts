@@ -10,6 +10,7 @@ import { Request, Response } from 'express';
 import { ConfigService } from '@nestjs/config';
 import { writeFile, mkdir, access } from 'fs/promises';
 import { join } from 'path';
+import { SentryExceptionCaptured } from '@sentry/nestjs';
 
 export interface ErrorResponse {
   success: false;
@@ -29,7 +30,7 @@ export class HttpExceptionFilter implements ExceptionFilter {
   private readonly logger = new Logger(HttpExceptionFilter.name);
 
   constructor(private readonly configService: ConfigService) {}
-
+  @SentryExceptionCaptured()
   catch(exception: unknown, host: ArgumentsHost): void {
     const ctx = host.switchToHttp();
     const response = ctx.getResponse<Response>();

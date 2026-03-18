@@ -42,6 +42,10 @@ RUN npm ci --only=production && npm cache clean --force
 # Копируем скомпилированный код
 COPY --from=builder /app/dist ./dist
 
+# TODO: можно убрать для продакшена
+COPY test-performance.ts ./
+
+
 # Копируем Prisma клиент (только необходимые части)
 COPY --from=builder /app/node_modules/@prisma ./node_modules/@prisma
 COPY --from=builder /app/node_modules/prisma ./node_modules/prisma
