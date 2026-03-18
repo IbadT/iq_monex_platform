@@ -9,7 +9,7 @@ import { CacheService } from './cacheService.service';
       imports: [],
       useFactory: (configService: ConfigService) => ({
         type: 'single',
-        url: configService.get<string>('REDIS_URL') || 'redis://localhost:6379',
+        url: configService.get<string>('REDIS_URL') || 'redis://redis:6379',
         options: {
           retryDelayOnFailover: 100,
           maxRetriesPerRequest: 3,

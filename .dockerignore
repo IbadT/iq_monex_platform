@@ -121,8 +121,8 @@ tests/
 # Development tools
 .eslintrc.js
 .prettierrc
-tsconfig.json
-nest-cli.json
+# tsconfig.json
+# nest-cli.json
 
 # Backup files
 *.bak

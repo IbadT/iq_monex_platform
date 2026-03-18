@@ -181,7 +181,7 @@ export class UsersService {
     isVerified?: boolean;
   }): Promise<User> {
     const { email } = data;
-    const role = email === 'admin@admin.com' ? RoleType.ADMIN : RoleType.USER;
+    const role = email === 'admin@admin.com' ? RoleType.SUPER_ADMIN : RoleType.USER;
 
     const userRole = await prisma.role.findFirst({
       where: {

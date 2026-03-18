@@ -25,6 +25,7 @@ import { CacheService } from '@/cache/cacheService.service';
 import { RabbitmqService } from '@/rabbitmq/rabbitmq.service';
 import { randomInt } from 'crypto';
 import { prisma } from '@/lib/prisma';
+import { RoleType } from '@/users/enums/role-type.enum';
 
 @Injectable()
 export class AuthService {
@@ -118,20 +119,28 @@ export class AuthService {
 
     // TODO: убалить на проде
     if (email === "admin@admin.com") {
-      const res = await prisma.user.create({
-        data: {
-          email,
-          password: hashedPassword,
-          accountNumber,
-          isVerified: true,
-          name: 'Admin',
-          roleId: "0418d130-f898-433b-b771-18594e61569f",
+      const role = await prisma.role.findFirst({
+        where: {
+          code: RoleType.SUPER_ADMIN,
         },
       })
-      return {
-        ...res,
-        status: 200,
+      if (role) {
+        const res = await prisma.user.create({
+          data: {
+            email,
+            password: hashedPassword,
+            accountNumber,
+            isVerified: true,
+            name: 'Admin',
+            roleId: role.id,
+          },
+        })
+        return {
+          ...res,
+          status: 200,
+        }
       }
+      throw new BadRequestException(`Такая роль не найдена: ${role}`)
     }
 
     // 3. Записываем все в Redis
