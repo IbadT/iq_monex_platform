@@ -84,7 +84,7 @@ export class AuthService {
 
     const tokens = await this.jwtTokenService.issueTokens(
       existUser.id,
-      existUser.role.code,
+      existUser.role?.code || 'USER',
       existUser.name || '',
       existUser.email,
     );
