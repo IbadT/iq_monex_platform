@@ -1,10 +1,95 @@
 version: '3.8'
 
 services:
+  nginx:
+    image: nginx:alpine
+    ports:
+      - "80:80"
+      - "443:443"
+    volumes:
+      - ./nginx.conf:/etc/nginx/nginx.conf:ro
+      - ./ssl:/etc/nginx/ssl:ro
+    # Простой список без condition (для Swarm)
+    depends_on:
+      - app
+    networks:
+      - app_network
+    deploy:
+      replicas: 1
+      restart_policy:
+        condition: on-failure
+
+  app:
+    build:
+      context: .
+      dockerfile: Dockerfile
+      target: production
+    # НЕТ container_name для реплик!
+    environment:
+      NODE_ENV: production
+      DATABASE_URL: postgresql://postgres:postgres@postgres:5432/iq_monex_dev
+      ELASTICSEARCH_URL: http://elasticsearch:9200
+      RABBITMQ_URL: amqp://admin:admin123@rabbitmq:5672
+      JWT_SECRET: ${JWT_SECRET:-your-super-secret-jwt-key}
+      REDIS_URL: redis://redis:6379
+    # Простой список без condition
+    depends_on:
+      - postgres
+      - elasticsearch
+      - rabbitmq
+      - redis
+    networks:
+      - app_network
+    deploy:
+      mode: replicated
+      replicas: 3
+      resources:
+        limits:
+          cpus: '1.0'
+          memory: 512M
+        reservations:
+          cpus: '0.5'
+          memory: 256M
+      restart_policy:
+        condition: on-failure
+        delay: 5s
+        max_attempts: 3
+        window: 120s
+      update_config:
+        parallelism: 1
+        delay: 10s
+        failure_action: rollback
+      # healthcheck в deploy для Swarm
+      # healthcheck:
+      #   test: ["CMD", "wget", "--quiet", "--tries=1", "--spider", "http://localhost:3000/health"]
+      #   interval: 30s
+      #   timeout: 10s
+      #   retries: 3
+      #   start_period: 40s
+
+  redis:
+    image: redis:7-alpine
+    ports:
+      - "6379:6379"
+    command: redis-server --appendonly yes
+    volumes:
+      - redis_data:/data
+    networks:
+      - app_network
+    deploy:
+      replicas: 1
+      restart_policy:
+        condition: on-failure
+    # healthcheck на уровне сервиса (не deploy) для совместимости
+    healthcheck:
+      test: ["CMD", "redis-cli", "ping"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+      start_period: 30s
+
   postgres:
     image: postgres:14
-    container_name: platform_nest_postgres
-    restart: unless-stopped
     ports:
       - "5432:5432"
     environment:
@@ -13,17 +98,24 @@ services:
       POSTGRES_DB: iq_monex_dev
     volumes:
       - postgres_data:/var/lib/postgresql/data
-      - ./init.sql:/docker-entrypoint-initdb.d/init.sql
     networks:
-      - rabbitmq_network
+      - app_network
+    deploy:
+      replicas: 1
+      restart_policy:
+        condition: on-failure
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U postgres"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+      start_period: 30s
 
   rabbitmq:
     image: rabbitmq:3.12-management
-    container_name: platform_nest_rabbitmq
-    restart: unless-stopped
     ports:
-      - "5672:5672"   # AMQP порт для приложения
-      - "15672:15672" # Management UI (веб-интерфейс)
+      - "5672:5672"
+      - "15672:15672"
     environment:
       RABBITMQ_DEFAULT_USER: admin
       RABBITMQ_DEFAULT_PASS: admin123
@@ -31,12 +123,20 @@ services:
     volumes:
       - rabbitmq_data:/var/lib/rabbitmq
     networks:
-      - rabbitmq_network
+      - app_network
+    deploy:
+      replicas: 1
+      restart_policy:
+        condition: on-failure
+    healthcheck:
+      test: ["CMD", "rabbitmq-diagnostics", "ping"]
+      interval: 30s
+      timeout: 10s
+      retries: 5
+      start_period: 60s
 
   elasticsearch:
     image: docker.elastic.co/elasticsearch/elasticsearch:8.11.0
-    container_name: platform_nest_elasticsearch
-    restart: unless-stopped
     ports:
       - "9200:9200"
       - "9300:9300"
@@ -47,12 +147,20 @@ services:
     volumes:
       - elasticsearch_data:/usr/share/elasticsearch/data
     networks:
-      - rabbitmq_network
+      - app_network
+    deploy:
+      replicas: 1
+      restart_policy:
+        condition: on-failure
+    healthcheck:
+      test: ["CMD-SHELL", "curl -f http://localhost:9200/_cluster/health || exit 1"]
+      interval: 30s
+      timeout: 10s
+      retries: 5
+      start_period: 60s
 
   pgadmin:
     image: dpage/pgadmin4:latest
-    container_name: platform_nest_pgadmin
-    restart: unless-stopped
     ports:
       - "5050:80"
     environment:
@@ -62,17 +170,21 @@ services:
     volumes:
       - pgadmin_data:/var/lib/pgadmin
     networks:
-      - rabbitmq_network
+      - app_network
+    deploy:
+      replicas: 1
+      restart_policy:
+        condition: on-failure
     depends_on:
       - postgres
-      - rabbitmq
 
 volumes:
   postgres_data:
   rabbitmq_data:
   pgadmin_data:
   elasticsearch_data:
+  redis_data:
 
 networks:
-  rabbitmq_network:
-    driver: bridge
+  app_network:
+    driver: overlay  # overlay для Swarm (не bridge!)

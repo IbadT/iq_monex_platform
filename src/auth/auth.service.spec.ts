@@ -9,6 +9,7 @@ import { RabbitmqService } from '@/rabbitmq/rabbitmq.service';
 import { LoginUserDto } from './dto/request/login-user.dto';
 import { NotFoundException, UnauthorizedException } from '@nestjs/common';
 import { User } from '@/users/entities/user.entity';
+import { RoleType } from '@/users/enums/role-type.enum';
 import { LoginResponseDto } from './dto/response/login-response.dto';
 
 describe('AuthService', () => {
@@ -118,6 +119,14 @@ describe('AuthService', () => {
         updatedAt: new Date(),
         reviewsCount: 0,
         roleId: 'role-123',
+        role: {
+          id: 'role-123',
+          role: 'USER',
+          code: 'USER',
+          type: RoleType.USER,
+          createdAt: new Date(),
+          updatedAt: new Date(),
+        },
       };
 
       const mockTokens = {
@@ -143,6 +152,7 @@ describe('AuthService', () => {
       expect(hashService.compare).toHaveBeenCalledWith(mockUser.password, loginUserDto.password);
       expect(jwtTokenService.issueTokens).toHaveBeenCalledWith(
         mockUser.id,
+        mockUser.role.role,
         mockUser.name,
         mockUser.email
       );
@@ -185,6 +195,14 @@ describe('AuthService', () => {
         updatedAt: new Date(),
         reviewsCount: 0,
         roleId: 'role-123',
+        role: {
+          id: 'role-123',
+          role: 'USER',
+          code: 'USER',
+          type: RoleType.USER,
+          createdAt: new Date(),
+          updatedAt: new Date(),
+        },
       };
 
       usersService.getUserByEmailWithPassword.mockResolvedValue(mockUser);

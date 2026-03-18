@@ -72,6 +72,9 @@ describe('UsersService', () => {
 
       expect(prisma.user.findUnique).toHaveBeenCalledWith({
         where: { email },
+        include: {
+          role: true
+        }
       });
       expect(result).toEqual(mockUser);
     });
@@ -87,6 +90,9 @@ describe('UsersService', () => {
 
       expect(prisma.user.findUnique).toHaveBeenCalledWith({
         where: { email },
+        include: {
+          role: true
+        }
       });
       expect(result).toBeNull();
     });
