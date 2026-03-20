@@ -1,6 +1,6 @@
 import { ListingStatus } from '@/listings/enums/listing-status.enum';
 import { ApiProperty } from '@nestjs/swagger';
-import { IsEnum } from 'class-validator';
+import { IsEnum, IsUUID } from 'class-validator';
 
 export class ChangeListingStatusDto {
   @ApiProperty({
@@ -16,6 +16,7 @@ export class ChangeListingStatusDto {
     description: 'ID объявления',
     example: '123e4567-e89b-12d3-a456-426614174000',
   })
+  @IsUUID()
   listingId: string;
 
   constructor(status: ListingStatus, listingId: string) {

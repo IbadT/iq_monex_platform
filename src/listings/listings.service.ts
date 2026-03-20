@@ -473,13 +473,20 @@ export class ListingsService {
 
   async listingPublishFromDraft(body: ChangeListingStatusDto) {
     const { listingId, status } = body;
-    const checkIfListingIsInDraft = await this.listingById(
-      listingId,
-      new StatusQueryDto(ListingStatus.DRAFT),
-    );
-    if (!checkIfListingIsInDraft) {
+    // const checkIfListingIsInDraft = await this.listingById(
+    //   listingId,
+    //   // new StatusQueryDto(ListingStatus.DRAFT),
+    // );
+    // TODO: если в status находится PUBLISHED, то проверить слоты
+    const checkIfListingExist = await prisma.listing.findFirst({
+      where: {
+        id: listingId
+      }
+    })
+    
+    if (!checkIfListingExist) {
       throw new BadRequestException(
-        `Объявление с id: ${listingId} не находится в архиве`,
+        `Объявление с id: ${listingId} не найдено`,
       );
     }
 
