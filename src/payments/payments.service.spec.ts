@@ -77,13 +77,13 @@ describe('PaymentsService', () => {
         PaymentType.EXTEND_PACKAGES,
         1000,
         'RUB',
-        30
+        30,
         // No packageIds provided
       );
 
-      await expect(service.createPayment(userId, createPaymentDto)).rejects.toThrow(
-        'Для продления пакетов необходимо указать packageIds'
-      );
+      await expect(
+        service.createPayment(userId, createPaymentDto),
+      ).rejects.toThrow('Для продления пакетов необходимо указать packageIds');
     });
   });
 });

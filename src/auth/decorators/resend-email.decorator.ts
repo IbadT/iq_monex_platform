@@ -6,7 +6,8 @@ export const ApiResendEmailOperation = () =>
   applyDecorators(
     ApiOperation({
       summary: 'Отправить код подтверждения повторно',
-      description: 'Отправляет новый 5-значный код подтверждения на email пользователя. Используется, если предыдущий код истек или не был получен.',
+      description:
+        'Отправляет новый 5-значный код подтверждения на email пользователя. Используется, если предыдущий код истек или не был получен.',
     }),
     ApiBody({
       type: ResendEmailDto,
@@ -26,13 +27,13 @@ export const ApiResendEmailOperation = () =>
       schema: {
         type: 'object',
         properties: {
-          message: { 
-            type: 'string', 
-            example: 'Код подтверждения отправлен на ваш email' 
+          message: {
+            type: 'string',
+            example: 'Код подтверждения отправлен на ваш email',
           },
-          status: { 
-            type: 'number', 
-            example: 200 
+          status: {
+            type: 'number',
+            example: 200,
           },
         },
       },
@@ -44,9 +45,9 @@ export const ApiResendEmailOperation = () =>
         type: 'object',
         properties: {
           statusCode: { type: 'number', example: 404 },
-          message: { 
-            type: 'string', 
-            example: 'Пользователь с таким email не найден' 
+          message: {
+            type: 'string',
+            example: 'Пользователь с таким email не найден',
           },
         },
       },
@@ -58,9 +59,9 @@ export const ApiResendEmailOperation = () =>
         type: 'object',
         properties: {
           statusCode: { type: 'number', example: 409 },
-          message: { 
-            type: 'string', 
-            example: 'Email уже подтвержден' 
+          message: {
+            type: 'string',
+            example: 'Email уже подтвержден',
           },
         },
       },
@@ -72,7 +73,7 @@ export const ApiResendEmailOperation = () =>
         type: 'object',
         properties: {
           statusCode: { type: 'number', example: 400 },
-          message: { 
+          message: {
             type: 'string',
             example: 'Validation failed',
           },

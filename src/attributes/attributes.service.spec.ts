@@ -49,7 +49,7 @@ describe('AttributesService', () => {
     it('should return cached specifications', async () => {
       const lang = Language.RU;
       const cacheKey = `specifications:${lang}`;
-      
+
       const mockSpecifications = [
         {
           id: 1,
@@ -81,7 +81,7 @@ describe('AttributesService', () => {
     it('should fetch from database when cache is empty', async () => {
       const lang = Language.EN;
       const cacheKey = `specifications:${lang}`;
-      
+
       const mockSpecifications = [
         {
           id: 1,
@@ -95,11 +95,13 @@ describe('AttributesService', () => {
 
       // Mock cache miss
       cacheService.get = jest.fn().mockResolvedValue(null);
-      
+
       // Mock prisma methods
       const prisma = require('@/lib/prisma').prisma;
-      prisma.specification.findMany = jest.fn().mockResolvedValue(mockSpecifications);
-      
+      prisma.specification.findMany = jest
+        .fn()
+        .mockResolvedValue(mockSpecifications);
+
       // Mock cache set
       cacheService.set = jest.fn().mockResolvedValue(true);
 

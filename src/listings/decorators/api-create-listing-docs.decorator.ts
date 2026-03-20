@@ -62,7 +62,7 @@ export function CreateListingApiDocs() {
             maps: {
               type: 'OFFICE',
               latitude: 55.7558,
-              longtitude: 37.6173,
+              longitude: 37.6173,
             },
           },
         },
@@ -114,7 +114,7 @@ export function CreateListingApiDocs() {
             maps: {
               type: 'OFFICE',
               latitude: 55.7558,
-              longtitude: 37.6173,
+              longitude: 37.6173,
             },
           },
         },
@@ -211,7 +211,7 @@ export function CreateListingApiDocs() {
                 example: 55.7558,
                 description: 'Широта',
               },
-              longtitude: {
+              longitude: {
                 type: 'number',
                 example: 37.6173,
                 description: 'Долгота',

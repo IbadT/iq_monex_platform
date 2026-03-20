@@ -41,7 +41,9 @@ describe('NotificationsService', () => {
         type: 'SYSTEM' as const,
       };
 
-      const mockRedisPubSubService = service['redisPubSub'] as jest.Mocked<RedisPubSubService>;
+      const mockRedisPubSubService = service[
+        'redisPubSub'
+      ] as jest.Mocked<RedisPubSubService>;
       mockRedisPubSubService.publish = jest.fn().mockResolvedValue('published');
 
       const result = await service.sendNotification(notification);
@@ -59,7 +61,9 @@ describe('NotificationsService', () => {
         type: 'SYSTEM' as const,
       };
 
-      const mockRedisPubSubService = service['redisPubSub'] as jest.Mocked<RedisPubSubService>;
+      const mockRedisPubSubService = service[
+        'redisPubSub'
+      ] as jest.Mocked<RedisPubSubService>;
       mockRedisPubSubService.publish = jest.fn().mockResolvedValue('published');
 
       const result1 = await service.sendNotification(notification);

@@ -67,12 +67,12 @@ describe('UsersController', () => {
 
   describe('updateProfile', () => {
     it('should update user profile', async () => {
-      const user: JwtPayload = { 
-        id: 'user-123', 
-        name: 'Test User', 
-        email: 'test@example.com' 
+      const user: JwtPayload = {
+        id: 'user-123',
+        name: 'Test User',
+        email: 'test@example.com',
       };
-      
+
       const updateUserDto: UpdateUserDto = new UpdateUserDto('Updated Name');
 
       const mockUpdatedUser = {
@@ -93,7 +93,10 @@ describe('UsersController', () => {
 
       const result = await controller.updateProfile(user, updateUserDto);
 
-      expect(usersService.updateUser).toHaveBeenCalledWith(user.id, updateUserDto);
+      expect(usersService.updateUser).toHaveBeenCalledWith(
+        user.id,
+        updateUserDto,
+      );
       expect(result).toEqual(mockUpdatedUser);
     });
   });

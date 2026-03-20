@@ -39,7 +39,7 @@ GET /listings/123e4567-e89b-12d3-a456-426614174000?status=TEMPLATE
 \`\`\`
       `,
     }),
-    
+
     // Query параметр
     ApiQuery({
       name: 'status',
@@ -48,7 +48,7 @@ GET /listings/123e4567-e89b-12d3-a456-426614174000?status=TEMPLATE
       description: 'Фильтр по статусу объявления',
       example: 'PUBLISHED',
     }),
-    
+
     // Path параметр
     ApiParam({
       name: 'id',
@@ -58,7 +58,7 @@ GET /listings/123e4567-e89b-12d3-a456-426614174000?status=TEMPLATE
       description: 'UUID объявления',
       example: '123e4567-e89b-12d3-a456-426614174000',
     }),
-    
+
     // Успешный ответ
     ApiResponse({
       status: 200,
@@ -154,10 +154,17 @@ GET /listings/123e4567-e89b-12d3-a456-426614174000?status=TEMPLATE
               type: 'object',
               properties: {
                 id: { type: 'string', example: 'file-uuid' },
-                url: { type: 'string', example: 'https://example.com/file.pdf' },
+                url: {
+                  type: 'string',
+                  example: 'https://example.com/file.pdf',
+                },
                 fileName: { type: 'string', example: 'document.pdf' },
                 fileSize: { type: 'number', example: 1024000 },
-                kind: { type: 'string', enum: ['DOCUMENT', 'PHOTO'], example: 'DOCUMENT' },
+                kind: {
+                  type: 'string',
+                  enum: ['DOCUMENT', 'PHOTO'],
+                  example: 'DOCUMENT',
+                },
               },
             },
           },
@@ -167,9 +174,19 @@ GET /listings/123e4567-e89b-12d3-a456-426614174000?status=TEMPLATE
               type: 'object',
               properties: {
                 id: { type: 'string', example: 'location-uuid' },
-                type: { type: 'string', enum: ['OFFICE', 'INDUSTRIAL', 'LAND', 'RETAIL', 'RESIDENTIAL'], example: 'OFFICE' },
+                type: {
+                  type: 'string',
+                  enum: [
+                    'OFFICE',
+                    'INDUSTRIAL',
+                    'LAND',
+                    'RETAIL',
+                    'RESIDENTIAL',
+                  ],
+                  example: 'OFFICE',
+                },
                 latitude: { type: 'number', example: 55.7558 },
-                longtitude: { type: 'number', example: 37.6173 },
+                longitude: { type: 'number', example: 37.6173 },
               },
             },
           },
@@ -181,14 +198,18 @@ GET /listings/123e4567-e89b-12d3-a456-426614174000?status=TEMPLATE
                 id: { type: 'string', example: 'spec-uuid' },
                 key: { type: 'string', example: 'brand' },
                 value: { type: 'string', example: 'Apple' },
-                type: { type: 'string', enum: ['TEXT', 'NUMBER', 'BOOLEAN'], example: 'TEXT' },
+                type: {
+                  type: 'string',
+                  enum: ['TEXT', 'NUMBER', 'BOOLEAN'],
+                  example: 'TEXT',
+                },
               },
             },
           },
         },
       },
     }),
-    
+
     // Ошибки
     ApiResponse({
       status: 404,

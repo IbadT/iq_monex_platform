@@ -15,6 +15,7 @@ import { CurrentUser } from '@/common/decorators/current-user.decorator';
 import { JwtPayload } from '@/common/interfaces/jwt-payload.interface';
 import { AddFavoriteToUserDto } from './dto/add-favorite-to-user.dto';
 import { MakeComplaintToUser } from './dto/make-complaint-to-user.dto';
+import { ApiUpdateUserDocs } from './decorators/api-update-user-docs.decorator';
 
 @ApiTags('Users')
 @Controller('users')
@@ -59,8 +60,6 @@ export class UsersController {
     return await this.usersService.makeComplaintToUser(user.id, body);
   }
 
-
-
   @Post('seed-roles')
   async seedRoles() {
     return await this.usersService.seedRoles();
@@ -69,6 +68,7 @@ export class UsersController {
   // редактирование профиля
   @Patch()
   @Protected()
+  @ApiUpdateUserDocs()
   async updateProfile(
     @CurrentUser() user: JwtPayload,
     @Body() body: UpdateUserDto,

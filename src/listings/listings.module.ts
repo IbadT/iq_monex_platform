@@ -11,11 +11,6 @@ import { SearchModule } from '@/search/search.module';
 @Module({
   imports: [JwtAuthModule, SearchModule, RabbitmqModule],
   controllers: [ListingsController],
-  providers: [
-    CacheService,
-    ListingsService,
-    S3Service,
-    SubscriptionService,
-  ],
+  providers: [CacheService, ListingsService, S3Service, SubscriptionService],
 })
 export class ListingsModule {}

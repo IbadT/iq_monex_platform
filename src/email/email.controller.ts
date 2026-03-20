@@ -1,28 +1,13 @@
 import { Controller, Post, Body, Logger } from '@nestjs/common';
 import { EmailService, EmailSender } from './email.service';
 import { ApiTags } from '@nestjs/swagger';
-import {
-  SendEmailDto,
-  EmailOnlyDto,
-} from './dto/send-email.dto';
-import {
-  ApiSendEmailOperation,
-} from './decorators/send-email-api-docs.decorator';
-import {
-  ApiSendVerificationCodeOperation,
-} from './decorators/send-verification-code-api-docs.decorator';
-import {
-  ApiSendWelcomeOperation,
-} from './decorators/send-welcome-api-docs.decorator';
-import {
-  ApiSendPasswordResetOperation,
-} from './decorators/send-password-reset-api-docs.decorator';
-import {
-  ApiSendSupportReplyOperation,
-} from './decorators/send-support-reply-api-docs.decorator';
-import {
-  ApiSend2FACodeOperation,
-} from './decorators/send-2fa-code-api-docs.decorator';
+import { SendEmailDto, EmailOnlyDto } from './dto/send-email.dto';
+import { ApiSendEmailOperation } from './decorators/send-email-api-docs.decorator';
+import { ApiSendVerificationCodeOperation } from './decorators/send-verification-code-api-docs.decorator';
+import { ApiSendWelcomeOperation } from './decorators/send-welcome-api-docs.decorator';
+import { ApiSendPasswordResetOperation } from './decorators/send-password-reset-api-docs.decorator';
+import { ApiSendSupportReplyOperation } from './decorators/send-support-reply-api-docs.decorator';
+import { ApiSend2FACodeOperation } from './decorators/send-2fa-code-api-docs.decorator';
 
 @ApiTags('Email')
 @Controller('email')
@@ -34,7 +19,9 @@ export class EmailController {
   @Post('send')
   @ApiSendEmailOperation()
   async sendEmail(@Body() body: SendEmailDto) {
-    this.logger.log(`Отправка email на ${body.to} от ${body.sender || EmailSender.NOREPLY}`);
+    this.logger.log(
+      `Отправка email на ${body.to} от ${body.sender || EmailSender.NOREPLY}`,
+    );
 
     try {
       const result = await this.emailService.send({
@@ -64,7 +51,10 @@ export class EmailController {
 
   @Post('send-verification-code')
   @ApiSendVerificationCodeOperation()
-  async sendVerificationCode(@Body() body: EmailOnlyDto, @Body('code') code: string) {
+  async sendVerificationCode(
+    @Body() body: EmailOnlyDto,
+    @Body('code') code: string,
+  ) {
     this.logger.log(`Отправка кода подтверждения на ${body.to}`);
 
     try {
@@ -85,7 +75,10 @@ export class EmailController {
 
   @Post('send-welcome')
   @ApiSendWelcomeOperation()
-  async sendWelcome(@Body() body: EmailOnlyDto, @Body('userName') userName: string) {
+  async sendWelcome(
+    @Body() body: EmailOnlyDto,
+    @Body('userName') userName: string,
+  ) {
     this.logger.log(`Отправка приветственного письма на ${body.to}`);
 
     try {
@@ -106,7 +99,10 @@ export class EmailController {
 
   @Post('send-password-reset')
   @ApiSendPasswordResetOperation()
-  async sendPasswordReset(@Body() body: EmailOnlyDto, @Body('token') token: string) {
+  async sendPasswordReset(
+    @Body() body: EmailOnlyDto,
+    @Body('token') token: string,
+  ) {
     this.logger.log(`Отправка письма для сброса пароля на ${body.to}`);
 
     try {
@@ -127,11 +123,23 @@ export class EmailController {
 
   @Post('send-support-reply')
   @ApiSendSupportReplyOperation()
-  async sendSupportReply(@Body() body: EmailOnlyDto, @Body('ticketId') ticketId: string, @Body('message') message: string, @Body('agentName') agentName: string) {
-    this.logger.log(`Отправка ответа поддержки по тикету #${ticketId} на ${body.to}`);
+  async sendSupportReply(
+    @Body() body: EmailOnlyDto,
+    @Body('ticketId') ticketId: string,
+    @Body('message') message: string,
+    @Body('agentName') agentName: string,
+  ) {
+    this.logger.log(
+      `Отправка ответа поддержки по тикету #${ticketId} на ${body.to}`,
+    );
 
     try {
-      await this.emailService.sendSupportReply(body.to, ticketId, message, agentName);
+      await this.emailService.sendSupportReply(
+        body.to,
+        ticketId,
+        message,
+        agentName,
+      );
       return {
         success: true,
         message: `Ответ поддержки отправлен на ${body.to}`,

@@ -4,16 +4,16 @@ import { User } from '@/users/entities/user.entity';
 
 export class VerifyCodeDto {
   @ApiProperty({
-    description: "",
-    example: ""
+    description: '',
+    example: '',
   })
   @IsString()
   @IsEmail()
   email: string;
 
   @ApiProperty({
-    description: "",
-    example: ""
+    description: '',
+    example: '',
   })
   @IsString()
   code: string;
@@ -26,38 +26,45 @@ export class VerifyCodeDto {
 
 export class VerifyCodeResponseDto {
   @ApiProperty({
-    description: "",
-    example: ""
+    description: '',
+    example: '',
   })
   message: string;
-  
+
   @ApiProperty({
-    description: "",
-    example: 200
+    description: '',
+    example: 200,
   })
   status: number;
 
   @ApiProperty({
-    description: "Информация о пользователе",
+    description: 'Информация о пользователе',
     type: User,
-    required: false
+    required: false,
   })
   user?: User;
 
   @ApiProperty({
-    description: "JWT токены",
+    description: 'JWT токены',
     example: {
-      accessToken: "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9...",
-      refreshToken: "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9..."
+      accessToken: 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9...',
+      refreshToken: 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9...',
     },
-    required: false
+    required: false,
   })
-  tokens?: {
-    accessToken: string;
-    refreshToken: string;
-  } | undefined;
+  tokens?:
+    | {
+        accessToken: string;
+        refreshToken: string;
+      }
+    | undefined;
 
-  constructor(message: string, status: number, user?: User, tokens?: { accessToken: string; refreshToken: string } | undefined) {
+  constructor(
+    message: string,
+    status: number,
+    user?: User,
+    tokens?: { accessToken: string; refreshToken: string },
+  ) {
     this.message = message;
     this.status = status;
     if (user) {

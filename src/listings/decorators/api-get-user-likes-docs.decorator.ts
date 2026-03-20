@@ -5,7 +5,8 @@ export const ApiGetUserLikesDocs = () =>
   applyDecorators(
     ApiOperation({
       summary: 'Получить лайки пользователя',
-      description: 'Возвращает список всех объявлений, которые лайкнул указанный пользователь.',
+      description:
+        'Возвращает список всех объявлений, которые лайкнул указанный пользователь.',
     }),
     ApiParam({
       name: 'userId',

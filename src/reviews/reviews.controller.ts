@@ -26,7 +26,6 @@ import { Admin, Protected } from '@/common/decorators';
 import { PaginationDto } from '@/common/dto/pagintation.dto';
 import { CreateReviewToUserDto } from '@/reviews/dto/create-review.to-user.dto';
 
-
 // TODO: добавить логику для выставления лайков коментариям
 // TODO: добавить логику удаления коментария
 @Controller('reviews')
@@ -40,22 +39,22 @@ export class ReviewsController {
   @Protected()
   async getUserReviews(
     @CurrentUser() user: JwtPayload,
-    @Query() query: PaginationDto
+    @Query() query: PaginationDto,
   ) {
     return await this.reviewsService.getUserReviews(user.id, query);
   }
-  
+
   @Post('users')
   @Protected()
   async createReviewToUser(
-    @CurrentUser() user: JwtPayload, 
-    @Body() body: CreateReviewToUserDto
+    @CurrentUser() user: JwtPayload,
+    @Body() body: CreateReviewToUserDto,
   ) {
     return await this.reviewsService.createReviewToUser(user.id, body);
   }
 
   // оставить комментарий к объявлению
-  @Post("listings")
+  @Post('listings')
   @ApiCreateReviewDocs()
   @Protected()
   async create(

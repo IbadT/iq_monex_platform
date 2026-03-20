@@ -61,7 +61,7 @@ describe('AuthController', () => {
 
     controller = module.get<AuthController>(AuthController);
     authService = module.get(AuthService);
-    
+
     // Reset all mocks before each test
     jest.clearAllMocks();
   });
@@ -88,7 +88,9 @@ describe('AuthController', () => {
 
       authService.login.mockResolvedValue(mockTokens);
 
-      const result = await controller.login(loginDto, { cookie: jest.fn() } as any);
+      const result = await controller.login(loginDto, {
+        cookie: jest.fn(),
+      } as any);
 
       expect(authService.login).toHaveBeenCalledWith(loginDto);
       expect(result).toEqual(mockTokens);
@@ -105,9 +107,13 @@ describe('AuthController', () => {
 
       authService.refreshToken.mockResolvedValue(mockTokens);
 
-      const result = await controller.refreshToken(mockRequest, { cookie: jest.fn() } as any);
+      const result = await controller.refreshToken(mockRequest, {
+        cookie: jest.fn(),
+      } as any);
 
-      expect(authService.refreshToken).toHaveBeenCalledWith({ refreshToken: 'refresh-token' });
+      expect(authService.refreshToken).toHaveBeenCalledWith({
+        refreshToken: 'refresh-token',
+      });
       expect(result).toEqual(mockTokens);
     });
 
@@ -117,8 +123,9 @@ describe('AuthController', () => {
 
       authService.refreshToken.mockRejectedValue(error);
 
-      await expect(controller.refreshToken(mockRequest, { cookie: jest.fn() } as any))
-        .rejects.toThrow(BadRequestException);
+      await expect(
+        controller.refreshToken(mockRequest, { cookie: jest.fn() } as any),
+      ).rejects.toThrow(BadRequestException);
     });
   });
 
@@ -126,7 +133,10 @@ describe('AuthController', () => {
     it('should logout successfully', async () => {
       const mockUser = { id: '1', email: 'test@example.com' };
 
-      await controller.logOut(mockUser as any, { clearCookie: jest.fn() } as any);
+      await controller.logOut(
+        mockUser as any,
+        { clearCookie: jest.fn() } as any,
+      );
 
       expect(authService.logout).toHaveBeenCalledWith(mockUser.id);
     });
@@ -135,7 +145,10 @@ describe('AuthController', () => {
   describe('resetPassword', () => {
     it('should send reset password email', async () => {
       const resetPasswordDto = { email: 'test@example.com' };
-      const mockResponse = { message: 'Код для сброса пароля отправлен на ваш email', status: 200 };
+      const mockResponse = {
+        message: 'Код для сброса пароля отправлен на ваш email',
+        status: 200,
+      };
 
       authService.resetPassword.mockResolvedValue(mockResponse);
 
@@ -151,15 +164,19 @@ describe('AuthController', () => {
       const confirmResetPasswordDto = {
         email: 'test@example.com',
         code: '123456',
-        newPassword: 'newPassword123'
+        newPassword: 'newPassword123',
       };
       const mockResponse = { message: 'Пароль успешно изменен', status: 200 };
 
       authService.confirmResetPassword.mockResolvedValue(mockResponse);
 
-      const result = await controller.confirmResetPassword(confirmResetPasswordDto);
+      const result = await controller.confirmResetPassword(
+        confirmResetPasswordDto,
+      );
 
-      expect(authService.confirmResetPassword).toHaveBeenCalledWith(confirmResetPasswordDto);
+      expect(authService.confirmResetPassword).toHaveBeenCalledWith(
+        confirmResetPasswordDto,
+      );
       expect(result).toEqual(mockResponse);
     });
   });

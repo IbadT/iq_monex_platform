@@ -30,7 +30,10 @@ import { GetFavoritesQueryDto } from './dto/request/get-favorites-query.dto';
 import { ComplaintType } from '@/users/enums/complaint-type.enum';
 import { MakeComplaintToListing } from './dto/request/make-complaint-to-listing.dto';
 import { GetRecomentQueryDto } from './dto/request/get-recoment-query.dto';
-import { ListingEntityWithFiles, ListingWhereCondition } from './entities/listing.entity';
+import {
+  ListingEntityWithFiles,
+  ListingWhereCondition,
+} from './entities/listing.entity';
 import { FORBIDDEN_WORDS } from './forbidden-words/forbidden-words';
 
 @Injectable()
@@ -108,8 +111,8 @@ export class ListingsService {
     });
 
     // Используем статический метод для разделения файлов
-    const processedListings = listings.map((listing: any) => 
-      ListingEntityWithFiles.fromPrismaWithFiles(listing)
+    const processedListings = listings.map((listing: any) =>
+      ListingEntityWithFiles.fromPrismaWithFiles(listing),
     );
 
     return processedListings;
@@ -197,9 +200,20 @@ export class ListingsService {
    */
   async searchListings(query: ListingQueryDto) {
     const startTime = Date.now();
-    const { limit = 20, offset = 0, search, status, condition, minPrice, maxPrice, categoryId } = query;
+    const {
+      limit = 20,
+      offset = 0,
+      search,
+      status,
+      condition,
+      minPrice,
+      maxPrice,
+      categoryId,
+    } = query;
 
-    this.logger.log(`🔍 Search request: ${JSON.stringify({ search, status, condition, minPrice, maxPrice, categoryId, limit, offset })}`);
+    this.logger.log(
+      `🔍 Search request: ${JSON.stringify({ search, status, condition, minPrice, maxPrice, categoryId, limit, offset })}`,
+    );
 
     // Если нет поискового запроса, используем обычный поиск из БД
     if (!search) {
@@ -209,7 +223,7 @@ export class ListingsService {
 
     try {
       this.logger.log(`🚀 Starting Elasticsearch search for: "${search}"`);
-      
+
       // Строим Elasticsearch query
       const esQuery: any = {
         query: {
@@ -220,10 +234,7 @@ export class ListingsService {
         },
         from: offset,
         size: limit,
-        sort: [
-          { createdAt: { order: 'desc' } },
-          { _score: { order: 'desc' } },
-        ],
+        sort: [{ createdAt: { order: 'desc' } }, { _score: { order: 'desc' } }],
       };
 
       // Добавляем полнотекстовый поиск
@@ -237,20 +248,22 @@ export class ListingsService {
             operator: 'and',
           },
         });
-        this.logger.log(`📝 Multi-match query configured for fields: title^3, description^2, category.name^1.5`);
+        this.logger.log(
+          `📝 Multi-match query configured for fields: title^3, description^2, category.name^1.5`,
+        );
       }
 
       // Добавляем фильтры
       if (status) {
         esQuery.query.bool.filter.push({
-          term: { "status.keyword": status },
+          term: { 'status.keyword': status },
         });
         this.logger.log(`🎯 Status filter applied: ${status}`);
       }
 
       if (condition) {
         esQuery.query.bool.filter.push({
-          term: { "condition.keyword": condition },
+          term: { 'condition.keyword': condition },
         });
         this.logger.log(`🎯 Condition filter applied: ${condition}`);
       }
@@ -267,11 +280,13 @@ export class ListingsService {
         const priceRange: any = {};
         if (minPrice) priceRange.gte = minPrice;
         if (maxPrice) priceRange.lte = maxPrice;
-        
+
         esQuery.query.bool.filter.push({
           range: { price: priceRange },
         });
-        this.logger.log(`💰 Price filter applied: ${JSON.stringify(priceRange)}`);
+        this.logger.log(
+          `💰 Price filter applied: ${JSON.stringify(priceRange)}`,
+        );
       }
 
       // Если нет must условий, но есть поиск, заменяем на match_all
@@ -283,18 +298,23 @@ export class ListingsService {
 
       // Выполняем поиск в Elasticsearch
       const esStartTime = Date.now();
-      const result = await this.searchService.search<ListingDocument>('listings', esQuery);
+      const result = await this.searchService.search<ListingDocument>(
+        'listings',
+        esQuery,
+      );
       const esDuration = Date.now() - esStartTime;
-      
-      this.logger.log(`⚡ Elasticsearch search completed in ${esDuration}ms, found ${result.hits.total.value} documents`);
+
+      this.logger.log(
+        `⚡ Elasticsearch search completed in ${esDuration}ms, found ${result.hits.total.value} documents`,
+      );
 
       // Получаем ID найденных документов
-      const listingIds = result.hits.hits.map(hit => hit._source.id);
+      const listingIds = result.hits.hits.map((hit) => hit._source.id);
 
       if (!listingIds.length) {
         const totalDuration = Date.now() - startTime;
         this.logger.log(`📭 No results found in ${totalDuration}ms`);
-        
+
         return {
           rows: [],
           pagination: {
@@ -306,7 +326,9 @@ export class ListingsService {
         };
       }
 
-      this.logger.log(`📋 Found ${listingIds.length} listing IDs: ${listingIds.slice(0, 5).join(', ')}${listingIds.length > 5 ? '...' : ''}`);
+      this.logger.log(
+        `📋 Found ${listingIds.length} listing IDs: ${listingIds.slice(0, 5).join(', ')}${listingIds.length > 5 ? '...' : ''}`,
+      );
 
       // Получаем полные данные из Prisma для найденных ID с сортировкой
       const dbStartTime = Date.now();
@@ -332,18 +354,26 @@ export class ListingsService {
         },
       });
       const dbDuration = Date.now() - dbStartTime;
-      
-      this.logger.log(`🗄️ Database query completed in ${dbDuration}ms, retrieved ${listings.length} full listings`);
+
+      this.logger.log(
+        `🗄️ Database query completed in ${dbDuration}ms, retrieved ${listings.length} full listings`,
+      );
 
       // Разделяем файлы на фотографии и документы
       const processedListings = listings.map((listing: any) => ({
         ...listing,
-        photos: listing.files.filter((file: any) => file.kind === FileKind.PHOTO),
-        files: listing.files.filter((file: any) => file.kind === FileKind.DOCUMENT),
+        photos: listing.files.filter(
+          (file: any) => file.kind === FileKind.PHOTO,
+        ),
+        files: listing.files.filter(
+          (file: any) => file.kind === FileKind.DOCUMENT,
+        ),
       }));
 
       const totalDuration = Date.now() - startTime;
-      this.logger.log(`✅ Search completed successfully in ${totalDuration}ms (ES: ${esDuration}ms, DB: ${dbDuration}ms)`);
+      this.logger.log(
+        `✅ Search completed successfully in ${totalDuration}ms (ES: ${esDuration}ms, DB: ${dbDuration}ms)`,
+      );
 
       return {
         rows: processedListings,
@@ -356,15 +386,20 @@ export class ListingsService {
         searchMeta: {
           query: search,
           totalFound: result.hits.total.value,
-          maxScore: Math.max(...result.hits.hits.map(hit => hit._score)),
+          maxScore: Math.max(...result.hits.hits.map((hit) => hit._score)),
         },
       };
     } catch (error) {
       const totalDuration = Date.now() - startTime;
-      this.logger.error(`❌ Elasticsearch search error after ${totalDuration}ms:`, error);
-      
+      this.logger.error(
+        `❌ Elasticsearch search error after ${totalDuration}ms:`,
+        error,
+      );
+
       // В случае ошибки Elasticsearch, fallback к обычному поиску в БД
-      this.logger.warn('🔄 Falling back to database search due to Elasticsearch error');
+      this.logger.warn(
+        '🔄 Falling back to database search due to Elasticsearch error',
+      );
       return await this.listingList(query);
     }
   }
@@ -420,7 +455,9 @@ export class ListingsService {
     const processedListings = listings.map((listing: any) => ({
       ...listing,
       photos: listing.files.filter((file: any) => file.kind === FileKind.PHOTO),
-      files: listing.files.filter((file: any) => file.kind === FileKind.DOCUMENT),
+      files: listing.files.filter(
+        (file: any) => file.kind === FileKind.DOCUMENT,
+      ),
     }));
 
     return {
@@ -493,8 +530,12 @@ export class ListingsService {
     if (listing) {
       const processedListing = {
         ...listing,
-        photos: listing.files.filter((file: any) => file.kind === FileKind.PHOTO),
-        files: listing.files.filter((file: any) => file.kind === FileKind.DOCUMENT),
+        photos: listing.files.filter(
+          (file: any) => file.kind === FileKind.PHOTO,
+        ),
+        files: listing.files.filter(
+          (file: any) => file.kind === FileKind.DOCUMENT,
+        ),
       };
       return processedListing;
     }
@@ -538,7 +579,9 @@ export class ListingsService {
     const processedListings = listings.map((listing: any) => ({
       ...listing,
       photos: listing.files.filter((file: any) => file.kind === FileKind.PHOTO),
-      files: listing.files.filter((file: any) => file.kind === FileKind.DOCUMENT),
+      files: listing.files.filter(
+        (file: any) => file.kind === FileKind.DOCUMENT,
+      ),
     }));
 
     if (processedListings && processedListings.length > 0) {
@@ -646,18 +689,10 @@ export class ListingsService {
             data: maps.map((map) => ({
               type: map.type,
               latitude: new Decimal(map.latitude),
-              longtitude: new Decimal(map.longtitude),
+              longitude: new Decimal(map.longitude),
               listingId: createdListing.id,
             })),
           });
-          // await tx.mapLocation.create({
-          //   data: {
-          //     type: maps[0].type,
-          //     latitude: new Decimal(maps[0].latitude),
-          //     longtitude: new Decimal(maps[0].longtitude),
-          //     listingId: createdListing.id,
-          //   },
-          // });
         }
 
         // Создаем файлы если указаны
@@ -850,7 +885,7 @@ export class ListingsService {
         locations: listingWithRelations.locations.map((loc: any) => ({
           ...loc,
           latitude: Number(loc.latitude),
-          longtitude: Number(loc.longtitude),
+          longitude: Number(loc.longitude),
         })),
       };
 
@@ -878,18 +913,18 @@ export class ListingsService {
 
     const lowerText = text.toLowerCase();
     const foundWords: string[] = [];
-    
+
     // Проверка простых слов
     for (const word of FORBIDDEN_WORDS) {
       if (lowerText.includes(word)) {
         foundWords.push(word);
       }
     }
-    
+
     // Если найдены запрещенные слова, выбрасываем ошибку
     if (foundWords.length > 0) {
       throw new BadRequestException(
-        `Объявление содержит запрещенные слова: ${foundWords.join(', ')}. Пожалуйста, удалите их и попробуйте снова.`
+        `Объявление содержит запрещенные слова: ${foundWords.join(', ')}. Пожалуйста, удалите их и попробуйте снова.`,
       );
     }
   }

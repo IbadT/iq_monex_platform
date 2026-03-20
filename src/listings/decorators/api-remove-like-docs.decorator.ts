@@ -5,7 +5,8 @@ export const ApiRemoveLikeDocs = () =>
   applyDecorators(
     ApiOperation({
       summary: 'Удалить лайк объявления',
-      description: 'Принудительно удаляет лайк пользователя с объявления. Требует авторизации.',
+      description:
+        'Принудительно удаляет лайк пользователя с объявления. Требует авторизации.',
     }),
     ApiParam({
       name: 'listingId',

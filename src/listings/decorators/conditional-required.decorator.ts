@@ -25,15 +25,18 @@ export class ConditionalRequiredConstraint implements ValidatorConstraintInterfa
   defaultMessage(args: ValidationArguments) {
     const [requiredStatus] = args.constraints;
     const property = args.property;
-    
+
     return `${property} is required for status: ${requiredStatus.join(', ')}`;
   }
 }
 
-export function ConditionalRequired(requiredStatus: ListingStatus[], validationOptions?: ValidationOptions) {
-  return function (object: Object, propertyName: string) {
+export function ConditionalRequired(
+  requiredStatus: ListingStatus[],
+  validationOptions?: ValidationOptions,
+) {
+  return function (object: object, propertyName: string) {
     const options: ValidationOptions = validationOptions || {};
-    
+
     registerDecorator({
       target: object.constructor,
       propertyName: propertyName,

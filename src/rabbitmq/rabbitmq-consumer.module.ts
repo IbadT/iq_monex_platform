@@ -6,11 +6,7 @@ import { FileUploadConsumerService } from './file-upload-consumer.service';
 import { S3Module } from '@/s3/s3.module';
 
 @Module({
-  imports: [
-    ConfigModule,
-    EmailModule,
-    S3Module,
-  ],
+  imports: [ConfigModule, EmailModule, S3Module],
   providers: [EmailConsumerService, FileUploadConsumerService],
   exports: [EmailConsumerService, FileUploadConsumerService],
 })

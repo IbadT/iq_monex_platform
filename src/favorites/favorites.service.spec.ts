@@ -48,7 +48,7 @@ describe('FavoriteService', () => {
     it('should return cached favorites', async () => {
       const userId = 'user-123';
       const cacheKey = `favorites/userId:${userId}`;
-      
+
       const mockFavorites = [
         {
           id: 'fav-1',
@@ -77,7 +77,7 @@ describe('FavoriteService', () => {
     it('should fetch from database when cache is empty', async () => {
       const userId = 'user-123';
       const cacheKey = `favorites/userId:${userId}`;
-      
+
       const mockFavorites = [
         {
           id: 'fav-3',
@@ -90,11 +90,11 @@ describe('FavoriteService', () => {
 
       // Mock cache miss
       cacheService.get = jest.fn().mockResolvedValue(null);
-      
+
       // Mock prisma methods
       const prisma = require('@/lib/prisma').prisma;
       prisma.favorite.findMany = jest.fn().mockResolvedValue(mockFavorites);
-      
+
       // Mock cache set
       cacheService.set = jest.fn().mockResolvedValue(true);
 

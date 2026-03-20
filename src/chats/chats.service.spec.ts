@@ -44,7 +44,9 @@ describe('ChatsService', () => {
 
       // Mock prisma methods
       const prisma = require('@/lib/prisma').prisma;
-      prisma.chatParticipant.findFirst = jest.fn().mockResolvedValue(mockParticipant);
+      prisma.chatParticipant.findFirst = jest
+        .fn()
+        .mockResolvedValue(mockParticipant);
 
       const result = await service.checkUserInChat(userId, chatId);
 

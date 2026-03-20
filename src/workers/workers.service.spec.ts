@@ -24,14 +24,14 @@ describe('WorkersService', () => {
         'Иванов Иван Иванович',
         'ivanov@example.com',
         '+79991234567',
-        'role-123'
+        'role-123',
       );
 
       const createWorkerDto2 = new CreateWorkerDto(
         'Петров Петр Петрович',
         'petrov@example.com',
         '+79998765432',
-        'role-456'
+        'role-456',
       );
 
       const workers = [createWorkerDto1, createWorkerDto2];
@@ -47,7 +47,7 @@ describe('WorkersService', () => {
       const result = await service.createWorker(userId, workers);
 
       expect(prisma.worker.createMany).toHaveBeenCalledWith({
-        data: workers.map(worker => ({
+        data: workers.map((worker) => ({
           ...worker,
           userId: userId,
           isAcitve: true,
@@ -62,7 +62,7 @@ describe('WorkersService', () => {
         'Тестовый Работник',
         'worker@example.com',
         '+79991112233',
-        'role-789'
+        'role-789',
       );
 
       const workers = [createWorkerDto];
@@ -78,7 +78,7 @@ describe('WorkersService', () => {
       const result = await service.createWorker(userId, workers);
 
       expect(prisma.worker.createMany).toHaveBeenCalledWith({
-        data: workers.map(worker => ({
+        data: workers.map((worker) => ({
           ...worker,
           userId: userId,
           isAcitve: true,

@@ -2,7 +2,10 @@ import { applyDecorators, SetMetadata, UseGuards } from '@nestjs/common';
 import { ApiBearerAuth, ApiOperation } from '@nestjs/swagger';
 import { JwtAuthGuard } from '../guards/jwt-auth.guard';
 import { RolesGuard } from '../guards/roles.guard';
-import { ApiUnauthorizedResponse, ApiForbiddenResponse } from './api-response.decorator';
+import {
+  ApiUnauthorizedResponse,
+  ApiForbiddenResponse,
+} from './api-response.decorator';
 
 export const ROLES_KEY = 'roles';
 

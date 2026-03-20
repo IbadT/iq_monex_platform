@@ -40,7 +40,9 @@ describe('SubscriptionService', () => {
 
       // Mock prisma methods
       const prisma = require('@/lib/prisma').prisma;
-      prisma.userSlot.findMany = jest.fn().mockResolvedValue(mockAvailableSlots);
+      prisma.userSlot.findMany = jest
+        .fn()
+        .mockResolvedValue(mockAvailableSlots);
 
       const result = await service.getUserAvailableSlots(userId);
 
@@ -70,7 +72,7 @@ describe('SubscriptionService', () => {
       prisma.userSlot.findMany = jest.fn().mockResolvedValue([]);
 
       await expect(service.getUserAvailableSlots(userId)).rejects.toThrow(
-        new NotFoundException('Нет доступных слотов для создания объявления')
+        new NotFoundException('Нет доступных слотов для создания объявления'),
       );
     });
   });

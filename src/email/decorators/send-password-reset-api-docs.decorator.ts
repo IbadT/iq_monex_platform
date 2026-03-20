@@ -3,10 +3,10 @@ import { ApiOperation, ApiResponse, ApiBody } from '@nestjs/swagger';
 
 /**
  * Документация для эндпоинта отправки письма для сброса пароля
- * 
+ *
  * Этот эндпоинт используется для отправки письма со ссылкой на сброс пароля.
  * Ссылка содержит уникальный токен, действительный 1 час.
- * 
+ *
  * @returns Декораторы Swagger для документации
  */
 export const ApiSendPasswordResetOperation = () =>
@@ -64,7 +64,8 @@ export const ApiSendPasswordResetOperation = () =>
           },
           token: {
             type: 'string',
-            pattern: '^[0-9a-f]{8}-[0-9a-f]{4}-[1-5][0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$',
+            pattern:
+              '^[0-9a-f]{8}-[0-9a-f]{4}-[1-5][0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$',
             description: 'Уникальный токен для сброса пароля (UUID v4)',
             example: 'a1b2c3d4-e5f6-7890-abcd-1234567890ab',
           },

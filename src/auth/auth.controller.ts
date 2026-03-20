@@ -28,9 +28,7 @@ export class AuthController {
 
   @Get('me')
   @Protected()
-  async getMe(
-    @CurrentUser() user: JwtPayload,
-  ) {
+  async getMe(@CurrentUser() user: JwtPayload) {
     return await this.authService.getMe(user.id);
   }
 
@@ -90,13 +88,17 @@ export class AuthController {
 
   @Post('reset-password')
   @Public()
-  async resetPassword(@Body() resetPasswordDto: ResetPasswordDto): Promise<{ message: string; status: number }> {
+  async resetPassword(
+    @Body() resetPasswordDto: ResetPasswordDto,
+  ): Promise<{ message: string; status: number }> {
     return this.authService.resetPassword(resetPasswordDto);
   }
 
   @Post('reset-password/confirm')
   @Public()
-  async confirmResetPassword(@Body() confirmResetPasswordDto: ConfirmResetPasswordDto): Promise<{ message: string; status: number }> {
+  async confirmResetPassword(
+    @Body() confirmResetPasswordDto: ConfirmResetPasswordDto,
+  ): Promise<{ message: string; status: number }> {
     return this.authService.confirmResetPassword(confirmResetPasswordDto);
   }
 
@@ -110,9 +112,9 @@ export class AuthController {
   ): Promise<TokensDto> {
     const refreshTokenFromCookie = (request as any).cookies?.refreshToken;
 
-    const tokens = await this.authService.refreshToken(
-      { refreshToken: refreshTokenFromCookie },
-    );
+    const tokens = await this.authService.refreshToken({
+      refreshToken: refreshTokenFromCookie,
+    });
 
     // Устанавливаем cookies
     response.cookie('refreshToken', tokens.refreshToken, {

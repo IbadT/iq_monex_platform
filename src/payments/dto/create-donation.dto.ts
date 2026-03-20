@@ -5,7 +5,7 @@ import { IsEnum, IsNumber, IsString } from 'class-validator';
 export class CreateDonationDto {
   @ApiProperty({
     description: 'Сумма доната',
-    example: 100.50,
+    example: 100.5,
     required: true,
   })
   @IsNumber()

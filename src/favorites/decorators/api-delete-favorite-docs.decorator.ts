@@ -6,7 +6,8 @@ export const ApiDeleteFavoriteDocs = () => {
     ApiTags('Favorites'),
     ApiOperation({
       summary: 'Удалить объявление из избранного',
-      description: 'Удаляет объявление из списка избранных для текущего пользователя',
+      description:
+        'Удаляет объявление из списка избранных для текущего пользователя',
     }),
     ApiParam({
       name: 'id',
@@ -76,7 +77,10 @@ export const ApiDeleteFavoriteDocs = () => {
         type: 'object',
         properties: {
           success: { type: 'boolean', example: false },
-          message: { type: 'string', example: 'You can only delete your own favorites' },
+          message: {
+            type: 'string',
+            example: 'You can only delete your own favorites',
+          },
           error: { type: 'string', example: 'Forbidden' },
           statusCode: { type: 'number', example: 403 },
         },
@@ -107,6 +111,6 @@ export const ApiDeleteFavoriteDocs = () => {
           statusCode: { type: 'number', example: 500 },
         },
       },
-    })
+    }),
   );
 };

@@ -4,11 +4,11 @@ import { SendEmailDto } from '../dto/send-email.dto';
 
 /**
  * Документация для эндпоинта отправки email
- * 
+ *
  * Этот эндпоинт позволяет отправлять email с возможностью выбора отправителя:
  * - NOREPLY - для автоматических рассылок (подтверждения, уведомления)
  * - SUPPORT - для коммуникации с пользователями (ответы поддержки, важные объявления)
- * 
+ *
  * @returns Декораторы Swagger для документации
  */
 export const ApiSendEmailOperation = () =>
@@ -34,7 +34,7 @@ export const ApiSendEmailOperation = () =>
 - Массовая рассылка объявлений (SUPPORT)
       `,
     }),
-    ApiBody({ 
+    ApiBody({
       type: SendEmailDto,
       description: 'Данные для отправки email',
       examples: {

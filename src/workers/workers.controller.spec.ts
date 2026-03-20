@@ -67,28 +67,28 @@ describe('WorkersController', () => {
 
   describe('createWorker', () => {
     it('should create workers', async () => {
-      const user: JwtPayload = { 
-        id: 'user-123', 
-        name: 'Test User', 
-        email: 'test@example.com' 
+      const user: JwtPayload = {
+        id: 'user-123',
+        name: 'Test User',
+        email: 'test@example.com',
       };
-      
+
       const createWorkerDto1 = new CreateWorkerDto(
         'Иванов Иван Иванович',
         'ivanov@example.com',
         '+79991234567',
-        'role-123'
+        'role-123',
       );
 
       const createWorkerDto2 = new CreateWorkerDto(
         'Петров Петр Петрович',
         'petrov@example.com',
         '+79998765432',
-        'role-456'
+        'role-456',
       );
 
       const createWorkersDto: CreateWorkersDto = {
-        workers: [createWorkerDto1, createWorkerDto2]
+        workers: [createWorkerDto1, createWorkerDto2],
       };
 
       const mockResponse = {
@@ -99,7 +99,10 @@ describe('WorkersController', () => {
 
       const result = await controller.createWorker(user, createWorkersDto);
 
-      expect(workersService.createWorker).toHaveBeenCalledWith(user.id, createWorkersDto.workers);
+      expect(workersService.createWorker).toHaveBeenCalledWith(
+        user.id,
+        createWorkersDto.workers,
+      );
       expect(result).toEqual(mockResponse);
     });
   });

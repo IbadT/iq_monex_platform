@@ -8,10 +8,11 @@ import {
 } from 'class-validator';
 import { Type } from 'class-transformer';
 import { CreateMapLocationDto } from './create-map-location.dto';
-import { ListingCondition, ListingStatus } from '../../enums/listing-status.enum';
+import {
+  ListingCondition,
+  ListingStatus,
+} from '../../enums/listing-status.enum';
 import { ConditionalRequired } from '../../decorators/conditional-required.decorator';
-
-
 
 export class CreateListingDto {
   @IsNumber()
@@ -59,7 +60,7 @@ export class CreateListingDto {
   @ArrayMaxSize(10)
   photos?: string[]; // Массив base64 строк для изображений (макс. 10)
 
-  // specifications?: 
+  // specifications?:
 
   // Геолокация
   @IsOptional()

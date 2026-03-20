@@ -12,7 +12,10 @@ interface ElasticsearchQuery {
       must_not?: ElasticsearchQuery[];
       filter?: ElasticsearchQuery[];
     };
-    range?: Record<string, { gte?: number; lte?: number; gt?: number; lt?: number }>;
+    range?: Record<
+      string,
+      { gte?: number; lte?: number; gt?: number; lt?: number }
+    >;
   };
   sort?: Record<string, { order: 'asc' | 'desc' }>;
   from?: number;
@@ -20,13 +23,16 @@ interface ElasticsearchQuery {
   highlight?: {
     fields: Record<string, {}>;
   };
-  aggs?: Record<string, {
-    terms?: { field: string; size?: number };
-    avg?: { field: string };
-    sum?: { field: string };
-    min?: { field: string };
-    max?: { field: string };
-  }>;
+  aggs?: Record<
+    string,
+    {
+      terms?: { field: string; size?: number };
+      avg?: { field: string };
+      sum?: { field: string };
+      min?: { field: string };
+      max?: { field: string };
+    }
+  >;
 }
 
 interface ElasticsearchResponse<T> {
@@ -43,13 +49,16 @@ interface ElasticsearchResponse<T> {
       highlight?: Record<string, string[]>;
     }>;
   };
-  aggregations?: Record<string, {
-    buckets?: Array<{
-      key: string;
-      doc_count: number;
-    }>;
-    value?: number;
-  }>;
+  aggregations?: Record<
+    string,
+    {
+      buckets?: Array<{
+        key: string;
+        doc_count: number;
+      }>;
+      value?: number;
+    }
+  >;
 }
 
 interface ElasticsearchIndexParams<T extends Record<string, any>> {
@@ -69,18 +78,21 @@ export class SearchService {
    * Поиск документов с полной типизацией
    */
   async search<T extends Record<string, any>>(
-    index: string, 
-    query: ElasticsearchQuery
+    index: string,
+    query: ElasticsearchQuery,
   ): Promise<ElasticsearchResponse<T>> {
     try {
-      const result = await this.elasticsearchService.search<ElasticsearchResponse<T>>({
+      const result = await this.elasticsearchService.search<
+        ElasticsearchResponse<T>
+      >({
         index,
         body: query as any,
       });
 
-      const total = typeof result.hits?.total === 'object' 
-        ? result.hits.total.value 
-        : result.hits?.total || 0;
+      const total =
+        typeof result.hits?.total === 'object'
+          ? result.hits.total.value
+          : result.hits?.total || 0;
 
       this.logger.log(`Search in index ${index}: ${total} documents found`);
       return result as unknown as ElasticsearchResponse<T>;
@@ -94,9 +106,9 @@ export class SearchService {
    * Индексация документа с полной типизацией
    */
   async indexDocument<T extends Record<string, any>>(
-    index: string, 
-    id: string, 
-    document: T
+    index: string,
+    id: string,
+    document: T,
   ): Promise<any> {
     try {
       const params: ElasticsearchIndexParams<T> = {

@@ -15,13 +15,15 @@ export class RabbitmqService implements OnModuleInit, OnModuleDestroy {
 
   constructor(
     private readonly configService: ConfigService,
-    private readonly logger: AppLogger
+    private readonly logger: AppLogger,
   ) {}
 
   async onModuleInit() {
     try {
-      const rabbitmqUrl = this.configService.get('RABBITMQ_URL') || 'amqp://admin:admin123@rabbitmq:5672';
-      
+      const rabbitmqUrl =
+        this.configService.get('RABBITMQ_URL') ||
+        'amqp://admin:admin123@rabbitmq:5672';
+
       this.connection = await amqp.connect(rabbitmqUrl);
       this.emailChannel = await this.connection.createChannel();
       this.fileUploadChannel = await this.connection.createChannel();
@@ -36,9 +38,13 @@ export class RabbitmqService implements OnModuleInit, OnModuleDestroy {
 
       // Объявляем очереди
       await this.emailChannel.assertQueue('auth_queue', { durable: true });
-      await this.fileUploadChannel.assertQueue('file_upload_queue', { durable: true });
-      await this.fileUploadChannel.assertQueue('review_file_upload_queue', { durable: true });
-      
+      await this.fileUploadChannel.assertQueue('file_upload_queue', {
+        durable: true,
+      });
+      await this.fileUploadChannel.assertQueue('review_file_upload_queue', {
+        durable: true,
+      });
+
       this.logger.log('RabbitMQ клиенты успешно подключены');
     } catch (error) {
       this.logger.error('Ошибка подключения к RabbitMQ:', error);
@@ -66,19 +72,29 @@ export class RabbitmqService implements OnModuleInit, OnModuleDestroy {
     if (!this.emailChannel) {
       throw new Error('Email channel not initialized');
     }
-    
-    this.emailChannel.sendToQueue('auth_queue', Buffer.from(JSON.stringify({
-      pattern: 'send_email',
-      data: message
-    })), { persistent: true });
+
+    this.emailChannel.sendToQueue(
+      'auth_queue',
+      Buffer.from(
+        JSON.stringify({
+          pattern: 'send_email',
+          data: message,
+        }),
+      ),
+      { persistent: true },
+    );
   }
 
   async sendFileUpload(message: FileUploadMessage): Promise<void> {
     if (!this.fileUploadChannel) {
       throw new Error('File upload channel not initialized');
     }
-    
-    this.fileUploadChannel.sendToQueue('file_upload_queue', Buffer.from(JSON.stringify(message)), { persistent: true });
+
+    this.fileUploadChannel.sendToQueue(
+      'file_upload_queue',
+      Buffer.from(JSON.stringify(message)),
+      { persistent: true },
+    );
     this.logger.log(`File upload task sent to queue: ${message.s3Key}`);
   }
 
@@ -86,8 +102,12 @@ export class RabbitmqService implements OnModuleInit, OnModuleDestroy {
     if (!this.fileUploadChannel) {
       throw new Error('File upload channel not initialized');
     }
-    
-    this.fileUploadChannel.sendToQueue('review_file_upload_queue', Buffer.from(JSON.stringify(message)), { persistent: true });
+
+    this.fileUploadChannel.sendToQueue(
+      'review_file_upload_queue',
+      Buffer.from(JSON.stringify(message)),
+      { persistent: true },
+    );
     this.logger.log(`Review file upload task sent to queue: ${message.s3Key}`);
   }
 }

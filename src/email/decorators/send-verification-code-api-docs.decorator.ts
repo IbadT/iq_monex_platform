@@ -3,10 +3,10 @@ import { ApiOperation, ApiResponse, ApiBody } from '@nestjs/swagger';
 
 /**
  * Документация для эндпоинта отправки кода подтверждения
- * 
+ *
  * Этот эндпоинт используется для отправки кодов подтверждения email адреса.
  * Коды действительны в течение 15 минут и отправляются через NOREPLY транспорт.
- * 
+ *
  * @returns Декораторы Swagger для документации
  */
 export const ApiSendVerificationCodeOperation = () =>

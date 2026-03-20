@@ -5,7 +5,8 @@ export const ApiCheckUserLikeDocs = () =>
   applyDecorators(
     ApiOperation({
       summary: 'Проверить лайк пользователя',
-      description: 'Проверяет, лайкнул ли текущий пользователь указанное объявление. Требует авторизации.',
+      description:
+        'Проверяет, лайкнул ли текущий пользователь указанное объявление. Требует авторизации.',
     }),
     ApiParam({
       name: 'listingId',

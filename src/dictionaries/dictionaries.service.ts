@@ -156,7 +156,7 @@ export class DictionariesService {
     // Используем данные из dictionariesData.ts для группировки
     unitMeasurementsData.forEach((unit: UnitMeasurementData) => {
       const name = unit.name[lang] || unit.name['ru'] || unit.name.en || '';
-      
+
       // Определяем категорию на основе позиции в массиве данных
       // Штучные (индексы 0-15)
       if (
@@ -226,10 +226,13 @@ export class DictionariesService {
 
     // Локализуем названия категорий
     const localizedCategories: Record<string, string[]> = {};
-    Object.keys(categories).forEach(key => {
+    Object.keys(categories).forEach((key) => {
       if (categories[key].length > 0) {
         const categoryKey = key as keyof typeof categoryNames;
-        const localizedCategoryName = categoryNames[categoryKey]?.[lang] || categoryNames[categoryKey]?.['ru'] || key;
+        const localizedCategoryName =
+          categoryNames[categoryKey]?.[lang] ||
+          categoryNames[categoryKey]?.['ru'] ||
+          key;
         localizedCategories[localizedCategoryName] = categories[key];
       }
     });

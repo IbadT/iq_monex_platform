@@ -69,6 +69,6 @@ export const ApiDeleteReviewDocs = () => {
           statusCode: { type: 'number', example: 500 },
         },
       },
-    })
+    }),
   );
 };

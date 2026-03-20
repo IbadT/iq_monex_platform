@@ -30,13 +30,16 @@ export class S3Service {
         secretAccessKey,
       },
       // Указываем endpoint для Selectel
-      endpoint: customEndpoint?.replace(/\/[^\/]*$/, '') || 'https://storage.clo.ru', // Убираем /adverts
+      endpoint:
+        customEndpoint?.replace(/\/[^\/]*$/, '') || 'https://storage.clo.ru', // Убираем /adverts
       region: 'us-east-1', // Selectel требует указания региона
       forcePathStyle: true, // Для S3-совместимых API
     });
 
     this.bucketName = bucketName;
-    this.logger.log(`S3Service initialized with bucket: ${bucketName} using Selectel S3`);
+    this.logger.log(
+      `S3Service initialized with bucket: ${bucketName} using Selectel S3`,
+    );
   }
 
   async upload(
@@ -61,7 +64,9 @@ export class S3Service {
       await this.s3Client.send(object);
 
       // Используем URL для Selectel
-      const customEndpoint = this.configService.get<string>('S3_PATH_STYLE') || 'https://storage.clo.ru';
+      const customEndpoint =
+        this.configService.get<string>('S3_PATH_STYLE') ||
+        'https://storage.clo.ru';
       const url = `${customEndpoint}/${key}`;
       this.logger.log(`Successfully uploaded file to S3: ${key}`);
 

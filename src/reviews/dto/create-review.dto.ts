@@ -48,7 +48,9 @@ export class CreateReviewDto {
 
   @ApiProperty({
     description: 'Массив base64 строк для документов (макс. 5)',
-    example: ['data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAYAAAAfFcSJAAAADUlEQVR42mNk+M9QDwADhgGAWjR9awAAAABJRU5ErkJggg=='],
+    example: [
+      'data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAYAAAAfFcSJAAAADUlEQVR42mNk+M9QDwADhgGAWjR9awAAAABJRU5ErkJggg==',
+    ],
     required: true,
   })
   @IsArray()

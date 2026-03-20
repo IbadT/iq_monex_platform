@@ -7,7 +7,8 @@ describe('S3Service', () => {
 
   beforeEach(async () => {
     const mockConfigService = {
-      get: jest.fn()
+      get: jest
+        .fn()
         .mockReturnValue('test-value')
         .mockImplementation((key: string) => {
           const config: Record<string, string> = {

@@ -6,7 +6,8 @@ export const ApiGetAllReviewsDocs = () => {
     ApiTags('Reviews'),
     ApiOperation({
       summary: 'Получить все отзывы',
-      description: 'Возвращает список всех отзывов с информацией о лайках и авторах',
+      description:
+        'Возвращает список всех отзывов с информацией о лайках и авторах',
     }),
     ApiResponse({
       status: 200,
@@ -44,7 +45,8 @@ export const ApiGetAllReviewsDocs = () => {
             },
             content: {
               type: 'string',
-              example: 'Продавец очень вежливый, товар соответствует описанию. Рекомендую!',
+              example:
+                'Продавец очень вежливый, товар соответствует описанию. Рекомендую!',
               description: 'Содержание отзыва',
             },
             rating: {
@@ -110,6 +112,6 @@ export const ApiGetAllReviewsDocs = () => {
           statusCode: { type: 'number', example: 500 },
         },
       },
-    })
+    }),
   );
 };

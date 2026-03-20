@@ -130,9 +130,7 @@ describe('ListingsService', () => {
           currency: { id: 1, code: 'RUB', symbol: '₽' },
           priceUnit: { id: 1, name: 'шт' },
           category: { id: 2, name: 'Books' },
-          files: [
-            { id: 'file-3', kind: 'PHOTO', url: 'photo2.jpg' },
-          ],
+          files: [{ id: 'file-3', kind: 'PHOTO', url: 'photo2.jpg' }],
           locations: [{ id: 'loc-2', city: 'St. Petersburg' }],
           specifications: [{ id: 'spec-2', name: 'Author', value: 'John Doe' }],
           listingSlot: { id: 'slot-2', userSlot: { id: 'user-slot-2' } },
@@ -157,7 +155,9 @@ describe('ListingsService', () => {
 
       const result = await service.listingList(query);
 
-      expect(prisma.listing.count).toHaveBeenCalledWith({ where: expectedWhere });
+      expect(prisma.listing.count).toHaveBeenCalledWith({
+        where: expectedWhere,
+      });
       expect(prisma.listing.findMany).toHaveBeenCalledWith({
         where: expectedWhere,
         include: {
@@ -233,7 +233,7 @@ describe('ListingsService', () => {
         expect.objectContaining({
           take: 20,
           skip: 0,
-        })
+        }),
       );
 
       expect(result.pagination).toEqual({

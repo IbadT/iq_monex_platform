@@ -1,4 +1,10 @@
-import { IsString, IsOptional, IsEmail, IsArray, IsEnum } from 'class-validator';
+import {
+  IsString,
+  IsOptional,
+  IsEmail,
+  IsArray,
+  IsEnum,
+} from 'class-validator';
 import { EmailSender } from '../email.service';
 
 // Универсальный DTO для отправки email с subject

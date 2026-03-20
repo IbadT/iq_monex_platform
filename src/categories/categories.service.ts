@@ -8,6 +8,9 @@ import {
 } from './dto/response/categories-response.dto';
 import { AppLogger } from '@/common/logger/logger.service';
 import { categoriesData } from './default/categoriesData';
+import { legalEntityTypes } from './default/legalEntityTypes';
+import { LegalEntityType } from './entities/legal-entity-type.entity';
+import { Language } from '@/dictionaries/dto/request/get-currency.dto';
 
 @Injectable()
 export class CategoriesService {
@@ -15,6 +18,34 @@ export class CategoriesService {
     private readonly cacheService: CacheService,
     private logger: AppLogger,
   ) {}
+
+  async getLegalEntityTypes(lang: Language) {
+    const cacheKey = `legal-entity-types/:${lang}`;
+    const cachedData = await this.cacheService.get(cacheKey);
+    if (cachedData) return cachedData;
+
+    const legalEntityTypes = await prisma.legalEntityType.findMany();
+    const legalEntityTypesWithLang = legalEntityTypes.map((le) => {
+      return LegalEntityType.fromPromise(le).toResponse(lang);
+    });
+    await this.cacheService.set({
+      baseKey: cacheKey,
+      ttl: 3600,
+      value: legalEntityTypesWithLang,
+    });
+
+    return legalEntityTypesWithLang;
+  }
+
+  async addSeedLegalEntityTypes() {
+    const data = legalEntityTypes.map((item) => ({
+      data: item.data, // Prisma сама сериализует JSON
+    }));
+
+    return await prisma.legalEntityType.createMany({
+      data: data,
+    });
+  }
 
   async categoriesList(): Promise<CategoryResponseDto[]> {
     const cacheKey = `categories`;

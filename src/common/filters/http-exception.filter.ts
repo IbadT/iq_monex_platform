@@ -166,18 +166,22 @@ export class HttpExceptionFilter implements ExceptionFilter {
         await access(errorFile);
       } catch {
         // Создаем файл с заголовком
-        await writeFile(errorFile, '# Error Log File\n# Format: [TIMESTAMP] [LEVEL] [STATUS] MESSAGE\n\n', { flag: 'w' });
+        await writeFile(
+          errorFile,
+          '# Error Log File\n# Format: [TIMESTAMP] [LEVEL] [STATUS] MESSAGE\n\n',
+          { flag: 'w' },
+        );
       }
 
       // Формируем читаемую запись в лог
-      const timestamp = new Date().toLocaleString('ru-RU', { 
+      const timestamp = new Date().toLocaleString('ru-RU', {
         timeZone: 'Europe/Moscow',
         year: 'numeric',
         month: '2-digit',
         day: '2-digit',
         hour: '2-digit',
         minute: '2-digit',
-        second: '2-digit'
+        second: '2-digit',
       });
 
       const level = errorResponse.statusCode >= 500 ? 'ERROR' : 'WARN';
@@ -185,15 +189,17 @@ export class HttpExceptionFilter implements ExceptionFilter {
 
       // Формируем секцию с параметрами
       const paramsSection = [];
-      
+
       if (request.query && Object.keys(request.query).length > 0) {
         paramsSection.push(`Query: ${JSON.stringify(request.query, null, 2)}`);
       }
-      
+
       if (request.params && Object.keys(request.params).length > 0) {
-        paramsSection.push(`Params: ${JSON.stringify(request.params, null, 2)}`);
+        paramsSection.push(
+          `Params: ${JSON.stringify(request.params, null, 2)}`,
+        );
       }
-      
+
       if (request.body && Object.keys(request.body).length > 0) {
         // Для body ограничиваем размер и скрываем чувствительные данные
         const sanitizedBody = this.sanitizeRequestBody(request.body);
@@ -210,17 +216,25 @@ export class HttpExceptionFilter implements ExceptionFilter {
         `[${timestamp}] [${level}] [${errorResponse.statusCode}] ${errorResponse.message}`,
         `Path: ${request.method} ${errorResponse.path}`,
         `IP: ${request.ip}`,
-        ...(user ? [`User: ${user.name} (${user.email}, role: ${user.role})`] : []),
+        ...(user
+          ? [`User: ${user.name} (${user.email}, role: ${user.role})`]
+          : []),
         `Exception: ${(exception as any)?.name || 'Unknown'} - ${(exception as any)?.message || 'No message'}`,
-        ...(paramsSection.length > 0 ? ['', 'Request Parameters:', ...paramsSection] : []),
-        '---'
+        ...(paramsSection.length > 0
+          ? ['', 'Request Parameters:', ...paramsSection]
+          : []),
+        '---',
       ].join('\n');
 
       // Добавляем stack trace только для критических ошибок (500+) и только в development
-      const isDevelopment = this.configService.get<string>('NODE_ENV') === 'development';
-      const shouldIncludeStack = isDevelopment && errorResponse.statusCode >= 500 && (exception as any)?.stack;
-      
-      const fullLogMessage = shouldIncludeStack 
+      const isDevelopment =
+        this.configService.get<string>('NODE_ENV') === 'development';
+      const shouldIncludeStack =
+        isDevelopment &&
+        errorResponse.statusCode >= 500 &&
+        (exception as any)?.stack;
+
+      const fullLogMessage = shouldIncludeStack
         ? logMessage + `\nStack Trace:\n${(exception as any).stack}\n---\n`
         : logMessage + '\n';
 
@@ -258,25 +272,33 @@ export class HttpExceptionFilter implements ExceptionFilter {
 
     if (exception instanceof HttpException) {
       const response = exception.getResponse();
-      
+
       if (typeof response === 'object' && response !== null) {
         const responseObj = response as any;
-        
+
         // Обработка ошибок валидации class-validator
         if (responseObj.message && Array.isArray(responseObj.message)) {
           errors.push(...responseObj.message);
         }
-        
+
         // Обработка ошибок из ValidationPipe
         if (responseObj.errors && Array.isArray(responseObj.errors)) {
           responseObj.errors.forEach((error: any) => {
             if (error.constraints) {
-              errors.push(...Object.values(error.constraints).filter((err): err is string => typeof err === 'string'));
+              errors.push(
+                ...Object.values(error.constraints).filter(
+                  (err): err is string => typeof err === 'string',
+                ),
+              );
             }
             if (error.children && Array.isArray(error.children)) {
               error.children.forEach((child: any) => {
                 if (child.constraints) {
-                  errors.push(...Object.values(child.constraints).filter((err): err is string => typeof err === 'string'));
+                  errors.push(
+                    ...Object.values(child.constraints).filter(
+                      (err): err is string => typeof err === 'string',
+                    ),
+                  );
                 }
               });
             }
@@ -285,6 +307,6 @@ export class HttpExceptionFilter implements ExceptionFilter {
       }
     }
 
-    return errors.filter(error => error && typeof error === 'string');
+    return errors.filter((error) => error && typeof error === 'string');
   }
 }

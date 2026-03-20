@@ -8,7 +8,8 @@ export const ApiGetMeasurementsGroupsOperation = () => {
   return applyDecorators(
     ApiOperation({
       summary: 'Get measurements groups',
-      description: 'Retrieve grouped measurement units and specifications with language support',
+      description:
+        'Retrieve grouped measurement units and specifications with language support',
     }),
     ApiQuery({
       name: 'lang',

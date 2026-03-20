@@ -89,18 +89,18 @@ describe('PaymentsController', () => {
 
   describe('createPayment', () => {
     it('should create a payment', async () => {
-      const user: JwtPayload = { 
-        id: 'user-123', 
-        name: 'Test User', 
-        email: 'test@example.com' 
+      const user: JwtPayload = {
+        id: 'user-123',
+        name: 'Test User',
+        email: 'test@example.com',
       };
-      
+
       const createPaymentDto: CreatePaymentDto = new CreatePaymentDto(
         PaymentType.BUY_BASE_SUBSCRIPTION,
         1000,
         'RUB',
         30,
-        ['package-1']
+        ['package-1'],
       );
 
       const mockPaymentResponse = {
@@ -115,7 +115,10 @@ describe('PaymentsController', () => {
 
       const result = await controller.createPayment(user, createPaymentDto);
 
-      expect(paymentsService.createPayment).toHaveBeenCalledWith(user.id, createPaymentDto);
+      expect(paymentsService.createPayment).toHaveBeenCalledWith(
+        user.id,
+        createPaymentDto,
+      );
       expect(result).toEqual(mockPaymentResponse);
     });
   });

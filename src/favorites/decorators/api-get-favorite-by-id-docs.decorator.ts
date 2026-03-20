@@ -6,7 +6,8 @@ export const ApiGetFavoriteByIdDocs = () => {
     ApiTags('Favorites'),
     ApiOperation({
       summary: 'Получить избранный по ID',
-      description: 'Возвращает конкретную запись из избранного с полной информацией об объявлении',
+      description:
+        'Возвращает конкретную запись из избранного с полной информацией об объявлении',
     }),
     ApiParam({
       name: 'id',
@@ -131,6 +132,6 @@ export const ApiGetFavoriteByIdDocs = () => {
           statusCode: { type: 'number', example: 500 },
         },
       },
-    })
+    }),
   );
 };

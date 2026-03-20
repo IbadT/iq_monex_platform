@@ -49,7 +49,7 @@ describe('UsersService', () => {
   describe('getUserByEmailWithPassword', () => {
     it('should return user by email', async () => {
       const email = 'test@example.com';
-      
+
       const mockUser = {
         id: 'user-123',
         email: 'test@example.com',
@@ -65,7 +65,7 @@ describe('UsersService', () => {
       };
 
       // Mock prisma.user.findUnique
-      
+
       prisma.user.findUnique = jest.fn().mockResolvedValue(mockUser);
 
       const result = await service.getUserByEmailWithPassword(email);
@@ -73,8 +73,8 @@ describe('UsersService', () => {
       expect(prisma.user.findUnique).toHaveBeenCalledWith({
         where: { email },
         include: {
-          role: true
-        }
+          role: true,
+        },
       });
       expect(result).toEqual(mockUser);
     });
@@ -83,7 +83,7 @@ describe('UsersService', () => {
       const email = 'nonexistent@example.com';
 
       // Mock prisma.user.findUnique
-      
+
       prisma.user.findUnique = jest.fn().mockResolvedValue(null);
 
       const result = await service.getUserByEmailWithPassword(email);
@@ -91,8 +91,8 @@ describe('UsersService', () => {
       expect(prisma.user.findUnique).toHaveBeenCalledWith({
         where: { email },
         include: {
-          role: true
-        }
+          role: true,
+        },
       });
       expect(result).toBeNull();
     });
@@ -131,9 +131,9 @@ describe('UsersService', () => {
 
     it('should update user with multiple fields', async () => {
       const userId = 'user-123';
-      const updateData = { 
+      const updateData = {
         name: 'Updated Name',
-        email: 'updated@example.com'
+        email: 'updated@example.com',
       };
 
       const mockUpdatedUser = {
