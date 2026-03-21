@@ -1,10 +1,11 @@
 import { Test, TestingModule } from '@nestjs/testing';
 import { PaymentsService } from './payments.service';
-import { CreatePaymentDto, PaymentType } from './dto/create-payment.dto';
 import { SubscriptionService } from '@/subscription/subscription.service';
 import { YookassaService } from 'nestjs-yookassa';
 import { CacheService } from '@/cache/cacheService.service';
 import { AppLogger } from '@/common/logger/logger.service';
+import { TariffsService } from '@/tariffs/tariffs.service';
+import { CreatePaymentDto, PaymentType } from './dto/create-payment.dto';
 
 describe('PaymentsService', () => {
   let service: PaymentsService;
@@ -53,6 +54,18 @@ describe('PaymentsService', () => {
           useValue: mockYooKassaService,
         },
         {
+          provide: TariffsService,
+          useValue: {
+            getTariffById: jest.fn().mockResolvedValue({
+              id: 'tariff-123',
+              name: 'Test Tariff',
+              price: 1000,
+              currencyCode: 'RUB',
+              baseDays: 30,
+            }),
+          },
+        },
+        {
           provide: CacheService,
           useValue: mockCacheService,
         },
@@ -75,10 +88,7 @@ describe('PaymentsService', () => {
       const userId = 'user-123';
       const createPaymentDto: CreatePaymentDto = new CreatePaymentDto(
         PaymentType.EXTEND_PACKAGES,
-        1000,
-        'RUB',
-        30,
-        // No packageIds provided
+        '1000',
       );
 
       await expect(

@@ -32,6 +32,7 @@ import { SentryGlobalFilter, SentryModule } from '@sentry/nestjs/setup';
 import { APP_FILTER } from '@nestjs/core';
 import { MapLocationsModule } from './map_locations/map_locations.module';
 import { ActivitiesModule } from './activities/activities.module';
+import { TariffsModule } from './tariffs/tariffs.module';
 
 @Module({
   imports: [
@@ -73,6 +74,7 @@ import { ActivitiesModule } from './activities/activities.module';
     CronTasksModule,
     MapLocationsModule,
     ActivitiesModule,
+    TariffsModule,
   ],
   controllers: [AppController],
   providers: [

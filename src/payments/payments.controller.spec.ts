@@ -97,10 +97,7 @@ describe('PaymentsController', () => {
 
       const createPaymentDto: CreatePaymentDto = new CreatePaymentDto(
         PaymentType.BUY_BASE_SUBSCRIPTION,
-        1000,
-        'RUB',
-        30,
-        ['package-1'],
+        'tariff-123',
       );
 
       const mockPaymentResponse = {

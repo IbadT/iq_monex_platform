@@ -23,8 +23,12 @@ export class WorkersController {
 
   // установить статут работника в false
   @Post(':id/change-status')
-  async changeWorkerActiveStatus(@Body() body: ChangeWorkerStatus) {
-    return await this.workersService.changeWorkerActiveStatus(body.id);
+  @Protected()
+  async changeWorkerActiveStatus(
+    @CurrentUser() user: JwtPayload,
+    @Body() body: ChangeWorkerStatus
+  ) {
+    return await this.workersService.changeWorkerActiveStatus(body.id, user.id);
   }
 
   @Get('')

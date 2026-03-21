@@ -1,5 +1,7 @@
-import { Injectable, Logger } from '@nestjs/common';
+import { Injectable } from '@nestjs/common';
 import { ElasticsearchService } from '@nestjs/elasticsearch';
+import { AppLogger } from '@/common/logger/logger.service';
+import { PrismaClient } from 'prisma/generated/client';
 
 // Строгие типы для Elasticsearch
 interface ElasticsearchQuery {
@@ -70,9 +72,14 @@ interface ElasticsearchIndexParams<T extends Record<string, any>> {
 
 @Injectable()
 export class SearchService {
-  private readonly logger = new Logger(SearchService.name);
+  private readonly logger: AppLogger;
 
-  constructor(private readonly elasticsearchService: ElasticsearchService) {}
+  constructor(
+    private readonly elasticsearchService: ElasticsearchService,
+    logger: AppLogger,
+  ) {
+    this.logger = logger;
+  }
 
   /**
    * Поиск документов с полной типизацией
@@ -125,6 +132,79 @@ export class SearchService {
     } catch (error) {
       this.logger.error(`Indexing error for ${index}/${id}:`, error);
       throw error;
+    }
+  }
+
+  /**
+   * Индексация профиля пользователя в Elasticsearch
+   */
+  async indexProfile(profile: any, tx: PrismaClient) {
+    try {
+      // Получаем данные через User (проще и логичнее)
+      const userWithProfile = await tx.user.findUnique({
+        where: { id: profile.userId },
+        include: {
+          profile: {
+            include: {
+              legalEntityType: true,
+              currency: true,
+            },
+          },
+          receivedReviews: {
+            select: {
+              rating: true,
+              createdAt: true,
+            },
+            orderBy: {
+              createdAt: 'desc',
+            },
+            take: 10,
+          },
+        },
+      });
+
+      if (!userWithProfile) {
+        this.logger.warn(`User ${profile.userId} not found for indexing`);
+        return;
+      }
+
+      // Получаем активности пользователя через UserActivity
+      const userActivities = await tx.userActivity.findMany({
+        where: { userId: userWithProfile.id },
+        include: {
+          activity: true,
+        },
+      });
+
+      // Подготавливаем документ для индексации
+      const profileDocument = {
+        id: profile.id,
+        userId: userWithProfile.id,
+        name: userWithProfile.name,
+        description: userWithProfile.profile?.description,
+        phone: userWithProfile.profile?.phone || '',
+        email: userWithProfile.profile?.email || '',
+        telegram: userWithProfile.profile?.telegram || '',
+        siteUrl: userWithProfile.profile?.siteUrl || '',
+        legalEntityTypeId: userWithProfile.profile?.legalEntityTypeId,
+        currencyId: userWithProfile.profile?.currencyId,
+        avatarUrl: userWithProfile.profile?.avatarUrl || '',
+        averageRating: userWithProfile.rating || 0,
+        reviewsCount: userWithProfile.reviewsCount || 0,
+        activities: userActivities.map((ua: any) => ({ 
+          id: ua.activityId, 
+          name: ua.activity.name 
+        })),
+        createdAt: profile.createdAt,
+        updatedAt: profile.updatedAt,
+      };
+
+      // Индексируем в Elasticsearch
+      await this.indexDocument('profiles', profile.id, profileDocument);
+      
+      this.logger.log(`✅ Profile ${profile.id} indexed in Elasticsearch`);
+    } catch (error) {
+      this.logger.error(`❌ Failed to index profile ${profile.id}:`, error);
     }
   }
 }

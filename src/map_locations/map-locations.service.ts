@@ -1,7 +1,8 @@
 import { Injectable, BadRequestException } from '@nestjs/common';
-import { LocationAction } from '@/listings/dto/request/create-map-location.dto';
+import { LocationAction, CreateMapLocationDto } from '@/listings/dto/request/create-map-location.dto';
 import { MapLocationProcessData } from './interfaces/map-location.interface';
 import { prisma } from '@/lib/prisma';
+import { PrismaClient } from 'prisma/generated/client';
 
 @Injectable()
 export class MapLocationsService {
@@ -15,56 +16,69 @@ export class MapLocationsService {
     }
 
     for (const mapDto of maps) {
-      switch (mapDto.action) {
-        case LocationAction.CREATE:
-          // Создаем новую локацию
-          await tx.mapLocation.create({
-            data: {
-              userId: userId, // id из JWT токена залогиненного пользователя
-              type: mapDto.type,
-              latitude: mapDto.latitude,
-              longitude: mapDto.longitude,
-              address: mapDto.address,
-            },
-          });
-          break;
-
-        case LocationAction.UPDATE:
-          // Обновляем существующую локацию
-          if (!mapDto.id) {
-            throw new BadRequestException('Map location ID is required for UPDATE action');
-          }
-
-          await tx.mapLocation.update({
-            where: { id: mapDto.id, userId: userId }, // id из JWT токена
-            data: {
-              type: mapDto.type,
-              latitude: mapDto.latitude,
-              longitude: mapDto.longitude,
-              address: mapDto.address,
-            },
-          });
-          break;
-
-        case LocationAction.DELETE:
-          // Удаляем локацию
-          if (!mapDto.id) {
-            throw new BadRequestException('Map location ID is required for DELETE action');
-          }
-
-          await tx.mapLocation.delete({
-            where: { id: mapDto.id, userId: userId }, // id из JWT токена
-          });
-          break;
-
-        case LocationAction.IGNORE:
-          // Пропускаем обработку
-          break;
-
-        default:
-          throw new BadRequestException(`Unknown location action: ${mapDto.action}`);
-      }
+      await this.processLocationAction(mapDto, userId, tx);
     }
+  }
+
+  private async processLocationAction(
+    location: CreateMapLocationDto, 
+    userId: string, 
+    tx: PrismaClient
+  ): Promise<any> {
+    switch (location.action) {
+      case LocationAction.CREATE:
+        return await this.handleCreateLocation(location, userId, tx);
+      
+      case LocationAction.UPDATE:
+        return await this.handleUpdateLocation(location, userId, tx);
+      
+      case LocationAction.DELETE:
+        return await this.handleDeleteLocation(location, userId, tx);
+      
+      case LocationAction.IGNORE:
+        return null;
+      
+      default:
+        throw new BadRequestException(`Unknown location action: ${location.action}`);
+    }
+  }
+
+  private async handleCreateLocation(location: CreateMapLocationDto, userId: string, tx: PrismaClient) {
+    return await tx.mapLocation.create({
+      data: {
+        userId: userId,
+        type: location.type,
+        latitude: location.latitude,
+        longitude: location.longitude,
+        address: location.address,
+      },
+    });
+  }
+
+  private async handleUpdateLocation(location: CreateMapLocationDto, userId: string, tx: PrismaClient) {
+    if (!location.id) {
+      throw new BadRequestException('Map location ID is required for UPDATE action');
+    }
+
+    return await tx.mapLocation.update({
+      where: { id: location.id, userId: userId },
+      data: {
+        type: location.type,
+        latitude: location.latitude,
+        longitude: location.longitude,
+        address: location.address,
+      },
+    });
+  }
+
+  private async handleDeleteLocation(location: CreateMapLocationDto, userId: string, tx: PrismaClient) {
+    if (!location.id) {
+      throw new BadRequestException('Map location ID is required for DELETE action');
+    }
+
+    return await tx.mapLocation.delete({
+      where: { id: location.id, userId: userId },
+    });
   }
 
   async getUserMapLocations(userId: string) {

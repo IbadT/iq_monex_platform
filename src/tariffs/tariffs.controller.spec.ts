@@ -1,29 +1,29 @@
 import { Test, TestingModule } from '@nestjs/testing';
-import { ActivitiesController } from './activities.controller';
-import { ActivitiesService } from './activities.service';
-import { CacheService } from '@/cache/cacheService.service';
+import { TariffsController } from './tariffs.controller';
+import { TariffsService } from './tariffs.service';
+import { AppLogger } from '@/common/logger/logger.service';
 import { JwtTokenService } from '@/auth/jwt/jwt.service';
 import { Reflector } from '@nestjs/core';
 
-describe('ActivitiesController', () => {
-  let controller: ActivitiesController;
+describe('TariffsController', () => {
+  let controller: TariffsController;
 
   beforeEach(async () => {
-    const mockActivitiesService = {
-      getAllActivities: jest.fn(),
-      getActivityById: jest.fn(),
+    const mockTariffsService = {
+      getAllTariffs: jest.fn(),
+      getTariffById: jest.fn(),
     };
 
     const module: TestingModule = await Test.createTestingModule({
-      controllers: [ActivitiesController],
+      controllers: [TariffsController],
       providers: [
-        ActivitiesService,
+        TariffsService,
         {
-          provide: CacheService,
+          provide: AppLogger,
           useValue: {
-            get: jest.fn(),
-            set: jest.fn(),
-            del: jest.fn(),
+            log: jest.fn(),
+            error: jest.fn(),
+            warn: jest.fn(),
           },
         },
         {
@@ -41,11 +41,11 @@ describe('ActivitiesController', () => {
         },
       ],
     })
-      .overrideProvider(ActivitiesService)
-      .useValue(mockActivitiesService)
+      .overrideProvider(TariffsService)
+      .useValue(mockTariffsService)
       .compile();
 
-    controller = module.get<ActivitiesController>(ActivitiesController);
+    controller = module.get<TariffsController>(TariffsController);
   });
 
   it('should be defined', () => {

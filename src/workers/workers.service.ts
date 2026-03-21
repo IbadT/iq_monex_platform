@@ -1,5 +1,5 @@
 import { prisma } from '@/lib/prisma';
-import { ConflictException, Injectable, BadRequestException } from '@nestjs/common';
+import { Injectable, BadRequestException, ConflictException } from '@nestjs/common';
 import { CreateWorkerDto, WorkerAction } from './dto/create-worker.dto';
 import { CreateRoleDto } from './dto/create-role.dto';
 import { RoleType } from '@/users/enums/role-type.enum';
@@ -9,6 +9,15 @@ import { PrismaClient } from 'prisma/generated/client';
 @Injectable()
 export class WorkersService {
   constructor() {}
+
+  async getWorkerById(id: string) {
+    return prisma.worker.findUnique({
+      where: { id },
+      include: {
+        role: true,
+      },
+    });
+  }
 
   async getUserWorkers(userId: string) {
     return prisma.worker.findMany({
@@ -21,17 +30,137 @@ export class WorkersService {
     });
   }
 
-  async createWorker(userId: string, body: CreateWorkerDto[]) {
-    return prisma.worker.createMany({
-      data: body.map((worker) => ({
+  private async processWorkerAction(
+    worker: CreateWorkerDto, 
+    userId: string, 
+    tx: PrismaClient
+  ): Promise<any> {
+    switch (worker.action) {
+      case WorkerAction.CREATE:
+        return await this.handleCreateWorker(worker, userId, tx);
+      
+      case WorkerAction.UPDATE:
+        return await this.handleUpdateWorker(worker, userId, tx);
+      
+      case WorkerAction.DELETE:
+        return await this.handleDeleteWorker(worker, userId, tx);
+      
+      case WorkerAction.ACTIVITY:
+        return await this.handleActivityWorker(worker, userId, tx);
+      
+      case WorkerAction.IGNORE:
+        return null;
+      
+      default:
+        throw new BadRequestException(`Unknown worker action: ${worker.action}`);
+    }
+  }
+
+  private async handleCreateWorker(worker: CreateWorkerDto, userId: string, db: PrismaClient) {
+    // Проверяем существование роли
+    const role = await db.role.findUnique({
+      where: { id: worker.roleId }
+    });
+    
+    if (!role) {
+      throw new BadRequestException(`Role with id ${worker.roleId} not found`);
+    }
+    
+    // Проверяем, что email не занят
+    const existingWorker = await db.worker.findFirst({
+      where: { 
+        email: worker.email,
+        userId: userId 
+      }
+    });
+    
+    if (existingWorker) {
+      throw new ConflictException(`Worker with email ${worker.email} already exists`);
+    }
+    
+    return await db.worker.create({
+      data: {
         name: worker.name,
         email: worker.email,
         phone: worker.phone,
         roleId: worker.roleId,
-        userId: userId, // Привязываем worker к авторизованному пользователю
+        userId: userId,
         isAcitve: true,
-      })),
+      },
+      include: {
+        role: true,
+      },
     });
+  }
+
+  private async handleUpdateWorker(worker: CreateWorkerDto, userId: string, db: PrismaClient) {
+    if (!worker.id) {
+      throw new BadRequestException('Worker ID is required for UPDATE action');
+    }
+
+    return await db.worker.update({
+      where: { id: worker.id, userId: userId },
+      data: {
+        name: worker.name,
+        phone: worker.phone,
+        email: worker.email,
+        roleId: worker.roleId,
+      },
+      include: {
+        role: true,
+      },
+    });
+  }
+
+  private async handleDeleteWorker(worker: CreateWorkerDto, userId: string, tx: PrismaClient) {
+    if (!worker.id) {
+      throw new BadRequestException('Worker ID is required for DELETE action');
+    }
+
+    return await tx.worker.delete({
+      where: { id: worker.id, userId: userId },
+    });
+  }
+
+  private async handleActivityWorker(worker: CreateWorkerDto, userId: string, tx: PrismaClient) {
+    if (!worker.id) {
+      throw new BadRequestException('Worker ID is required for ACTIVITY action');
+    }
+
+    const existingWorker = await tx.worker.findUnique({
+      where: { id: worker.id, userId: userId },
+    });
+
+    if (!existingWorker) {
+      throw new BadRequestException(`Worker with id ${worker.id} not found`);
+    }
+
+    return await tx.worker.update({
+      where: { id: worker.id, userId: userId },
+      data: {
+        isAcitve: !existingWorker.isAcitve,
+      },
+      include: {
+        role: true,
+      },
+    });
+  }
+
+  async createWorker(userId: string, body: CreateWorkerDto[]) {
+    const results = [];
+    
+    for (const worker of body) {
+      if (worker.action === WorkerAction.CREATE || worker.action === WorkerAction.IGNORE) {
+        const result = await this.processWorkerAction(worker, userId, prisma);
+        if (result) {
+          results.push(result);
+        }
+      } else {
+        throw new BadRequestException(`Invalid action ${worker.action} for createWorker method. Only CREATE and IGNORE are allowed.`);
+      }
+    }
+    
+    return results;
   }
 
   async processWorkers(userId: string, workers: CreateWorkerDto[], tx: PrismaClient) {
@@ -39,99 +168,21 @@ export class WorkersService {
       return;
     }
 
-    for (const workerDto of workers) {
-      switch (workerDto.action) {
-        case WorkerAction.CREATE:
-          // Создаем нового сотрудника
-          // Проверяем существование роли
-          const role = await tx.role.findUnique({
-            where: { id: workerDto.roleId }
-          });
-          
-          if (!role) {
-            throw new BadRequestException(`Role with ID ${workerDto.roleId} not found`);
-          }
-
-          await tx.worker.create({
-            data: {
-              userId: userId,
-              name: workerDto.name,
-              phone: workerDto.phone,
-              email: workerDto.email,
-              isAcitve: true, // По умолчанию активный
-              roleId: workerDto.roleId
-            },
-          });
-          break;
-
-        case WorkerAction.UPDATE:
-          // Обновляем существующего сотрудника
-          if (!workerDto.id) {
-            throw new BadRequestException('Worker ID is required for UPDATE action');
-          }
-
-          await tx.worker.update({
-            where: { id: workerDto.id, userId: userId },
-            data: {
-              name: workerDto.name,
-              phone: workerDto.phone,
-              email: workerDto.email,
-              roleId: workerDto.roleId,
-            },
-          });
-          break;
-
-        case WorkerAction.DELETE:
-          // Удаляем сотрудника
-          if (!workerDto.id) {
-            throw new BadRequestException('Worker ID is required for DELETE action');
-          }
-
-          await tx.worker.delete({
-            where: { id: workerDto.id, userId: userId },
-          });
-          break;
-
-        case WorkerAction.ACTIVITY:
-          // Меняем статус активности сотрудника
-          if (!workerDto.id) {
-            throw new BadRequestException('Worker ID is required for ACTIVITY action');
-          }
-
-          const existingWorker = await tx.worker.findUnique({
-            where: { id: workerDto.id, userId: userId },
-          });
-
-          if (!existingWorker) {
-            throw new BadRequestException(`Worker with id ${workerDto.id} not found`);
-          }
-
-          await tx.worker.update({
-            where: { id: workerDto.id, userId: userId },
-            data: {
-              isAcitve: !existingWorker.isAcitve, // Инвертируем текущий статус
-            },
-          });
-          break;
-
-        case WorkerAction.IGNORE:
-          // Пропускаем обработку
-          break;
-
-        default:
-          throw new BadRequestException(`Unknown worker action: ${workerDto.action}`);
-      }
+    for (const worker of workers) {
+      await this.processWorkerAction(worker, userId, tx);
     }
   }
 
-  async changeWorkerActiveStatus(workerId: string) {
-    return prisma.worker.update({
-      where: {
-        id: workerId,
-      },
-      data: {
-        isAcitve: false,
-      },
+  async changeWorkerActiveStatus(workerId: string, userId: string) {
+    // Проверяем, что worker принадлежит текущему пользователю
+    const worker = await this.getWorkerById(workerId);
+    if (!worker || worker.userId !== userId) {
+      throw new BadRequestException('Worker not found or access denied');
+    }
+    
+    return await prisma.worker.update({
+      where: { id: workerId },
+      data: { isAcitve: false },
     });
   }
 

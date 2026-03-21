@@ -2,7 +2,7 @@ import { Test, TestingModule } from '@nestjs/testing';
 import { WorkersController } from './workers.controller';
 import { WorkersService } from './workers.service';
 import { CreateWorkersDto } from './dto/create-workers.dto';
-import { CreateWorkerDto } from './dto/create-worker.dto';
+import { CreateWorkerDto, WorkerAction } from './dto/create-worker.dto';
 import { JwtPayload } from '@/common/interfaces/jwt-payload.interface';
 import { JwtTokenService } from '@/auth/jwt/jwt.service';
 import { JwtService } from '@nestjs/jwt';
@@ -74,26 +74,31 @@ describe('WorkersController', () => {
       };
 
       const createWorkerDto1 = new CreateWorkerDto(
+        null,
         'Иванов Иван Иванович',
         'ivanov@example.com',
         '+79991234567',
         'role-123',
+        WorkerAction.CREATE,
       );
 
       const createWorkerDto2 = new CreateWorkerDto(
+        null,
         'Петров Петр Петрович',
         'petrov@example.com',
         '+79998765432',
         'role-456',
+        WorkerAction.CREATE,
       );
 
       const createWorkersDto: CreateWorkersDto = {
         workers: [createWorkerDto1, createWorkerDto2],
       };
 
-      const mockResponse = {
-        count: 2,
-      };
+      const mockResponse = [
+        { id: 'worker-1', name: 'Иванов Иван Иванович' },
+        { id: 'worker-2', name: 'Петров Петр Петрович' },
+      ];
 
       workersService.createWorker.mockResolvedValue(mockResponse);
 

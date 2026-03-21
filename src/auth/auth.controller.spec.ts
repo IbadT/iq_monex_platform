@@ -79,6 +79,13 @@ describe('AuthController', () => {
         name: 'Test User',
         accountNumber: '12345678',
         isVerified: true,
+        rating: 0,
+        reviewsCount: 0,
+        profile: null,
+        workers: [],
+        receivedReviews: [],
+        createdAt: new Date(),
+        updatedAt: new Date(),
       };
       const mockTokens: LoginResponseDto = {
         user: mockUser,

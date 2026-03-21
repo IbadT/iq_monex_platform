@@ -35,13 +35,13 @@ export class ReviewsController {
     // private readonly logger: AppLogger,
   ) {}
 
-  @Get('users')
+  @Get('users/:id')
   @Protected()
   async getUserReviews(
-    @CurrentUser() user: JwtPayload,
+    @Param("id", ParseUUIDPipe) id: string,
     @Query() query: PaginationDto,
   ) {
-    return await this.reviewsService.getUserReviews(user.id, query);
+    return await this.reviewsService.getUserReviews(id, query);
   }
 
   @Post('users')

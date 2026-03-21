@@ -2,39 +2,97 @@ import { Test, TestingModule } from '@nestjs/testing';
 import { UsersService } from './users.service';
 import { AppLogger } from '@/common/logger/logger.service';
 import { CacheService } from '@/cache/cacheService.service';
+import { WorkersService } from '@/workers/workers.service';
+import { MapLocationsService } from '@/map_locations/map-locations.service';
+import { ActivitiesService } from '@/activities/activities.service';
+import { SearchService } from '@/search/search.service';
+import { UpdateUserDto } from './dto/update-user.dto';
 const prisma = require('@/lib/prisma').prisma;
 
 describe('UsersService', () => {
   let service: UsersService;
 
   beforeEach(async () => {
+    // Mock prisma methods
+    const prisma = require('@/lib/prisma').prisma;
+    
+    prisma.user = {
+      findUnique: jest.fn(),
+      update: jest.fn(),
+      findMany: jest.fn(),
+      create: jest.fn(),
+    };
+    
+    prisma.profile = {
+      findUnique: jest.fn(),
+      update: jest.fn(),
+      create: jest.fn(),
+    };
+    
+    prisma.$transaction = jest.fn((callback) => callback(prisma));
+
     const mockCacheService = {
       getUserById: jest.fn(),
       setUserById: jest.fn(),
       delUserById: jest.fn(),
-      get: jest.fn(),
-      set: jest.fn(),
       del: jest.fn(),
     };
-
-    const mockLogger = {
-      log: jest.fn(),
-      error: jest.fn(),
-      warn: jest.fn(),
-      debug: jest.fn(),
-      verbose: jest.fn(),
+    
+    const mockWorkersService = {
+      createWorker: jest.fn(),
+      changeWorkerActiveStatus: jest.fn(),
+      getUserWorkers: jest.fn(),
+      getRoles: jest.fn(),
+    };
+    
+    const mockMapLocationsService = {
+      createMapLocation: jest.fn(),
+      updateMapLocation: jest.fn(),
+      deleteMapLocation: jest.fn(),
+      getMapLocationsByUserId: jest.fn(),
+    };
+    
+    const mockActivitiesService = {
+      getAllActivities: jest.fn(),
+      getActivityById: jest.fn(),
+      processActivities: jest.fn(),
+    };
+    
+    const mockSearchService = {
+      searchUsers: jest.fn(),
+      indexProfile: jest.fn(),
     };
 
     const module: TestingModule = await Test.createTestingModule({
       providers: [
         UsersService,
         {
+          provide: AppLogger,
+          useValue: {
+            log: jest.fn(),
+            error: jest.fn(),
+            warn: jest.fn(),
+          },
+        },
+        {
           provide: CacheService,
           useValue: mockCacheService,
         },
         {
-          provide: AppLogger,
-          useValue: mockLogger,
+          provide: WorkersService,
+          useValue: mockWorkersService,
+        },
+        {
+          provide: MapLocationsService,
+          useValue: mockMapLocationsService,
+        },
+        {
+          provide: ActivitiesService,
+          useValue: mockActivitiesService,
+        },
+        {
+          provide: SearchService,
+          useValue: mockSearchService,
         },
       ],
     }).compile();
@@ -101,7 +159,13 @@ describe('UsersService', () => {
   describe('updateUser', () => {
     it('should update user successfully', async () => {
       const userId = 'user-123';
-      const updateData = { name: 'Updated Name' };
+      const updateData = new UpdateUserDto(
+        null, // avatar
+        1, // legalEntityId
+        'Updated Name', // name
+        1, // currencyId
+        [], // activities
+      );
 
       const mockUpdatedUser = {
         id: userId,
@@ -109,32 +173,50 @@ describe('UsersService', () => {
         email: 'test@example.com',
         accountNumber: '12345678',
         isVerified: true,
-        password: 'hashed-password',
-        rating: null,
+        rating: 0,
+        reviewsCount: 0,
+        profile: null,
+        workers: [],
+        receivedReviews: [],
         createdAt: new Date(),
         updatedAt: new Date(),
-        reviewsCount: 0,
-        roleId: 'role-123',
       };
 
-      // Mock prisma.user.update
-      prisma.user.update = jest.fn().mockResolvedValue(mockUpdatedUser);
+      // Mock prisma methods
+      const prisma = require('@/lib/prisma').prisma;
+      prisma.user.update.mockResolvedValue(mockUpdatedUser);
+      prisma.profile.findUnique.mockResolvedValue(null);
 
       const result = await service.updateUser(userId, updateData);
 
       expect(prisma.user.update).toHaveBeenCalledWith({
         where: { id: userId },
-        data: updateData,
+        data: {
+          name: updateData.name,
+        },
+        include: {
+          workers: true,
+          profile: {
+            include: {
+              legalEntityType: true,
+              currency: true,
+            },
+          },
+        },
       });
       expect(result).toEqual(mockUpdatedUser);
     });
 
     it('should update user with multiple fields', async () => {
       const userId = 'user-123';
-      const updateData = {
-        name: 'Updated Name',
-        email: 'updated@example.com',
-      };
+      const updateData = new UpdateUserDto(
+        null, // avatar
+        1, // legalEntityId
+        'Updated Name', // name
+        1, // currencyId
+        [], // activities
+        'updated@example.com', // companyEmail
+      );
 
       const mockUpdatedUser = {
         id: userId,
@@ -142,12 +224,13 @@ describe('UsersService', () => {
         email: 'updated@example.com',
         accountNumber: '12345678',
         isVerified: true,
-        password: 'hashed-password',
-        rating: null,
+        rating: 0,
+        reviewsCount: 0,
+        profile: null,
+        workers: undefined,
+        receivedReviews: undefined,
         createdAt: new Date(),
         updatedAt: new Date(),
-        reviewsCount: 0,
-        roleId: 'role-123',
       };
 
       // Mock prisma.user.update
@@ -157,7 +240,18 @@ describe('UsersService', () => {
 
       expect(prisma.user.update).toHaveBeenCalledWith({
         where: { id: userId },
-        data: updateData,
+        data: {
+          name: updateData.name,
+        },
+        include: {
+          workers: true,
+          profile: {
+            include: {
+              legalEntityType: true,
+              currency: true,
+            },
+          },
+        },
       });
       expect(result).toEqual(mockUpdatedUser);
     });

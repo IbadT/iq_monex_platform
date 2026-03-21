@@ -14,6 +14,13 @@ export interface Currency {
   name: any; // JSON с мультиязычными данными
 }
 
+export interface Review {
+  id: string;
+  rating: number;
+  createdAt: Date;
+  updatedAt: Date;
+}
+
 export interface Profile {
   id: string;
   userId: string;
@@ -55,10 +62,38 @@ export class User {
   isVerified: boolean;
 
   @ApiProperty({
+    example: 4.5,
+    description: 'User average rating',
+    default: 0,
+  })
+  rating: number;
+
+  @ApiProperty({
+    example: 10,
+    description: 'Number of reviews',
+    default: 0,
+  })
+  reviewsCount: number;
+
+  @ApiProperty({
     description: 'User profile data',
     required: false,
   })
   profile: Profile | null;
+
+  @ApiProperty({
+    description: 'User workers',
+    required: false,
+    type: 'array',
+  })
+  workers: any[] | null;
+
+  @ApiProperty({
+    description: 'User received reviews',
+    required: false,
+    type: 'array',
+  })
+  receivedReviews: Review[] | null;
 
   @ApiProperty({
     example: '2022-01-01T00:00:00.000Z',
@@ -78,18 +113,26 @@ export class User {
     name: string,
     accountNumber: string,
     isVerified: boolean,
+    rating: number,
+    reviewsCount: number,
     createdAt: Date,
     updatedAt: Date,
     profile: Profile | null,
+    workers: any[] | null,
+    receivedReviews: Review[] | null,
   ) {
     this.id = id;
     this.email = email;
     this.name = name;
     this.accountNumber = accountNumber;
     this.isVerified = isVerified || false;
+    this.rating = rating;
+    this.reviewsCount = reviewsCount;
     this.createdAt = createdAt;
     this.updatedAt = updatedAt;
     this.profile = profile;
+    this.workers = workers;
+    this.receivedReviews = receivedReviews;
   }
 
   static fromUpdateUserDto(user: any, profileData: Profile | null): User {
@@ -116,9 +159,13 @@ export class User {
       user.name,
       user.accountNumber,
       user.isVerified,
+      user.rating,
+      user.reviewsCount,
       user.createdAt,
       user.updatedAt,
       profile,
+      user.workers,
+      user.receivedReviews,
     );
   }
 }

@@ -10,6 +10,7 @@ import { WorkersModule } from '@/workers/workers.module';
 import { ActivitiesModule } from '@/activities/activities.module';
 import { MapLocationsModule } from '@/map_locations/map_locations.module';
 import { JwtAuthModule } from '@/auth/jwt/jwt.module';
+import { SearchModule } from '@/search/search.module';
 
 @Module({
   imports: [
@@ -18,6 +19,7 @@ import { JwtAuthModule } from '@/auth/jwt/jwt.module';
     WorkersModule,
     ActivitiesModule,
     MapLocationsModule,
+    SearchModule,
   ],
   controllers: [UsersController],
   providers: [

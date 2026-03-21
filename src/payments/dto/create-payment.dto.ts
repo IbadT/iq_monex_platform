@@ -2,9 +2,9 @@ import { ApiProperty } from '@nestjs/swagger';
 import {
   IsArray,
   IsEnum,
-  IsNumber,
-  IsOptional,
   IsString,
+  IsUUID,
+  IsOptional,
 } from 'class-validator';
 
 export enum PaymentType {
@@ -26,8 +26,16 @@ export class CreatePaymentDto {
   paymentType: PaymentType;
 
   @ApiProperty({
+    description: 'ID тарифа',
+    example: '123e4567-e89b-12d3-a456-426614174000',
+    required: true,
+  })
+  @IsUUID()
+  tariffId: string;
+
+  @ApiProperty({
     description: 'ID пакетов для продления (только для EXTEND_PACKAGES)',
-    example: ['1', '2', '3'],
+    example: ['uuid-package-1', 'uuid-package-2', 'uuid-package-3'],
     required: false,
   })
   @IsArray()
@@ -35,43 +43,28 @@ export class CreatePaymentDto {
   packageIds?: string[];
 
   @ApiProperty({
-    description: 'Сумма оплаты',
-    example: 100.5,
-    required: true,
-  })
-  @IsNumber()
-  amount: number;
-
-  @ApiProperty({
-    description: 'Валюта платежа',
+    description: 'Валюта платежа (если не указана, берется из тарифа)',
     example: 'RUB',
-    required: true,
+    required: false,
+    enum: ['RUB', 'USD', 'EUR', 'CNY', 'KZT', 'BYN'],
   })
   @IsString()
-  currency: string;
-
-  @ApiProperty({
-    description:
-      'Количество дней (зависит от типа платежа: 30 для подписки/покупки, 100 для продления)',
-    example: 30,
-    required: true,
-  })
-  @IsNumber()
-  daysCount: number;
+  @IsOptional()
+  currency?: string;
 
   constructor(
     paymentType: PaymentType,
-    amount: number,
-    currency: string,
-    daysCount: number,
+    tariffId: string,
     packageIds?: string[],
+    currency?: string,
   ) {
     this.paymentType = paymentType;
-    this.amount = amount;
-    this.currency = currency;
-    this.daysCount = daysCount;
+    this.tariffId = tariffId;
     if (packageIds) {
       this.packageIds = packageIds;
+    }
+    if (currency) {
+      this.currency = currency;
     }
   }
 }

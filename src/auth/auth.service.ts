@@ -270,9 +270,13 @@ export class AuthService {
         name: newUser.name,
         accountNumber: newUser.accountNumber,
         isVerified: true,
+        rating: 0,
+        reviewsCount: 0,
+        receivedReviews: [],
         profile: null,
         createdAt: newUser.createdAt,
         updatedAt: newUser.updatedAt,
+        workers: null,
       },
       tokens: {
         accessToken,

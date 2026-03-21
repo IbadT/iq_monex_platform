@@ -1,25 +1,19 @@
+import { Injectable, BadRequestException, ServiceUnavailableException, UnauthorizedException } from '@nestjs/common';
 import { CacheService } from '@/cache/cacheService.service';
 import { AppLogger } from '@/common/logger/logger.service';
-import { prisma } from '@/lib/prisma';
 import { SubscriptionService } from '@/subscription/subscription.service';
 import {
-  BadRequestException,
-  Injectable,
-  ServiceUnavailableException,
-  UnauthorizedException,
-} from '@nestjs/common';
-import {
-  ConfirmationEnum,
-  CurrencyEnum,
   YookassaService,
+  ConfirmationEnum,
 } from 'nestjs-yookassa';
 import { CreatePaymentDto, PaymentType } from './dto/create-payment.dto';
 import { CreateDonationDto } from './dto/create-donation.dto';
-import { VALUT_CODE } from '@/dictionaries/enums/valut-code.enum';
 import { PAYMENT_ITEM_TYPE, PAYMENT_STATUS } from './enums/payment-status.enum';
-import { TransactionClient } from 'prisma/generated/internal/prismaNamespace';
+import { TariffsService } from '@/tariffs/tariffs.service';
 import { v4 as uuidv4 } from 'uuid';
 import { PrismaClient } from 'prisma/generated/client';
+import { prisma } from '@/lib/prisma';
+import { convertCurrencyToYookassa } from '@/common/utils/currency.util';
 
 @Injectable()
 export class PaymentsService {
@@ -28,13 +22,23 @@ export class PaymentsService {
     private readonly yooKassaService: YookassaService,
     private readonly cacheService: CacheService,
     private readonly logger: AppLogger,
+    private readonly tariffsService: TariffsService,
   ) {}
 
   async createPayment(userId: string, body: CreatePaymentDto) {
     const cacheKey = `payment:${userId}:${Date.now()}`;
 
+    // Получаем данные тарифа
+    const tariff = await this.tariffsService.getTariffById(body.tariffId);
+
+    const tariffData = tariff;
+    const amount = Number(tariffData.price);
+    const daysCount = tariffData.baseDays;
+    const currency = tariffData.currencyCode;
+    const currencyCode = tariffData.currencyCode;
+
     this.logger.log(
-      `Create payment for user ${userId}: type=${body.paymentType}, amount=${body.amount}`,
+      `Create payment for user ${userId}: type=${body.paymentType}, tariff=${body.tariffId}, amount=${amount}, days=${daysCount}`,
     );
 
     // Валидация в зависимости от типа платежа
@@ -88,6 +92,7 @@ export class PaymentsService {
         throw new BadRequestException('У пользователя уже создана подписка');
       }
     }
+
     try {
       const paymentId = uuidv4();
 
@@ -98,10 +103,11 @@ export class PaymentsService {
         value: {
           userId,
           paymentType: body.paymentType,
+          tariffId: body.tariffId,
           packageIds: body.packageIds,
-          amount: body.amount,
-          currency: body.currency,
-          daysCount: body.daysCount,
+          amount,
+          currency,
+          daysCount,
           paymentId,
         },
       });
@@ -109,19 +115,8 @@ export class PaymentsService {
       // Создаем платеж в YooKassa
       const payment = await this.yooKassaService.payments.create({
         amount: {
-          value: body.amount,
-          currency:
-            body.currency === VALUT_CODE.USD
-              ? CurrencyEnum.USD
-              : body.currency === VALUT_CODE.EUR
-                ? CurrencyEnum.EUR
-                : body.currency === VALUT_CODE.CNY
-                  ? CurrencyEnum.CNY
-                  : body.currency === VALUT_CODE.KZT
-                    ? CurrencyEnum.KZT
-                    : body.currency === VALUT_CODE.BYN
-                      ? CurrencyEnum.BYN
-                      : CurrencyEnum.RUB,
+          value: amount,
+          currency: convertCurrencyToYookassa(currency),
         },
         capture: true,
         confirmation: {
@@ -136,7 +131,7 @@ export class PaymentsService {
           userId,
           paymentType: body.paymentType,
           packageIds: body.packageIds?.join(',') || '',
-          daysCount: body.daysCount.toString(),
+          daysCount: daysCount.toString(),
           cacheKey, // Для быстрого доступа к данным в webhook
           type: 'payment',
         },
@@ -147,9 +142,8 @@ export class PaymentsService {
         data: {
           id: paymentId,
           userId,
-          amount: body.amount,
-          currency: body.currency,
-          // status: 'PENDING',
+          amount: amount,
+          currency: currencyCode,
           status: PAYMENT_STATUS.PENDING,
           externalId: payment.id,
           provider: 'yookassa',
@@ -160,7 +154,7 @@ export class PaymentsService {
           metadata: {
             paymentType: body.paymentType,
             packageIds: body.packageIds,
-            daysCount: body.daysCount,
+            daysCount: daysCount,
             paymentId,
             cacheKey,
           },
@@ -180,14 +174,14 @@ export class PaymentsService {
           id: payment.id,
           status: 'succeeded',
           amount: {
-            value: body.amount.toString(),
-            currency: body.currency,
+            value: amount.toString(),
+            currency: currency,
           },
           metadata: {
             userId,
             paymentType: body.paymentType,
             packageIds: body.packageIds?.join(',') || '',
-            daysCount: body.daysCount.toString(),
+            daysCount: daysCount.toString(),
             cacheKey,
             type: 'payment',
             paymentId,
@@ -203,8 +197,8 @@ export class PaymentsService {
         id: payment.id,
         status: payment.status,
         confirmationUrl,
-        amount: body.amount,
-        currency: body.currency,
+        amount: amount,
+        currency: currency,
       };
     } catch (error) {
       this.logger.error(`Create payment error: ${error.message}`);
@@ -323,42 +317,6 @@ export class PaymentsService {
   async listingSlotList(userId: string) {
     this.logger.log(`Got listing slot list by user id: ${userId}`);
     return await prisma.listingSlot.findMany();
-  }
-
-  async seedData(userId: string) {
-    this.logger.log(`Seeding initial data for user ${userId}`);
-
-    try {
-      await prisma.$transaction(async (tx: PrismaClient) => {
-        // 1. Создаем базовый тариф если не существует
-        const existingTariff = await tx.tariff.findFirst({
-          where: { code: 'BASE' },
-        });
-
-        if (!existingTariff) {
-          await tx.tariff.create({
-            data: {
-              code: 'BASE',
-              name: 'Базовая подписка',
-              description: 'Базовая подписка с 100 слотами',
-              baseSlots: 100,
-              baseDays: 30,
-              maxTotalDays: 365,
-              isExtendable: true,
-              price: 500.0,
-              currencyCode: 'RUB',
-              isActive: true,
-            },
-          });
-        }
-      });
-
-      this.logger.log(`Initial data seeded successfully for user ${userId}`);
-      return { success: true, message: 'Initial data seeded successfully' };
-    } catch (error) {
-      this.logger.error(`Error seeding initial data: ${error.message}`);
-      throw new ServiceUnavailableException('Ошибка инициализации данных');
-    }
   }
 
   validateYookassaAuth(auth: string) {
@@ -514,7 +472,7 @@ export class PaymentsService {
         };
       }
 
-      await prisma.$transaction(async (tx: TransactionClient) => {
+      await prisma.$transaction(async (tx: PrismaClient) => {
         // Обновляем статус платежа
         await tx.payment.updateMany({
           where: { externalId: payment.id },
@@ -565,7 +523,7 @@ export class PaymentsService {
   }
 
   private async handleBuyBaseSubscription(
-    tx: TransactionClient,
+    tx: PrismaClient,
     paymentData: any,
     payment: any,
   ) {
@@ -657,7 +615,7 @@ export class PaymentsService {
   }
 
   private async handleExtendPackages(
-    tx: TransactionClient,
+    tx: PrismaClient,
     paymentData: any,
     payment: any,
   ) {
@@ -703,7 +661,7 @@ export class PaymentsService {
   }
 
   private async handleExtendBaseSubscription(
-    tx: TransactionClient,
+    tx: PrismaClient,
     paymentData: any,
     payment: any,
   ) {
@@ -840,7 +798,7 @@ export class PaymentsService {
   }
 
   private async handleBuyAdditionalPackage(
-    tx: TransactionClient,
+    tx: PrismaClient,
     paymentData: any,
     payment: any,
   ) {
@@ -995,18 +953,7 @@ export class PaymentsService {
         const payment = await this.yooKassaService.payments.create({
           amount: {
             value: body.amount,
-            currency:
-              body.currency === VALUT_CODE.USD
-                ? CurrencyEnum.USD
-                : body.currency === VALUT_CODE.EUR
-                  ? CurrencyEnum.EUR
-                  : body.currency === VALUT_CODE.CNY
-                    ? CurrencyEnum.CNY
-                    : body.currency === VALUT_CODE.KZT
-                      ? CurrencyEnum.KZT
-                      : body.currency === VALUT_CODE.BYN
-                        ? CurrencyEnum.BYN
-                        : CurrencyEnum.RUB,
+            currency: convertCurrencyToYookassa(body.currency),
           },
           capture: true,
           confirmation: {

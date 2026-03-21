@@ -25,6 +25,7 @@ describe('AuthService', () => {
       create: jest.fn(),
       update: jest.fn(),
       findById: jest.fn(),
+      removePassword: jest.fn(),
     };
 
     const mockHashService = {
@@ -107,16 +108,14 @@ describe('AuthService', () => {
         password: 'password123',
       };
 
-      const mockUser = {
+      const mockUser: any = {
         id: 'user-123',
         email: 'test@example.com',
         name: 'Test User',
         accountNumber: '12345678',
         isVerified: true,
         password: 'hashed-password',
-        rating: null,
-        createdAt: new Date(),
-        updatedAt: new Date(),
+        rating: 0,
         reviewsCount: 0,
         roleId: 'role-123',
         role: {
@@ -127,6 +126,26 @@ describe('AuthService', () => {
           createdAt: new Date(),
           updatedAt: new Date(),
         },
+        profile: {
+          id: 'profile-123',
+          userId: 'user-123',
+          legalEntityTypeId: 1,
+          currencyId: 1,
+          avatarUrl: null,
+          phone: null,
+          email: null,
+          telegram: null,
+          siteUrl: null,
+          description: null,
+          createdAt: new Date(),
+          updatedAt: new Date(),
+          legalEntityType: { id: 1, data: {}, createdAt: new Date(), updatedAt: new Date() },
+          currency: { id: 1, symbol: 'RUB', code: 'RUB', name: {}, createdAt: new Date(), updatedAt: new Date() },
+        },
+        workers: [],
+        receivedReviews: [],
+        createdAt: new Date(),
+        updatedAt: new Date(),
       };
 
       const mockTokens = {
@@ -140,6 +159,13 @@ describe('AuthService', () => {
         name: mockUser.name,
         accountNumber: mockUser.accountNumber,
         isVerified: mockUser.isVerified,
+        rating: 0,
+        reviewsCount: 0,
+        profile: null,
+        workers: [],
+        receivedReviews: [],
+        createdAt: mockUser.createdAt,
+        updatedAt: mockUser.updatedAt,
       };
 
       usersService.getUserByEmailWithPassword.mockResolvedValue(mockUser);

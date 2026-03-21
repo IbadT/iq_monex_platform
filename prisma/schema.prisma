@@ -937,7 +937,7 @@ model LegalEntityType {
 // ================ ACTIVITIES ================
 model Activity {
   id   Int    @id @default(autoincrement())
-  name String
+  name String @unique
 
   userActivities UserActivity[]
 
@@ -945,6 +945,17 @@ model Activity {
   updatedAt DateTime @updatedAt @map("updated_at")
 
   @@map("activities")
+}
+
+// ================ USER SUGGESTIONS ================
+model UserSuggestion {
+  id Int @id @default(autoincrement())
+  text String
+
+  createdAt DateTime @default(now()) @map("created_at")
+  updatedAt DateTime @updatedAt @map("updated_at")
+
+  @@map("user_suggestions")
 }
 
 // ================ ENUMS ================

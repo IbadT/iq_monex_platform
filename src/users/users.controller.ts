@@ -6,6 +6,7 @@ import {
   Param,
   ParseUUIDPipe,
   Post,
+  Query,
 } from '@nestjs/common';
 import { UsersService } from './users.service';
 import { ApiTags } from '@nestjs/swagger';
@@ -13,18 +14,31 @@ import { Protected } from '@/common/decorators';
 import { UpdateUserDto } from './dto/update-user.dto';
 import { CurrentUser } from '@/common/decorators/current-user.decorator';
 import { JwtPayload } from '@/common/interfaces/jwt-payload.interface';
-import { AddFavoriteToUserDto } from './dto/add-favorite-to-user.dto';
 import { MakeComplaintToUser } from './dto/make-complaint-to-user.dto';
 import { ApiUpdateUserDocs } from './decorators/api-update-user-docs.decorator';
+import { GetProfilesDto } from './dto/get-profiles.dto';
 
 @ApiTags('Users')
 @Controller('users')
 export class UsersController {
   constructor(private readonly usersService: UsersService) {}
 
+  // получить все профили
+  @Get('profiles')
+  async getProfiles(
+    @Query() query: GetProfilesDto
+  ) {
+    // Если есть поисковый запрос, используем Elasticsearch
+    if (query.query || query.ratingMin !== null || query.activityIds) {
+      return await this.usersService.searchProfiles(query);
+    }
+    // Иначе используем обычный поиск из БД
+    return await this.usersService.getProfilesFromDB(query);
+  }
+
   // получить свой профиль
   // получить профиль
-  @Get(':id/profile')
+  @Get(':id/profiles')
   async getProfileById(@Param('id', ParseUUIDPipe) id: string) {
     return await this.usersService.getUserById(id);
   }
@@ -42,14 +56,14 @@ export class UsersController {
     return await this.usersService.getUserFavoritesProfiles(user.id);
   }
 
-  @Post('favorites')
-  @Protected()
-  async addFavoriteToUser(
-    @CurrentUser() user: JwtPayload,
-    @Body() body: AddFavoriteToUserDto,
-  ) {
-    return await this.usersService.addFavoriteToUser(user.id, body);
-  }
+  // @Post('favorites')
+  // @Protected()
+  // async addFavoriteToUser(
+  //   @CurrentUser() user: JwtPayload,
+  //   @Body() body: AddFavoriteToUserDto,
+  // ) {
+  //   return await this.usersService.addFavoriteToUser(user.id, body);
+  // }
 
   @Post('users/:id/complaint')
   @Protected()
