@@ -3,11 +3,32 @@ import { UsersController } from './users.controller';
 import { UsersService } from './users.service';
 import { CacheService } from '@/cache/cacheService.service';
 import { RedisCacheModule } from '@/cache/redis.module';
+import { WorkersService } from '@/workers/workers.service';
+import { ActivitiesService } from '@/activities/activities.service';
+import { MapLocationsService } from '@/map_locations/map-locations.service';
+import { WorkersModule } from '@/workers/workers.module';
+import { ActivitiesModule } from '@/activities/activities.module';
+import { MapLocationsModule } from '@/map_locations/map_locations.module';
 import { JwtAuthModule } from '@/auth/jwt/jwt.module';
+import { SearchModule } from '@/search/search.module';
 
 @Module({
-  imports: [RedisCacheModule, JwtAuthModule],
+  imports: [
+    RedisCacheModule, 
+    JwtAuthModule,
+    WorkersModule,
+    ActivitiesModule,
+    MapLocationsModule,
+    SearchModule,
+  ],
   controllers: [UsersController],
-  providers: [UsersService, CacheService],
+  providers: [
+    UsersService, 
+    CacheService,
+    WorkersService,
+    ActivitiesService,
+    MapLocationsService,
+  ],
+  exports: [UsersService, WorkersService, ActivitiesService, MapLocationsService],
 })
 export class UsersModule {}

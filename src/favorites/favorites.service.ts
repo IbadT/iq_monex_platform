@@ -1,9 +1,10 @@
-import { Injectable } from '@nestjs/common';
+import { BadRequestException, Injectable } from '@nestjs/common';
 import { prisma } from '@/lib/prisma';
 import { CacheService } from '@/cache/cacheService.service';
 import { AppLogger } from '@/common/logger/logger.service';
 import { CreateFavoriteDto } from './dto/create-favorite.dto';
 import { FavoriteType } from './enums/favorite-type.enum';
+import { AddFavoriteToUserDto } from './dto/add-favorite-to-user.dto';
 
 @Injectable()
 export class FavoriteService {
@@ -11,6 +12,42 @@ export class FavoriteService {
     private readonly cacheService: CacheService,
     private readonly logger: AppLogger,
   ) {}
+
+
+  async addFavoriteToUser(userId: string, body: AddFavoriteToUserDto) {
+      const existFavorite = await prisma.favorite.findFirst({
+        where: {
+          userId,
+          targetUserId: body.userId,
+          type: FavoriteType.USER,
+        },
+      });
+  
+      // проверка, что этот пользователь не добавляет самого себя
+      if (userId === existFavorite?.targetUserId) {
+        throw new BadRequestException(
+          'Пользователь не может добавить в избранное сам себя',
+        );
+      }
+  
+      // если существует, то убрать из избранного
+      if (existFavorite) {
+        return await prisma.favorite.delete({
+          where: {
+            id: existFavorite.id,
+          },
+        });
+      } else {
+        return await prisma.favorite.create({
+          data: {
+            userId,
+            targetUserId: body.userId,
+            type: FavoriteType.USER,
+          },
+        });
+      }
+    }
+
   async getList(userId: string) {
     const cacheKey = `favorites/userId:${userId}`;
     const cachedData = await this.cacheService.get(cacheKey);

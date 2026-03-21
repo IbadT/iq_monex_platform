@@ -10,7 +10,7 @@ describe('AttributesController', () => {
   beforeEach(async () => {
     const mockAttributeService = {
       list: jest.fn(),
-      seedSpecifications: jest.fn()
+      seedSpecifications: jest.fn(),
     };
 
     const module: TestingModule = await Test.createTestingModule({
@@ -33,20 +33,20 @@ describe('AttributesController', () => {
     expect(controller).toBeDefined();
   });
 
-  describe("specificationList", () => {
+  describe('specificationList', () => {
     it('should return specification list', async () => {
       const lang = Language.RU;
       const mockSpecificationList = [
         {
           id: 1,
-          name: "Название"
-        }
+          name: 'Название',
+        },
       ];
 
       attributesService.list.mockResolvedValue(mockSpecificationList);
-      
+
       const result = await controller.specificationList({ lang });
       expect(result).toEqual(mockSpecificationList);
-    })
-  })
+    });
+  });
 });

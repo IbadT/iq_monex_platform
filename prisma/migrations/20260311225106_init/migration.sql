@@ -218,7 +218,7 @@ CREATE TABLE "map_locations" (
     "listing_id" UUID NOT NULL,
     "type" "map_location_type" NOT NULL,
     "latitude" DECIMAL(10,8) NOT NULL,
-    "longtitude" DECIMAL(11,8) NOT NULL,
+    "longitude" DECIMAL(11,8) NOT NULL,
     "geo_hash" TEXT,
     "created_at" TIMESTAMP(3) NOT NULL DEFAULT CURRENT_TIMESTAMP,
     "updatedAt" TIMESTAMP(3) NOT NULL,
@@ -500,7 +500,7 @@ CREATE UNIQUE INDEX "listing_specifications_listing_id_specification_id_key" ON 
 CREATE INDEX "map_locations_listing_id_idx" ON "map_locations"("listing_id");
 
 -- CreateIndex
-CREATE INDEX "map_locations_latitude_longtitude_idx" ON "map_locations"("latitude", "longtitude");
+CREATE INDEX "map_locations_latitude_longitude_idx" ON "map_locations"("latitude", "longitude");
 
 -- CreateIndex
 CREATE INDEX "map_locations_geo_hash_idx" ON "map_locations"("geo_hash");

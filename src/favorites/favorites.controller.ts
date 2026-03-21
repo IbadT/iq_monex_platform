@@ -17,7 +17,10 @@ import { ApiDeleteFavoriteDocs } from './decorators/api-delete-favorite-docs.dec
 import { ApiGetFavoriteByIdDocs } from './decorators/api-get-favorite-by-id-docs.decorator';
 import { ApiGetFavoritesListDocs } from './decorators/api-get-favorites-list-docs.decorator';
 import { CreateFavoriteDto } from './dto/create-favorite.dto';
+import { ApiTags } from '@nestjs/swagger';
+import { AddFavoriteToUserDto } from './dto/add-favorite-to-user.dto';
 
+@ApiTags("Favorites")
 @Controller('favorites')
 export class FavoriteController {
   constructor(
@@ -41,7 +44,7 @@ export class FavoriteController {
     return await this.favoriteService.getList(user.id);
   }
 
-  @Post('')
+  @Post()
   @Protected()
   @ApiCreateFavoriteDocs()
   async createFavorite(
@@ -50,6 +53,16 @@ export class FavoriteController {
   ) {
     this.logger.log('Добавить объявление в избранное');
     return await this.favoriteService.create(user.id, body);
+  }
+
+
+  @Post('users')
+  @Protected()
+  async addFavoriteToUser(
+    @CurrentUser() user: JwtPayload,
+    @Body() body: AddFavoriteToUserDto,
+  ) {
+    return await this.favoriteService.addFavoriteToUser(user.id, body);
   }
 
   // удалить из избранного

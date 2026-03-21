@@ -7,7 +7,8 @@ export const ApiCreateFavoriteDocs = () => {
     ApiTags('Favorites'),
     ApiOperation({
       summary: 'Добавить объявление в избранное',
-      description: 'Добавляет объявление в список избранных для текущего пользователя',
+      description:
+        'Добавляет объявление в список избранных для текущего пользователя',
     }),
     ApiBody({
       type: CreateFavoriteDto,
@@ -102,6 +103,6 @@ export const ApiCreateFavoriteDocs = () => {
           statusCode: { type: 'number', example: 500 },
         },
       },
-    })
+    }),
   );
 };

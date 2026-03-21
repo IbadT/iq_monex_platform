@@ -4,7 +4,6 @@ import { ChangeListingSlotDto } from './dto/change-listing-slot.dto';
 import { PAYMENT_ITEM_TYPE } from '@/payments/enums/payment-status.enum';
 import { PrismaClient } from 'prisma/generated/client';
 
-
 @Injectable()
 export class SubscriptionService {
   async getUserAvailableSlots(userId: string) {

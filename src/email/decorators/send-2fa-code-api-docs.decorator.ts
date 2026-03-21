@@ -3,10 +3,10 @@ import { ApiOperation, ApiResponse, ApiBody } from '@nestjs/swagger';
 
 /**
  * Документация для эндпоинта отправки 2FA кода
- * 
+ *
  * Этот эндпоинт используется для отправки кодов двухфакторной аутентификации.
  * Коды действительны в течение 5 минут и отправляются через NOREPLY транспорт.
- * 
+ *
  * @returns Декораторы Swagger для документации
  */
 export const ApiSend2FACodeOperation = () =>
@@ -71,7 +71,8 @@ export const ApiSend2FACodeOperation = () =>
           to: {
             type: 'string',
             format: 'email',
-            description: 'Email адрес получателя (зарегистрированный email пользователя)',
+            description:
+              'Email адрес получателя (зарегистрированный email пользователя)',
             example: 'user@example.com',
           },
           code: {

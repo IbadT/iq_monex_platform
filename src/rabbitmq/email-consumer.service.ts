@@ -10,7 +10,7 @@ import { EmailService, EmailSender } from '@/email/email.service';
 import { EmailMessage } from './interfaces/email-message.interface';
 import { Channel, ChannelModel, ConsumeMessage } from 'amqplib';
 
-const RABBITMQ_URL = 'amqp://admin:admin123@localhost:5672';
+const RABBITMQ_URL = 'amqp://admin:admin123@rabbitmq:5672';
 
 @Injectable()
 export class EmailConsumerService implements OnModuleInit, OnModuleDestroy {

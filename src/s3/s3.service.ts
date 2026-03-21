@@ -1,11 +1,12 @@
 import { Injectable, Logger } from '@nestjs/common';
-import { PutObjectCommand, S3Client } from '@aws-sdk/client-s3';
+import { PutObjectCommand, S3Client, ListObjectsV2Command, DeleteObjectCommand } from '@aws-sdk/client-s3';
 import { ConfigService } from '@nestjs/config';
 
 @Injectable()
 export class S3Service {
   private s3Client!: S3Client;
   private bucketName: string = '';
+  public customEndpoint: string = '';
   private readonly logger = new Logger(S3Service.name);
 
   constructor(private readonly configService: ConfigService) {
@@ -14,7 +15,7 @@ export class S3Service {
       'AWS_SECRET_ACCESS_KEY',
     );
     const bucketName = this.configService.get<string>('S3_BUCKET_NAME');
-    const customEndpoint = this.configService.get<string>('S3_PATH_STYLE'); // https://storage.clo.ru/adverts
+    this.customEndpoint = this.configService.get<string>('S3_PATH_STYLE') || 'https://storage.clo.ru';
 
     if (!accessKeyId || !secretAccessKey || !bucketName) {
       this.logger.warn(
@@ -30,13 +31,16 @@ export class S3Service {
         secretAccessKey,
       },
       // Указываем endpoint для Selectel
-      endpoint: customEndpoint?.replace(/\/[^\/]*$/, '') || 'https://storage.clo.ru', // Убираем /adverts
+      endpoint:
+        this.customEndpoint?.replace(/\/[^\/]*$/, '') || 'https://storage.clo.ru', // Убираем /adverts
       region: 'us-east-1', // Selectel требует указания региона
       forcePathStyle: true, // Для S3-совместимых API
     });
 
     this.bucketName = bucketName;
-    this.logger.log(`S3Service initialized with bucket: ${bucketName} using Selectel S3`);
+    this.logger.log(
+      `S3Service initialized with bucket: ${bucketName} using Selectel S3`,
+    );
   }
 
   async upload(
@@ -61,8 +65,7 @@ export class S3Service {
       await this.s3Client.send(object);
 
       // Используем URL для Selectel
-      const customEndpoint = this.configService.get<string>('S3_PATH_STYLE') || 'https://storage.clo.ru';
-      const url = `${customEndpoint}/${key}`;
+      const url = `${this.customEndpoint}/${key}`;
       this.logger.log(`Successfully uploaded file to S3: ${key}`);
 
       return url;
@@ -134,5 +137,104 @@ export class S3Service {
   getFileSizeFromBase64(base64String: string): number {
     const base64Data = base64String.replace(/^data:.+?;base64,/, '');
     return Buffer.byteLength(base64Data, 'base64');
+  }
+
+  // Получение списка всех объектов в бакете
+  async listObjects(): Promise<string[]> {
+    if (!this.s3Client || !this.bucketName) {
+      this.logger.warn('S3Service is not configured. List objects skipped.');
+      return [];
+    }
+
+    try {
+      const command = new ListObjectsV2Command({
+        Bucket: this.bucketName,
+      });
+
+      const response = await this.s3Client.send(command);
+      
+      if (response.Contents) {
+        const objectKeys = response.Contents.map(obj => obj.Key || '');
+        this.logger.log(`Found ${objectKeys.length} objects in S3 bucket`);
+        return objectKeys;
+      }
+      
+      return [];
+    } catch (error) {
+      this.logger.error('Failed to list S3 objects', error);
+      return [];
+    }
+  }
+
+  // Удаление объекта из S3
+  async deleteObject(key: string): Promise<boolean> {
+    if (!this.s3Client || !this.bucketName) {
+      this.logger.warn('S3Service is not configured. Delete skipped.');
+      return false;
+    }
+
+    try {
+      const command = new DeleteObjectCommand({
+        Bucket: this.bucketName,
+        Key: key,
+      });
+
+      await this.s3Client.send(command);
+      this.logger.log(`Successfully deleted S3 object: ${key}`);
+      return true;
+    } catch (error) {
+      this.logger.error(`Failed to delete S3 object: ${key}`, error);
+      return false;
+    }
+  }
+
+  // Удаление всех объектов из бакета
+  async deleteAllObjects(): Promise<{ success: number; failed: number }> {
+    if (!this.s3Client || !this.bucketName) {
+      this.logger.warn('S3Service is not configured. Delete all skipped.');
+      return { success: 0, failed: 0 };
+    }
+
+    try {
+      // Сначала получаем список всех объектов
+      const listCommand = new ListObjectsV2Command({
+        Bucket: this.bucketName,
+      });
+
+      const response = await this.s3Client.send(listCommand);
+      
+      if (!response.Contents || response.Contents.length === 0) {
+        this.logger.log('No objects found to delete');
+        return { success: 0, failed: 0 };
+      }
+
+      let successCount = 0;
+      let failedCount = 0;
+
+      // Удаляем каждый объект по отдельности
+      for (const object of response.Contents) {
+        if (object.Key) {
+          try {
+            const deleteCommand = new DeleteObjectCommand({
+              Bucket: this.bucketName,
+              Key: object.Key,
+            });
+
+            await this.s3Client.send(deleteCommand);
+            successCount++;
+            this.logger.log(`Deleted: ${object.Key}`);
+          } catch (error) {
+            failedCount++;
+            this.logger.error(`Failed to delete: ${object.Key}`, error);
+          }
+        }
+      }
+
+      this.logger.log(`Delete all completed: ${successCount} success, ${failedCount} failed`);
+      return { success: successCount, failed: failedCount };
+    } catch (error) {
+      this.logger.error('Failed to delete all S3 objects', error);
+      return { success: 0, failed: 1 };
+    }
   }
 }

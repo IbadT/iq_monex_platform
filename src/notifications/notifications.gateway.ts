@@ -23,7 +23,9 @@ import { SocketWithUser } from '@/common/interfaces/socket-with-user.interface';
     credentials: true,
   },
 })
-export class NotificationsGateway implements OnGatewayConnection, OnGatewayDisconnect {
+export class NotificationsGateway
+  implements OnGatewayConnection, OnGatewayDisconnect
+{
   @WebSocketServer()
   server!: Server;
 
@@ -37,7 +39,7 @@ export class NotificationsGateway implements OnGatewayConnection, OnGatewayDisco
 
   async onModuleInit() {
     this.logger.log('Notifications Gateway initialized');
-    
+
     // Ждем инициализации Redis перед подпиской
     setTimeout(async () => {
       try {

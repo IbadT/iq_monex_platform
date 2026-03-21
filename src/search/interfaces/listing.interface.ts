@@ -44,7 +44,7 @@ export interface ListingDocument {
     listingId: string;
     type: string;
     latitude: number;
-    longtitude: number;
+    longitude: number;
     geoHash: string | null;
   }>;
   specifications?: Array<{

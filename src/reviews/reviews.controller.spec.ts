@@ -80,18 +80,18 @@ describe('ReviewsController', () => {
 
   describe('create', () => {
     it('should create a review for listing', async () => {
-      const user: JwtPayload = { 
-        id: 'user-123', 
-        name: 'Test User', 
-        email: 'test@example.com' 
+      const user: JwtPayload = {
+        id: 'user-123',
+        name: 'Test User',
+        email: 'test@example.com',
       };
-      
+
       const createReviewDto: CreateReviewDto = new CreateReviewDto(
         'listing-123',
         'Great listing',
         'Excellent product, highly recommend',
         5,
-        ['data:image/png;base64,test']
+        ['data:image/png;base64,test'],
       );
 
       const mockReviewResponse = 'review-123';
@@ -100,7 +100,10 @@ describe('ReviewsController', () => {
 
       const result = await controller.create(user, createReviewDto);
 
-      expect(reviewsService.create).toHaveBeenCalledWith(user.id, createReviewDto);
+      expect(reviewsService.create).toHaveBeenCalledWith(
+        user.id,
+        createReviewDto,
+      );
       expect(result).toEqual(mockReviewResponse);
     });
   });

@@ -121,7 +121,7 @@ export class ListingsController {
   ) {
     return await this.listingsService.deleteListingById(id, user, query);
   }
-  
+
   // ??? получить подробную информацию по объявлению ???
 
   // ??? ЗАМЕТКИ ???

@@ -6,7 +6,8 @@ export const ApiToggleLikeDocs = () =>
   applyDecorators(
     ApiOperation({
       summary: 'Переключить лайк объявления',
-      description: 'Добавляет лайк, если его нет, или удаляет, если он уже есть. Toggle функционал для лайков.',
+      description:
+        'Добавляет лайк, если его нет, или удаляет, если он уже есть. Toggle функционал для лайков.',
     }),
     ApiBody({
       type: SendLikeDto,

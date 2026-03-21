@@ -6,7 +6,8 @@ export const ApiGetFavoritesListDocs = () => {
     ApiTags('Favorites'),
     ApiOperation({
       summary: 'Получить список избранных объявлений',
-      description: 'Возвращает все избранные объявления текущего пользователя с полной информацией об объявлениях',
+      description:
+        'Возвращает все избранные объявления текущего пользователя с полной информацией об объявлениях',
     }),
     ApiResponse({
       status: 200,
@@ -102,6 +103,6 @@ export const ApiGetFavoritesListDocs = () => {
           statusCode: { type: 'number', example: 500 },
         },
       },
-    })
+    }),
   );
 };

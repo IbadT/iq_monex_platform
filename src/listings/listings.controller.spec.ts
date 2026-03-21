@@ -72,7 +72,7 @@ describe('ListingsController', () => {
     it('should return listing by id', async () => {
       const listingId = '123e4567-e89b-12d3-a456-426614174000';
       const query: StatusQueryDto = { status: ListingStatus.PUBLISHED };
-      
+
       const mockListing = {
         id: listingId,
         title: 'Test Listing',
@@ -117,7 +117,10 @@ describe('ListingsController', () => {
 
       const result = await controller.listingById(listingId, query);
 
-      expect(listingsService.listingById).toHaveBeenCalledWith(listingId, query);
+      expect(listingsService.listingById).toHaveBeenCalledWith(
+        listingId,
+        query,
+      );
       expect(result).toEqual(mockListing);
     });
   });

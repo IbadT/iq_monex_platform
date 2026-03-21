@@ -55,7 +55,8 @@ describe('SubscriptionController', () => {
     }).compile();
 
     controller = module.get<SubscriptionController>(SubscriptionController);
-    subscriptionService = module.get<jest.Mocked<SubscriptionService>>(SubscriptionService);
+    subscriptionService =
+      module.get<jest.Mocked<SubscriptionService>>(SubscriptionService);
   });
 
   it('should be defined', () => {
@@ -64,17 +65,14 @@ describe('SubscriptionController', () => {
 
   describe('changeListingSlot', () => {
     it('should change listing slot', async () => {
-      const user: JwtPayload = { 
-        id: 'user-123', 
-        name: 'Test User', 
-        email: 'test@example.com' 
+      const user: JwtPayload = {
+        id: 'user-123',
+        name: 'Test User',
+        email: 'test@example.com',
       };
-      
-      const changeListingSlotDto: ChangeListingSlotDto = new ChangeListingSlotDto(
-        'listing-123',
-        'slot-456',
-        'slot-789'
-      );
+
+      const changeListingSlotDto: ChangeListingSlotDto =
+        new ChangeListingSlotDto('listing-123', 'slot-456', 'slot-789');
 
       const mockResponse = {
         message: 'Объявление успешно перемещено',
@@ -85,9 +83,15 @@ describe('SubscriptionController', () => {
 
       subscriptionService.changeListingSlot.mockResolvedValue(mockResponse);
 
-      const result = await controller.changeListingSlot(user, changeListingSlotDto);
+      const result = await controller.changeListingSlot(
+        user,
+        changeListingSlotDto,
+      );
 
-      expect(subscriptionService.changeListingSlot).toHaveBeenCalledWith(user.id, changeListingSlotDto);
+      expect(subscriptionService.changeListingSlot).toHaveBeenCalledWith(
+        user.id,
+        changeListingSlotDto,
+      );
       expect(result).toEqual(mockResponse);
     });
   });

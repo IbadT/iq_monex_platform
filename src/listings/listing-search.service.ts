@@ -152,7 +152,7 @@ export class ListingsSearchService {
           },
           max_score: maxScore,
           hits: response.hits.hits.map((hit) => ({
-            _index: hit._index!,
+            _index: hit._index,
             _id: hit._id!,
             _score: hit._score!,
             _source: hit._source as IListingSearchBody,

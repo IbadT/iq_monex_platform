@@ -15,13 +15,13 @@ describe('LikesController', () => {
     const mockLikeService = {
       toggleLike: jest.fn(),
       getListingLikes: jest.fn(),
-    }
+    };
 
     const mockJwtTokenService = {
       issueTokens: jest.fn(),
       verifyToken: jest.fn(),
       decodeToken: jest.fn(),
-    }
+    };
 
     const module: TestingModule = await Test.createTestingModule({
       controllers: [LikesController],
@@ -60,33 +60,37 @@ describe('LikesController', () => {
     expect(controller).toBeDefined();
   });
 
-  describe("toggleLike", () => {
-    it("should toggle like", async () => {
-      const listingId = "123-e456-7890-abcd-ef1234567890";
-      const userId = "123-e456-7890-abcd-ef1234567891";
-      
+  describe('toggleLike', () => {
+    it('should toggle like', async () => {
+      const listingId = '123-e456-7890-abcd-ef1234567890';
+      const userId = '123-e456-7890-abcd-ef1234567891';
+
       const sendLikeDto = new SendLikeDto(listingId);
-      const user: JwtPayload = { id: userId, name: "Test User", email: "test@example.com" };
+      const user: JwtPayload = {
+        id: userId,
+        name: 'Test User',
+        email: 'test@example.com',
+      };
 
       const result = {
-        message: "Лайк успешно добавлен",
-        action: "liked",
+        message: 'Лайк успешно добавлен',
+        action: 'liked',
         like: {
-          id: "123-e456-7890-abcd-ef1234567892",
+          id: '123-e456-7890-abcd-ef1234567892',
           listingId,
           userId,
           createdAt: new Date(),
           user: {
             id: userId,
-            name: "Test User"
+            name: 'Test User',
           },
           listing: {
             id: listingId,
-            title: "Test Listing",
+            title: 'Test Listing',
             likesCount: 1,
-            version: 1
-          }
-        }
+            version: 1,
+          },
+        },
       };
 
       likeService.toggleLike.mockResolvedValue(result);
@@ -95,6 +99,6 @@ describe('LikesController', () => {
 
       expect(likeService.toggleLike).toHaveBeenCalledWith(listingId, userId);
       expect(response).toEqual(result);
-    })
-  })
+    });
+  });
 });

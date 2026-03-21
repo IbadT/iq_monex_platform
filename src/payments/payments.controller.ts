@@ -4,7 +4,7 @@ import { AppLogger } from '@/common/logger/logger.service';
 import { Cron, CronExpression } from '@nestjs/schedule';
 // import { Admin } from '@/common/decorators';
 import { PaginationDto } from '@/common/dto/pagintation.dto';
-import { Protected } from '@/common/decorators';
+import { Admin, Protected } from '@/common/decorators';
 import { CurrentUser } from '@/common/decorators/current-user.decorator';
 import { JwtPayload } from '@/common/interfaces/jwt-payload.interface';
 import { CreatePaymentDto } from './dto/create-payment.dto';
@@ -38,12 +38,13 @@ export class PaymentsController {
   }
 
   @Get('donations')
-  // @Admin()
+  @Admin()
   async donationList(@Query() query: PaginationDto) {
     return await this.paymentsService.donationList(query.limit, query.offset);
   }
 
   @Get('payments')
+  @Admin()
   async paymentList(@Query() query: PaginationDto) {
     const { limit, offset } = query;
     return await this.paymentsService.paymentList(limit, offset);
@@ -89,14 +90,6 @@ export class PaymentsController {
   @Protected()
   async listingSlotList(@CurrentUser() user: JwtPayload) {
     return await this.paymentsService.listingSlotList(user.id);
-  }
-
-  //
-
-  @Post('seed')
-  @Protected()
-  async seedData(@CurrentUser() user: JwtPayload) {
-    return await this.paymentsService.seedData(user.id);
   }
 
   @Post('yookassa/webhook')

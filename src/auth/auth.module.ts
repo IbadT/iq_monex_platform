@@ -4,19 +4,27 @@ import { JwtAuthModule } from './jwt/jwt.module';
 import { AuthController } from './auth.controller';
 import { AuthService } from './auth.service';
 import { HashService } from './hash.service';
-import { UsersService } from '@/users/users.service';
 import { CacheService } from '@/cache/cacheService.service';
 import { RedisCacheModule } from '@/cache/redis.module';
 import { RabbitmqModule } from '@/rabbitmq/rabbitmq.module';
 import { EmailModule } from '@/email/email.module';
+import { UsersModule } from '@/users/users.module';
+import { LoggerModule } from '@/common/logger/logger.module';
 
 @Module({
-  imports: [ConfigModule, JwtAuthModule, RedisCacheModule, RabbitmqModule, EmailModule],
+  imports: [
+    ConfigModule,
+    JwtAuthModule,
+    RedisCacheModule,
+    RabbitmqModule,
+    EmailModule,
+    LoggerModule,
+    UsersModule,
+  ],
   controllers: [AuthController],
   providers: [
     AuthService,
     HashService,
-    UsersService,
     CacheService,
     ConfigService,
   ],

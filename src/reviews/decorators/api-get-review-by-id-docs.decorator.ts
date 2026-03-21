@@ -49,7 +49,8 @@ export const ApiGetReviewByIdDocs = () => {
           },
           content: {
             type: 'string',
-            example: 'Продавец очень вежливый, товар соответствует описанию. Рекомендую!',
+            example:
+              'Продавец очень вежливый, товар соответствует описанию. Рекомендую!',
             description: 'Содержание отзыва',
           },
           rating: {
@@ -179,6 +180,6 @@ export const ApiGetReviewByIdDocs = () => {
           statusCode: { type: 'number', example: 500 },
         },
       },
-    })
-  )
-}
+    }),
+  );
+};

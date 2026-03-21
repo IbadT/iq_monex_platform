@@ -45,7 +45,8 @@ export function ApiCreateReviewDocs() {
           value: {
             listingId: '123e4567-e89b-12d3-a456-426614174000',
             title: 'Отличное объявление',
-            content: 'Продавец очень вежливый, товар соответствует описанию. Рекомендую!',
+            content:
+              'Продавец очень вежливый, товар соответствует описанию. Рекомендую!',
             rating: 5,
             photos: [
               'data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAYAAAAfFcSJAAAADUlEQVR42mNk+M9QDwADhgGAWjR9awAAAABJRU5ErkJggg==',
@@ -118,7 +119,8 @@ export function ApiCreateReviewDocs() {
           },
           content: {
             type: 'string',
-            example: 'Продавец очень вежливый, товар соответствует описанию. Рекомендую!',
+            example:
+              'Продавец очень вежливый, товар соответствует описанию. Рекомендую!',
             description: 'Содержание отзыва',
           },
           rating: {

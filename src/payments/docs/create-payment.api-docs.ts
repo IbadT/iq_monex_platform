@@ -38,7 +38,7 @@ export const CreatePaymentApiDocs = applyDecorators(
         value: {
           paymentType: PaymentType.EXTEND_PACKAGES,
           packageIds: ['uuid1', 'uuid2', 'uuid3'],
-          amount: 1500.00,
+          amount: 1500.0,
           currency: 'RUB',
           daysCount: 100,
         },
@@ -48,7 +48,7 @@ export const CreatePaymentApiDocs = applyDecorators(
         description: 'Продление или покупка базовой подписки на 30 дней',
         value: {
           paymentType: PaymentType.EXTEND_BASE_SUBSCRIPTION,
-          amount: 500.00,
+          amount: 500.0,
           currency: 'RUB',
           daysCount: 30,
         },
@@ -58,7 +58,7 @@ export const CreatePaymentApiDocs = applyDecorators(
         description: 'Покупка нового пакета с 100 слотами на 30 дней',
         value: {
           paymentType: PaymentType.BUY_ADDITIONAL_PACKAGE,
-          amount: 800.00,
+          amount: 800.0,
           currency: 'RUB',
           daysCount: 30,
         },
@@ -68,7 +68,7 @@ export const CreatePaymentApiDocs = applyDecorators(
         description: 'Покупка новой базовой подписки с 100 слотами на 30 дней',
         value: {
           paymentType: PaymentType.BUY_BASE_SUBSCRIPTION,
-          amount: 500.00,
+          amount: 500.0,
           currency: 'RUB',
           daysCount: 30,
         },
@@ -78,7 +78,7 @@ export const CreatePaymentApiDocs = applyDecorators(
         description: 'Просто пожертвование без создания слотов',
         value: {
           paymentType: PaymentType.DONATION,
-          amount: 100.00,
+          amount: 100.0,
           currency: 'RUB',
           daysCount: 1,
         },
@@ -93,7 +93,10 @@ export const CreatePaymentApiDocs = applyDecorators(
       properties: {
         id: { type: 'string', description: 'ID платежа в YooKassa' },
         status: { type: 'string', description: 'Статус платежа' },
-        confirmationUrl: { type: 'string', description: 'URL для редиректа на оплату' },
+        confirmationUrl: {
+          type: 'string',
+          description: 'URL для редиректа на оплату',
+        },
         amount: { type: 'number', description: 'Сумма платежа' },
         currency: { type: 'string', description: 'Валюта платежа' },
       },
@@ -107,7 +110,10 @@ export const CreatePaymentApiDocs = applyDecorators(
       properties: {
         statusCode: { type: 'number', example: 400 },
         message: { type: 'string', example: 'Bad Request' },
-        error: { type: 'string', example: 'У пользователя достигнуто максимальное количество пакетов' },
+        error: {
+          type: 'string',
+          example: 'У пользователя достигнуто максимальное количество пакетов',
+        },
       },
     },
   }),

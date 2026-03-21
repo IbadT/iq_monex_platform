@@ -9,6 +9,7 @@ import { RabbitmqService } from '@/rabbitmq/rabbitmq.service';
 import { LoginUserDto } from './dto/request/login-user.dto';
 import { NotFoundException, UnauthorizedException } from '@nestjs/common';
 import { User } from '@/users/entities/user.entity';
+import { RoleType } from '@/users/enums/role-type.enum';
 import { LoginResponseDto } from './dto/response/login-response.dto';
 
 describe('AuthService', () => {
@@ -24,6 +25,7 @@ describe('AuthService', () => {
       create: jest.fn(),
       update: jest.fn(),
       findById: jest.fn(),
+      removePassword: jest.fn(),
     };
 
     const mockHashService = {
@@ -106,18 +108,44 @@ describe('AuthService', () => {
         password: 'password123',
       };
 
-      const mockUser = {
+      const mockUser: any = {
         id: 'user-123',
         email: 'test@example.com',
         name: 'Test User',
         accountNumber: '12345678',
         isVerified: true,
         password: 'hashed-password',
-        rating: null,
-        createdAt: new Date(),
-        updatedAt: new Date(),
+        rating: 0,
         reviewsCount: 0,
         roleId: 'role-123',
+        role: {
+          id: 'role-123',
+          role: 'USER',
+          code: 'USER',
+          type: RoleType.USER,
+          createdAt: new Date(),
+          updatedAt: new Date(),
+        },
+        profile: {
+          id: 'profile-123',
+          userId: 'user-123',
+          legalEntityTypeId: 1,
+          currencyId: 1,
+          avatarUrl: null,
+          phone: null,
+          email: null,
+          telegram: null,
+          siteUrl: null,
+          description: null,
+          createdAt: new Date(),
+          updatedAt: new Date(),
+          legalEntityType: { id: 1, data: {}, createdAt: new Date(), updatedAt: new Date() },
+          currency: { id: 1, symbol: 'RUB', code: 'RUB', name: {}, createdAt: new Date(), updatedAt: new Date() },
+        },
+        workers: [],
+        receivedReviews: [],
+        createdAt: new Date(),
+        updatedAt: new Date(),
       };
 
       const mockTokens = {
@@ -131,6 +159,13 @@ describe('AuthService', () => {
         name: mockUser.name,
         accountNumber: mockUser.accountNumber,
         isVerified: mockUser.isVerified,
+        rating: 0,
+        reviewsCount: 0,
+        profile: null,
+        workers: [],
+        receivedReviews: [],
+        createdAt: mockUser.createdAt,
+        updatedAt: mockUser.updatedAt,
       };
 
       usersService.getUserByEmailWithPassword.mockResolvedValue(mockUser);
@@ -139,15 +174,31 @@ describe('AuthService', () => {
 
       const result = await service.login(loginUserDto);
 
-      expect(usersService.getUserByEmailWithPassword).toHaveBeenCalledWith(loginUserDto.email);
-      expect(hashService.compare).toHaveBeenCalledWith(mockUser.password, loginUserDto.password);
+      expect(usersService.getUserByEmailWithPassword).toHaveBeenCalledWith(
+        loginUserDto.email,
+      );
+      expect(hashService.compare).toHaveBeenCalledWith(
+        mockUser.password,
+        loginUserDto.password,
+      );
       expect(jwtTokenService.issueTokens).toHaveBeenCalledWith(
         mockUser.id,
+        mockUser.role.role,
         mockUser.name,
-        mockUser.email
+        mockUser.email,
       );
-      expect(logger.logAuth).toHaveBeenCalledWith('login_success', mockUser.id, loginUserDto.email);
-      expect(result).toEqual(new LoginResponseDto(mockTokens.accessToken, mockTokens.refreshToken, expectedUser));
+      expect(logger.logAuth).toHaveBeenCalledWith(
+        'login_success',
+        mockUser.id,
+        loginUserDto.email,
+      );
+      expect(result).toEqual(
+        new LoginResponseDto(
+          mockTokens.accessToken,
+          mockTokens.refreshToken,
+          expectedUser,
+        ),
+      );
     });
 
     it('should throw NotFoundException if user does not exist', async () => {
@@ -159,10 +210,16 @@ describe('AuthService', () => {
       usersService.getUserByEmailWithPassword.mockResolvedValue(null);
 
       await expect(service.login(loginUserDto)).rejects.toThrow(
-        new NotFoundException('Пользователь с email: nonexistent@example.com не найден')
+        new NotFoundException(
+          'Пользователь с email: nonexistent@example.com не найден',
+        ),
       );
 
-      expect(logger.logAuth).toHaveBeenCalledWith('login_failed_user_not_found', undefined, loginUserDto.email);
+      expect(logger.logAuth).toHaveBeenCalledWith(
+        'login_failed_user_not_found',
+        undefined,
+        loginUserDto.email,
+      );
       expect(hashService.compare).not.toHaveBeenCalled();
       expect(jwtTokenService.issueTokens).not.toHaveBeenCalled();
     });
@@ -185,16 +242,28 @@ describe('AuthService', () => {
         updatedAt: new Date(),
         reviewsCount: 0,
         roleId: 'role-123',
+        role: {
+          id: 'role-123',
+          role: 'USER',
+          code: 'USER',
+          type: RoleType.USER,
+          createdAt: new Date(),
+          updatedAt: new Date(),
+        },
       };
 
       usersService.getUserByEmailWithPassword.mockResolvedValue(mockUser);
       hashService.compare.mockResolvedValue(false);
 
       await expect(service.login(loginUserDto)).rejects.toThrow(
-        new UnauthorizedException('Неверный пароль')
+        new UnauthorizedException('Неверный пароль'),
       );
 
-      expect(logger.logAuth).toHaveBeenCalledWith('login_failed_invalid_password', mockUser.id, loginUserDto.email);
+      expect(logger.logAuth).toHaveBeenCalledWith(
+        'login_failed_invalid_password',
+        mockUser.id,
+        loginUserDto.email,
+      );
       expect(jwtTokenService.issueTokens).not.toHaveBeenCalled();
     });
   });

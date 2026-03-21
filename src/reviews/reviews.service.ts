@@ -1,4 +1,8 @@
-import { ConflictException, Injectable, NotFoundException } from '@nestjs/common';
+import {
+  ConflictException,
+  Injectable,
+  NotFoundException,
+} from '@nestjs/common';
 import { UpdateReviewDto } from './dto/update-review.dto';
 import { CreateReviewDto } from './dto/create-review.dto';
 import { AppLogger } from '@/common/logger/logger.service';
@@ -22,7 +26,6 @@ export class ReviewsService {
     private readonly rabbitmqService: RabbitmqService,
   ) {}
 
-
   async getUserReviews(userId: string, query: PaginationDto) {
     return await prisma.review.findMany({
       where: {
@@ -31,33 +34,35 @@ export class ReviewsService {
       },
       take: query.limit,
       skip: query.offset,
-    })
+    });
   }
-  
+
   async createReviewToUser(userId: string, body: CreateReviewToUserDto) {
     // Проверяем что пользователь не пытается оставить отзыв самому себе
     if (userId === body.userId) {
-      throw new ConflictException("Пользователь не может оставить себе комментарий");
+      throw new ConflictException(
+        'Пользователь не может оставить себе комментарий',
+      );
     }
 
     // Проверяем что целевой пользователь существует
     const targetUser = await prisma.user.findFirst({
       where: {
-        id: body.userId
-      }
+        id: body.userId,
+      },
     });
 
     if (!targetUser) {
-      throw new NotFoundException("Пользователь не найден");
+      throw new NotFoundException('Пользователь не найден');
     }
 
     return await prisma.$transaction(async (tx: PrismaClient) => {
       // Создаем отзыв
       const review = await tx.review.create({
         data: {
-          targetUserId: body.userId,  // ID пользователя, которому оставляют отзыв
+          targetUserId: body.userId, // ID пользователя, которому оставляют отзыв
           targetType: ReviewTargetType.USER,
-          authorId: userId,            // ID авторизованного пользователя (автор отзыва)
+          authorId: userId, // ID авторизованного пользователя (автор отзыва)
           content: body.text,
           rating: body.rating,
         },
@@ -72,10 +77,7 @@ export class ReviewsService {
             index,
             'photo',
           );
-          const s3Key = this.s3Service.generatePhotoKey(
-            review.id,
-            index,
-          );
+          const s3Key = this.s3Service.generatePhotoKey(review.id, index);
           const contentType =
             this.s3Service.getContentTypeFromBase64(photoData);
           const fileSize = this.s3Service.getFileSizeFromBase64(photoData);
@@ -116,7 +118,9 @@ export class ReviewsService {
       // Обновляем рейтинг и количество отзывов пользователя, которому оставили отзыв
       const newReviewsCount = targetUser.reviewsCount + 1;
       const currentRating = targetUser.rating || 0;
-      const newRating = ((currentRating * targetUser.reviewsCount) + body.rating) / newReviewsCount;
+      const newRating =
+        (currentRating * targetUser.reviewsCount + body.rating) /
+        newReviewsCount;
 
       await tx.user.update({
         where: {

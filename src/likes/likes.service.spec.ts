@@ -64,33 +64,37 @@ describe('LikesService', () => {
       // Mock prisma methods
       const prisma = require('@/lib/prisma').prisma;
       const mockTransaction = jest.fn();
-      
-      prisma.$transaction = mockTransaction.mockImplementation(async (callback) => {
-        const mockTx = {
-          listing: {
-            findUnique: jest.fn().mockResolvedValue(mockListing),
-            update: jest.fn().mockResolvedValue({
-              id: listingId,
-              title: 'Test Listing',
-              likesCount: 6,
-              version: 2,
-            }),
-          },
-          user: {
-            findUnique: jest.fn().mockResolvedValue(mockUser),
-          },
-          listingLike: {
-            findUnique: jest.fn().mockResolvedValue(null), // No existing like
-            create: jest.fn().mockResolvedValue(mockLike),
-          },
-        };
-        
-        return await callback(mockTx);
-      });
+
+      prisma.$transaction = mockTransaction.mockImplementation(
+        async (callback) => {
+          const mockTx = {
+            listing: {
+              findUnique: jest.fn().mockResolvedValue(mockListing),
+              update: jest.fn().mockResolvedValue({
+                id: listingId,
+                title: 'Test Listing',
+                likesCount: 6,
+                version: 2,
+              }),
+            },
+            user: {
+              findUnique: jest.fn().mockResolvedValue(mockUser),
+            },
+            listingLike: {
+              findUnique: jest.fn().mockResolvedValue(null), // No existing like
+              create: jest.fn().mockResolvedValue(mockLike),
+            },
+          };
+
+          return await callback(mockTx);
+        },
+      );
 
       const result = await service.toggleLike(listingId, userId);
 
-      expect(logger.log).toHaveBeenCalledWith(`User ${userId} toggling like for listing ${listingId}`);
+      expect(logger.log).toHaveBeenCalledWith(
+        `User ${userId} toggling like for listing ${listingId}`,
+      );
       expect(result).toEqual({
         message: 'Лайк успешно добавлен',
         action: 'liked',
@@ -130,32 +134,36 @@ describe('LikesService', () => {
       // Mock prisma methods
       const prisma = require('@/lib/prisma').prisma;
       const mockTransaction = jest.fn();
-      
-      prisma.$transaction = mockTransaction.mockImplementation(async (callback) => {
-        const mockTx = {
-          listing: {
-            findUnique: jest.fn().mockResolvedValue(mockListing),
-            update: jest.fn().mockResolvedValue({
-              id: listingId,
-              likesCount: 4,
-              version: 2,
-            }),
-          },
-          user: {
-            findUnique: jest.fn().mockResolvedValue(mockUser),
-          },
-          listingLike: {
-            findUnique: jest.fn().mockResolvedValue(mockExistingLike), // Existing like
-            delete: jest.fn().mockResolvedValue(mockExistingLike),
-          },
-        };
-        
-        return await callback(mockTx);
-      });
+
+      prisma.$transaction = mockTransaction.mockImplementation(
+        async (callback) => {
+          const mockTx = {
+            listing: {
+              findUnique: jest.fn().mockResolvedValue(mockListing),
+              update: jest.fn().mockResolvedValue({
+                id: listingId,
+                likesCount: 4,
+                version: 2,
+              }),
+            },
+            user: {
+              findUnique: jest.fn().mockResolvedValue(mockUser),
+            },
+            listingLike: {
+              findUnique: jest.fn().mockResolvedValue(mockExistingLike), // Existing like
+              delete: jest.fn().mockResolvedValue(mockExistingLike),
+            },
+          };
+
+          return await callback(mockTx);
+        },
+      );
 
       const result = await service.toggleLike(listingId, userId);
 
-      expect(logger.log).toHaveBeenCalledWith(`User ${userId} toggling like for listing ${listingId}`);
+      expect(logger.log).toHaveBeenCalledWith(
+        `User ${userId} toggling like for listing ${listingId}`,
+      );
       expect(result).toEqual({
         message: 'Лайк успешно удален',
         action: 'unliked',
@@ -171,28 +179,34 @@ describe('LikesService', () => {
       // Mock prisma methods
       const prisma = require('@/lib/prisma').prisma;
       const mockTransaction = jest.fn();
-      
-      prisma.$transaction = mockTransaction.mockImplementation(async (callback) => {
-        const mockTx = {
-          listing: {
-            findUnique: jest.fn().mockResolvedValue(null), // Listing not found
-          },
-          user: {
-            findUnique: jest.fn(),
-          },
-          listingLike: {
-            findUnique: jest.fn(),
-          },
-        };
-        
-        return await callback(mockTx);
-      });
 
-      await expect(service.toggleLike(listingId, userId)).rejects.toThrow(
-        new NotFoundException('Объявление с id: nonexistent-listing не найдено')
+      prisma.$transaction = mockTransaction.mockImplementation(
+        async (callback) => {
+          const mockTx = {
+            listing: {
+              findUnique: jest.fn().mockResolvedValue(null), // Listing not found
+            },
+            user: {
+              findUnique: jest.fn(),
+            },
+            listingLike: {
+              findUnique: jest.fn(),
+            },
+          };
+
+          return await callback(mockTx);
+        },
       );
 
-      expect(logger.log).toHaveBeenCalledWith(`User ${userId} toggling like for listing ${listingId}`);
+      await expect(service.toggleLike(listingId, userId)).rejects.toThrow(
+        new NotFoundException(
+          'Объявление с id: nonexistent-listing не найдено',
+        ),
+      );
+
+      expect(logger.log).toHaveBeenCalledWith(
+        `User ${userId} toggling like for listing ${listingId}`,
+      );
     });
 
     it('should throw NotFoundException if user does not exist', async () => {
@@ -207,28 +221,32 @@ describe('LikesService', () => {
       // Mock prisma methods
       const prisma = require('@/lib/prisma').prisma;
       const mockTransaction = jest.fn();
-      
-      prisma.$transaction = mockTransaction.mockImplementation(async (callback) => {
-        const mockTx = {
-          listing: {
-            findUnique: jest.fn().mockResolvedValue(mockListing),
-          },
-          user: {
-            findUnique: jest.fn().mockResolvedValue(null), // User not found
-          },
-          listingLike: {
-            findUnique: jest.fn(),
-          },
-        };
-        
-        return await callback(mockTx);
-      });
 
-      await expect(service.toggleLike(listingId, userId)).rejects.toThrow(
-        new NotFoundException('Пользователь с id: nonexistent-user не найден')
+      prisma.$transaction = mockTransaction.mockImplementation(
+        async (callback) => {
+          const mockTx = {
+            listing: {
+              findUnique: jest.fn().mockResolvedValue(mockListing),
+            },
+            user: {
+              findUnique: jest.fn().mockResolvedValue(null), // User not found
+            },
+            listingLike: {
+              findUnique: jest.fn(),
+            },
+          };
+
+          return await callback(mockTx);
+        },
       );
 
-      expect(logger.log).toHaveBeenCalledWith(`User ${userId} toggling like for listing ${listingId}`);
+      await expect(service.toggleLike(listingId, userId)).rejects.toThrow(
+        new NotFoundException('Пользователь с id: nonexistent-user не найден'),
+      );
+
+      expect(logger.log).toHaveBeenCalledWith(
+        `User ${userId} toggling like for listing ${listingId}`,
+      );
     });
   });
 });

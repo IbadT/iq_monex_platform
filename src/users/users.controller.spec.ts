@@ -67,13 +67,19 @@ describe('UsersController', () => {
 
   describe('updateProfile', () => {
     it('should update user profile', async () => {
-      const user: JwtPayload = { 
-        id: 'user-123', 
-        name: 'Test User', 
-        email: 'test@example.com' 
+      const user: JwtPayload = {
+        id: 'user-123',
+        name: 'Test User',
+        email: 'test@example.com',
       };
-      
-      const updateUserDto: UpdateUserDto = new UpdateUserDto('Updated Name');
+
+      const updateUserDto: UpdateUserDto = new UpdateUserDto(
+        null, // avatar
+        1, // legalEntityId
+        'Updated Name', // name
+        1, // currencyId
+        [], // activities
+      );
 
       const mockUpdatedUser = {
         id: user.id,
@@ -83,17 +89,21 @@ describe('UsersController', () => {
         isVerified: true,
         createdAt: new Date(),
         updatedAt: new Date(),
-        rating: null,
-        password: 'hashed-password',
+        rating: 0,
         reviewsCount: 0,
-        roleId: 'role-123',
+        profile: null,
+        workers: [],
+        receivedReviews: [],
       };
 
       usersService.updateUser.mockResolvedValue(mockUpdatedUser);
 
       const result = await controller.updateProfile(user, updateUserDto);
 
-      expect(usersService.updateUser).toHaveBeenCalledWith(user.id, updateUserDto);
+      expect(usersService.updateUser).toHaveBeenCalledWith(
+        user.id,
+        updateUserDto,
+      );
       expect(result).toEqual(mockUpdatedUser);
     });
   });

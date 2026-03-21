@@ -1,4 +1,10 @@
-import { ApiOperation, ApiResponse, ApiTags, ApiParam, ApiBody } from '@nestjs/swagger';
+import {
+  ApiOperation,
+  ApiResponse,
+  ApiTags,
+  ApiParam,
+  ApiBody,
+} from '@nestjs/swagger';
 import { UpdateReviewDto } from '../dto/update-review.dto';
 import { applyDecorators } from '@nestjs/common';
 
@@ -25,7 +31,8 @@ export const ApiUpdateReviewDocs = () => {
           description: 'Обновление всех полей отзыва',
           value: {
             title: 'Обновленный заголовок',
-            content: 'Обновленное содержание отзыва с дополнительной информацией',
+            content:
+              'Обновленное содержание отзыва с дополнительной информацией',
             rating: 4,
           },
         },
@@ -69,7 +76,8 @@ export const ApiUpdateReviewDocs = () => {
               },
               content: {
                 type: 'string',
-                example: 'Обновленное содержание отзыва с дополнительной информацией',
+                example:
+                  'Обновленное содержание отзыва с дополнительной информацией',
                 description: 'Новое содержание отзыва',
               },
               rating: {
@@ -99,7 +107,10 @@ export const ApiUpdateReviewDocs = () => {
           success: { type: 'boolean', example: false },
           message: {
             type: 'array',
-            example: ['rating must be less than or equal to 5', 'title must be a string'],
+            example: [
+              'rating must be less than or equal to 5',
+              'title must be a string',
+            ],
           },
           error: { type: 'string', example: 'Bad Request' },
           statusCode: { type: 'number', example: 400 },
@@ -161,6 +172,6 @@ export const ApiUpdateReviewDocs = () => {
           statusCode: { type: 'number', example: 500 },
         },
       },
-    })
+    }),
   );
 };

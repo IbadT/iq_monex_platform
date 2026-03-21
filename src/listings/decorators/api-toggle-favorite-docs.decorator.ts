@@ -1,5 +1,10 @@
 import { applyDecorators } from '@nestjs/common';
-import { ApiOperation, ApiResponse, ApiProperty, ApiQuery } from '@nestjs/swagger';
+import {
+  ApiOperation,
+  ApiResponse,
+  ApiProperty,
+  ApiQuery,
+} from '@nestjs/swagger';
 import { FavoriteListingsResponseDto } from '../dto/response/favorite-listings-response.dto';
 import { Favorite } from '@/favorites/entities/favorite.entity';
 
@@ -8,24 +13,28 @@ class FavoriteActionResponseDto {
   @ApiProperty({
     description: 'Действие, выполненное с избранным',
     enum: ['added', 'removed'],
-    example: 'added'
+    example: 'added',
   })
   action: 'added' | 'removed';
 
   @ApiProperty({
     description: 'ID удаленного избранного (только для action: removed)',
     required: false,
-    example: 123
+    example: 123,
   })
   favoriteId?: number;
 
   @ApiProperty({
     description: 'Информация о новом избранном (только для action: added)',
-    required: false
+    required: false,
   })
   favorite?: Favorite;
 
-  constructor(action: 'added' | 'removed', favoriteId?: number, favorite?: any) {
+  constructor(
+    action: 'added' | 'removed',
+    favoriteId?: number,
+    favorite?: any,
+  ) {
     this.action = action;
     if (favoriteId) {
       this.favoriteId = favoriteId;
@@ -69,14 +78,14 @@ export const ApiGetFavoritesDocs = () => {
       description: 'Максимальное количество полученных элементов',
       required: false,
       example: 10,
-      type: 'number'
+      type: 'number',
     }),
     ApiQuery({
       name: 'offset',
       description: 'Количество элементов для пропуска',
       required: false,
       example: 0,
-      type: 'number'
+      type: 'number',
     }),
     ApiResponse({
       status: 200,

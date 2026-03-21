@@ -25,6 +25,7 @@ import { CacheService } from '@/cache/cacheService.service';
 import { RabbitmqService } from '@/rabbitmq/rabbitmq.service';
 import { randomInt } from 'crypto';
 import { prisma } from '@/lib/prisma';
+import { RoleType } from '@/users/enums/role-type.enum';
 
 @Injectable()
 export class AuthService {
@@ -42,12 +43,12 @@ export class AuthService {
   async getMe(userId: string) {
     return prisma.user.findFirst({
       where: {
-        id: userId
+        id: userId,
       },
       select: {
         id: true,
-      }
-    })
+      },
+    });
   }
 
   async login(loginUserDto: LoginUserDto): Promise<LoginResponseDto> {
@@ -74,16 +75,18 @@ export class AuthService {
     }
 
     // Создаем Entity без пароля для ответа
-    const userEntity: User = {
-      id: existUser.id,
-      email: existUser.email,
-      name: existUser.name || '',
-      accountNumber: existUser.accountNumber,
-      isVerified: existUser.isVerified,
-    };
+    const userEntity = User.fromUpdateUserDto(existUser, null);
+    // const userEntity: User = {
+    //   id: existUser.id,
+    //   email: existUser.email,
+    //   name: existUser.name || '',
+    //   accountNumber: existUser.accountNumber,
+    //   isVerified: existUser.isVerified,
+    // };
 
     const tokens = await this.jwtTokenService.issueTokens(
       existUser.id,
+      existUser.role?.code || 'USER',
       existUser.name || '',
       existUser.email,
     );
@@ -116,21 +119,29 @@ export class AuthService {
     const hashedPassword = await this.hashService.hash(password);
 
     // TODO: убалить на проде
-    if (email === "admin@admin.com") {
-      const res = await prisma.user.create({
-        data: {
-          email,
-          password: hashedPassword,
-          accountNumber,
-          isVerified: true,
-          name: 'Admin',
-          roleId: "0418d130-f898-433b-b771-18594e61569f",
+    if (email === 'admin@admin.com') {
+      const role = await prisma.role.findFirst({
+        where: {
+          code: RoleType.SUPER_ADMIN,
         },
-      })
-      return {
-        ...res,
-        status: 200,
+      });
+      if (role) {
+        const res = await prisma.user.create({
+          data: {
+            email,
+            password: hashedPassword,
+            accountNumber,
+            isVerified: true,
+            name: 'Admin',
+            roleId: role.id,
+          },
+        });
+        return {
+          ...res,
+          status: 200,
+        };
       }
+      throw new BadRequestException(`Такая роль не найдена: ${role}`);
     }
 
     // 3. Записываем все в Redis
@@ -170,7 +181,7 @@ export class AuthService {
         verificationCode,
       },
     };
-    
+
     this.logger.log(
       `[REGISTER] Отправляем через RabbitMQ: ${JSON.stringify(emailData)}`,
     );
@@ -179,7 +190,9 @@ export class AuthService {
       await this.rabbitmqService.sendEmail(emailData);
     } catch (error) {
       this.logger.error(`[REGISTER] Ошибка отправки email:`, error);
-      throw new BadRequestException('Ошибка отправки кода подтверждения. Попробуйте позже.');
+      throw new BadRequestException(
+        'Ошибка отправки кода подтверждения. Попробуйте позже.',
+      );
     }
 
     return {
@@ -231,17 +244,20 @@ export class AuthService {
       isVerified: true, // Пользователь сразу верифицирован
     });
 
-    this.logger.log(`[VERIFY] Пользователь создан: ${newUser.id}, email: ${newUser.email}`);
+    this.logger.log(
+      `[VERIFY] Пользователь создан: ${newUser.id}, email: ${newUser.email}`,
+    );
 
     // 5. Удаляем данные из Redis
     await this.cacheService.del(cacheKey);
 
     // 6. Генерируем JWT токены
-    const { accessToken, refreshToken } = await this.jwtTokenService.issueTokens(
-      newUser.id,
-      newUser.name || '',
-      newUser.email,
-    );
+    const { accessToken, refreshToken } =
+      await this.jwtTokenService.issueTokens(
+        newUser.id,
+        newUser.name || '',
+        newUser.email,
+      );
 
     this.logger.logAuth('verify_success', newUser.id, email);
 
@@ -254,6 +270,13 @@ export class AuthService {
         name: newUser.name,
         accountNumber: newUser.accountNumber,
         isVerified: true,
+        rating: 0,
+        reviewsCount: 0,
+        receivedReviews: [],
+        profile: null,
+        createdAt: newUser.createdAt,
+        updatedAt: newUser.updatedAt,
+        workers: null,
       },
       tokens: {
         accessToken,
@@ -325,9 +348,7 @@ export class AuthService {
     };
   }
 
-  async refreshToken(
-    refreshTokenDto: RefreshTokenDto,
-  ): Promise<TokensDto> {
+  async refreshToken(refreshTokenDto: RefreshTokenDto): Promise<TokensDto> {
     const { refreshToken } = refreshTokenDto;
 
     // 1. Проверить что refresh token предоставлен
@@ -370,15 +391,17 @@ export class AuthService {
   }
 
   async logout(userId: string): Promise<void> {
-  // Здесь можно добавить дополнительную логику:
-  // - Удалить refresh token из blacklist/Redis
-  // - Обновить lastActivity пользователя
-  // - Очистить сессии
-  
-  this.logger.logAuth('logout_success', userId);
-}
+    // Здесь можно добавить дополнительную логику:
+    // - Удалить refresh token из blacklist/Redis
+    // - Обновить lastActivity пользователя
+    // - Очистить сессии
 
-  async resetPassword(resetPasswordDto: ResetPasswordDto): Promise<{ message: string; status: number }> {
+    this.logger.logAuth('logout_success', userId);
+  }
+
+  async resetPassword(
+    resetPasswordDto: ResetPasswordDto,
+  ): Promise<{ message: string; status: number }> {
     const { email } = resetPasswordDto;
 
     // Проверяем что пользователь существует
@@ -418,7 +441,9 @@ export class AuthService {
     };
   }
 
-  async confirmResetPassword(confirmResetPasswordDto: ConfirmResetPasswordDto): Promise<{ message: string; status: number }> {
+  async confirmResetPassword(
+    confirmResetPasswordDto: ConfirmResetPasswordDto,
+  ): Promise<{ message: string; status: number }> {
     const { email, code, newPassword } = confirmResetPasswordDto;
 
     // Проверяем код из Redis
@@ -426,7 +451,9 @@ export class AuthService {
     const storedCode = await this.cacheService.get(cacheKey);
 
     if (!storedCode || storedCode !== code) {
-      throw new UnauthorizedException('Неверный или истекший код сброса пароля');
+      throw new UnauthorizedException(
+        'Неверный или истекший код сброса пароля',
+      );
     }
 
     // Получаем пользователя

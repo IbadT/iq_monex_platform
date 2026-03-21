@@ -12,7 +12,9 @@ import { Channel, ChannelModel, ConsumeMessage } from 'amqplib';
 import { prisma } from '@/lib/prisma';
 
 @Injectable()
-export class FileUploadConsumerService implements OnModuleInit, OnModuleDestroy {
+export class FileUploadConsumerService
+  implements OnModuleInit, OnModuleDestroy
+{
   private readonly logger = new Logger(FileUploadConsumerService.name);
   private connection: ChannelModel | null = null;
   private channel: Channel | null = null;
@@ -24,8 +26,10 @@ export class FileUploadConsumerService implements OnModuleInit, OnModuleDestroy 
 
   async onModuleInit() {
     try {
-      const rabbitmqUrl = this.configService.get('RABBITMQ_URL') || 'amqp://admin:admin123@localhost:5672';
-      
+      const rabbitmqUrl =
+        this.configService.get('RABBITMQ_URL') ||
+        'amqp://admin:admin123@rabbitmq:5672';
+
       this.connection = await amqp.connect(rabbitmqUrl);
       this.channel = await this.connection.createChannel();
 
@@ -42,9 +46,14 @@ export class FileUploadConsumerService implements OnModuleInit, OnModuleDestroy 
       this.logger.log('File Upload Consumer подключен к RabbitMQ');
 
       // Начинаем потреблять сообщения
-      this.logger.log('Начато потребление сообщений из очереди file_upload_queue');
+      this.logger.log(
+        'Начато потребление сообщений из очереди file_upload_queue',
+      );
 
-      await this.channel.consume('file_upload_queue', this.handleMessage.bind(this));
+      await this.channel.consume(
+        'file_upload_queue',
+        this.handleMessage.bind(this),
+      );
     } catch (error) {
       this.logger.error('Ошибка подключения к RabbitMQ:', error);
     }
@@ -59,7 +68,9 @@ export class FileUploadConsumerService implements OnModuleInit, OnModuleDestroy 
       const content = msg.content.toString();
       const message: FileUploadMessage = JSON.parse(content);
 
-      this.logger.log(`Получено сообщение для загрузки файла: ${message.s3Key}`);
+      this.logger.log(
+        `Получено сообщение для загрузки файла: ${message.s3Key}`,
+      );
 
       await this.handleFileUpload(message);
 
@@ -69,7 +80,7 @@ export class FileUploadConsumerService implements OnModuleInit, OnModuleDestroy 
       this.logger.log(`Файл успешно обработан: ${message.s3Key}`);
     } catch (error) {
       this.logger.error('Ошибка обработки сообщения:', error);
-      
+
       // Обновляем статус на failed в случае ошибки
       try {
         const message: FileUploadMessage = JSON.parse(msg.content.toString());
@@ -86,26 +97,29 @@ export class FileUploadConsumerService implements OnModuleInit, OnModuleDestroy 
       } catch (dbError) {
         this.logger.error('Failed to update file status to failed', dbError);
       }
-      
+
       // Отклоняем сообщение
       this.channel.nack(msg, false, false);
     }
   }
 
   private async handleFileUpload(message: FileUploadMessage): Promise<void> {
-    const { listingId, fileType, fileIndex, fileData, contentType, s3Key } = message;
-    
-    this.logger.log(`Processing file upload: ${s3Key} for listing: ${listingId}`);
+    const { listingId, fileType, fileIndex, fileData, contentType, s3Key } =
+      message;
+
+    this.logger.log(
+      `Processing file upload: ${s3Key} for listing: ${listingId}`,
+    );
     this.logger.log(`File data length: ${fileData.length} characters`);
-    
+
     try {
       // Загружаем файл в S3
       const buffer = this.s3Service.base64ToBuffer(fileData);
       this.logger.log(`Buffer created, size: ${buffer.length} bytes`);
-      
+
       const s3Url = await this.s3Service.upload(buffer, s3Key, contentType);
       this.logger.log(`S3 upload result: ${s3Url}`);
-      
+
       if (s3Url) {
         // Обновляем запись в базе данных с URL из S3
         const updatedFile = await prisma.file.updateMany({
@@ -121,8 +135,10 @@ export class FileUploadConsumerService implements OnModuleInit, OnModuleDestroy 
             uploadStatus: 'completed', // Обновляем статус на завершенный
           },
         });
-        
-        this.logger.log(`Successfully uploaded and updated ${updatedFile.count} files: ${s3Key}`);
+
+        this.logger.log(
+          `Successfully uploaded and updated ${updatedFile.count} files: ${s3Key}`,
+        );
         this.logger.log(`Updated URL: ${s3Url}`);
       } else {
         // Если загрузка не удалась, обновляем статус на failed
@@ -136,12 +152,14 @@ export class FileUploadConsumerService implements OnModuleInit, OnModuleDestroy 
             uploadStatus: 'failed',
           },
         });
-        
-        this.logger.warn(`Failed to upload file to S3: ${s3Key}, keeping base64`);
+
+        this.logger.warn(
+          `Failed to upload file to S3: ${s3Key}, keeping base64`,
+        );
       }
     } catch (error) {
       this.logger.error(`Error processing file upload: ${s3Key}`, error);
-      
+
       // Обновляем статус на failed в случае ошибки
       try {
         await prisma.file.updateMany({
@@ -155,9 +173,12 @@ export class FileUploadConsumerService implements OnModuleInit, OnModuleDestroy 
           },
         });
       } catch (dbError) {
-        this.logger.error(`Failed to update file status to failed: ${s3Key}`, dbError);
+        this.logger.error(
+          `Failed to update file status to failed: ${s3Key}`,
+          dbError,
+        );
       }
-      
+
       throw error;
     }
   }

@@ -7,7 +7,8 @@ export const ApiSendEmailOperation = () =>
   applyDecorators(
     ApiOperation({
       summary: 'Отправить email с выбором отправителя',
-      description: 'Универсальный метод для отправки email с возможностью выбора отправителя (NOREPLY или SUPPORT)',
+      description:
+        'Универсальный метод для отправки email с возможностью выбора отправителя (NOREPLY или SUPPORT)',
     }),
     ApiBody({ type: SendEmailDto }),
     ApiResponse({
@@ -160,7 +161,8 @@ export const ApiSendSupportReplyOperation = () =>
         example: {
           to: 'user@example.com',
           ticketId: 'TICKET-123',
-          message: 'Ваш вопрос решен. Если у вас есть дополнительные вопросы, пожалуйста, дайте нам знать.',
+          message:
+            'Ваш вопрос решен. Если у вас есть дополнительные вопросы, пожалуйста, дайте нам знать.',
           agentName: 'John Smith',
         },
       },

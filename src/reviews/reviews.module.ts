@@ -12,8 +12,20 @@ import { SubscriptionServiceModule } from '@/subscription/subscription.module';
 import { SearchModule } from '@/search/search.module';
 
 @Module({
-  imports: [JwtAuthModule, RedisCacheModule, SubscriptionServiceModule, SearchModule],
+  imports: [
+    JwtAuthModule,
+    RedisCacheModule,
+    SubscriptionServiceModule,
+    SearchModule,
+  ],
   controllers: [ReviewsController],
-  providers: [ReviewsService, ListingsService, CacheService, S3Service, RabbitmqService, ReviewFileUploadConsumerService],
+  providers: [
+    ReviewsService,
+    ListingsService,
+    CacheService,
+    S3Service,
+    RabbitmqService,
+    ReviewFileUploadConsumerService,
+  ],
 })
 export class ReviewsModule {}

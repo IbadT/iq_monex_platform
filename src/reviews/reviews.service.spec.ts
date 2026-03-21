@@ -75,18 +75,18 @@ describe('ReviewsService', () => {
         'Great listing',
         'Excellent product, highly recommend',
         5,
-        ['data:image/png;base64,test']
+        ['data:image/png;base64,test'],
       );
 
       // Mock prisma methods at the top level
       const prisma = require('@/lib/prisma').prisma;
-      
+
       // Mock findFirst for listing check
       prisma.listing.findFirst = jest.fn().mockResolvedValue({
         id: '123e4567-e89b-12d3-a456-426614174000',
         status: 'PUBLISHED',
       });
-      
+
       // Mock the entire transaction
       prisma.$transaction = jest.fn().mockResolvedValue('review-123');
 
@@ -103,17 +103,19 @@ describe('ReviewsService', () => {
         'Great listing',
         'Excellent product, highly recommend',
         5,
-        ['data:image/png;base64,test']
+        ['data:image/png;base64,test'],
       );
 
       // Mock prisma methods
       const prisma = require('@/lib/prisma').prisma;
-      
+
       // Mock findFirst for listing check
       prisma.listing.findFirst = jest.fn().mockResolvedValue(null); // Listing not found
 
       await expect(service.create(authorId, createReviewDto)).rejects.toThrow(
-        new NotFoundException('Объявления с id: 123e4567-e89b-12d3-a456-426614174999 не найдено')
+        new NotFoundException(
+          'Объявления с id: 123e4567-e89b-12d3-a456-426614174999 не найдено',
+        ),
       );
     });
   });

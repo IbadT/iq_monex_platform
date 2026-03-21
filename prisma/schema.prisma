@@ -22,6 +22,9 @@ model User {
   password      String
   isVerified    Boolean @default(false) @map("is_verified")
 
+  // Профиль пользователя
+  profile Profile?
+
   // Рейтинг пользователя (агрегированный)
   rating       Float? @default(0)
   reviewsCount Int    @default(0) @map("reviews_count")
@@ -41,8 +44,9 @@ model User {
   reviewLikes      ReviewLike[]
   listingLikes     ListingLike[]
 
-  files File[]
+  files   File[]
   workers Worker[]
+  locations MapLocation[] @relation("UserLocations")
 
   subscriptions Subscription[]
   payments      Payment[]
@@ -59,7 +63,56 @@ model User {
   authoredComplaints Complaint[] @relation("ComplaintAuthor") // Жалобы, поданные этим пользователем
   receivedComplaints Complaint[] @relation("UserComplaints") // Жалобы на этого пользователя
 
+  // Активности (многие ко многим через промежуточную таблицу)
+  userActivities UserActivity[]
+
   @@map("users")
+}
+
+// ================ PROFILE ================
+model Profile {
+  id String @id @default(uuid()) @db.Uuid
+
+  userId String @unique @map("user_id") @db.Uuid
+  user   User   @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  // Тип юридического лица
+  legalEntityTypeId Int @map("legal_entity_type_id")
+  legalEntityType   LegalEntityType @relation(fields: [legalEntityTypeId], references: [id])
+
+  // Валюта
+  currencyId Int @map("currency_id")
+  currency   Currency @relation(fields: [currencyId], references: [id])
+
+  // Дополнительные поля профиля
+  avatarUrl   String? @map("avatar_url")
+  phone       String?
+  email       String?
+  telegram    String?
+  siteUrl     String? @map("site_url")
+  description String?
+
+  createdAt DateTime @default(now()) @map("created_at")
+  updatedAt DateTime @updatedAt @map("updated_at")
+
+  @@map("profiles")
+}
+
+// ================ USER ACTIVITIES (MANY-TO-MANY) ================
+
+model UserActivity {
+  id         String @id @default(uuid()) @db.Uuid
+  userId     String @map("user_id") @db.Uuid
+  activityId Int    @map("activity_id")
+
+  user     User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+  activity Activity @relation(fields: [activityId], references: [id], onDelete: Cascade)
+
+  createdAt DateTime @default(now()) @map("created_at")
+  updatedAt DateTime @updatedAt @map("updated_at")
+
+  @@unique([userId, activityId])
+  @@map("user_activities")
 }
 
 model Complaint {
@@ -73,12 +126,12 @@ model Complaint {
   author   User   @relation("ComplaintAuthor", fields: [authorId], references: [id], onDelete: Cascade)
 
   // На кого подана жалоба (заполняется в зависимости от complaintType)
-  listingId    String?  @map("listing_id") @db.Uuid
-  targetUserId String?  @map("target_user_id") @db.Uuid
+  listingId    String? @map("listing_id") @db.Uuid
+  targetUserId String? @map("target_user_id") @db.Uuid
 
   listing    Listing? @relation("ListingComplaints", fields: [listingId], references: [id], onDelete: Cascade)
   targetUser User?    @relation("UserComplaints", fields: [targetUserId], references: [id], onDelete: Cascade)
-  
+
   // Фотографии (только для жалоб на объявления)
   photos File[]
 
@@ -116,10 +169,10 @@ model Worker {
 
 model Role {
   id   String   @id @default(uuid()) @db.Uuid
-  role String @unique
-  code String 
+  role String   @unique
+  code String
   // type RoleType @unique
-  type RoleType 
+  type RoleType
 
   users   User[]
   workers Worker[]
@@ -161,6 +214,7 @@ model Currency {
   name   Json // {"ru": "Российский рубль", "en": "Russian Ruble", "kz": "..."}
 
   listing Listing[]
+  profiles Profile[]
 
   @@map("currencies")
 }
@@ -364,7 +418,7 @@ model Listing {
 
   // ===== RELATIONS =====
   files          File[]
-  locations      MapLocation[]
+  locations      MapLocation[] @relation("ListingLocations")
   specifications ListingSpecification[]
 
   listingSlot ListingSlot?
@@ -380,7 +434,6 @@ model Listing {
   @@index([status, autoDeleteAt])
   @@index([categoryId, status, publishedAt])
   @@index([status, lastUsedAt])
-  
   // Дополнительные индексы для поиска и фильтрации
   @@index([status, createdAt]) // Для сортировки по дате в рамках статуса
   @@index([categoryId, status]) // Для фильтрации по категории и статусу
@@ -388,7 +441,6 @@ model Listing {
   @@index([price, status]) // Для фильтрации по цене и статусу
   @@index([status, condition, categoryId]) // Композитный индекс для популярных фильтров
   @@index([createdAt]) // Для общей сортировки по дате
-  
   @@map("listings")
 }
 
@@ -414,38 +466,31 @@ model ListingSpecification {
 
 model MapLocation {
   id        String @id @default(uuid()) @db.Uuid
-  listingId String @map("listing_id") @db.Uuid
 
-  // Универсальный owner (listing или user)
-  // ownerType   FileOwnerType   @map("owner_type") // USER или LISTING
-  // ownerId     String          @map("owner_id") @db.Uuid
-  // user    User?    @relation(fields: [ownerId], references: [id], map: "location_user_fk", onDelete: Cascade)
-  // listing Listing? @relation(fields: [ownerId], references: [id], map: "location_listing_fk", onDelete: Cascade)
+  // Owner может быть либо пользователем, либо объявлением
+  userId    String? @map("user_id") @db.Uuid
+  user      User?   @relation("UserLocations", fields: [userId], references: [id], onDelete: Cascade)
+
+  listingId String? @map("listing_id") @db.Uuid
+  listing   Listing? @relation("ListingLocations", fields: [listingId], references: [id], onDelete: Cascade)
 
   type MapLocationType
 
-  // TODO: нужно ли?
-  // name String? // название места
+  // Адрес для отображения
+  address String?
 
   latitude   Decimal @db.Decimal(10, 8)
-  longtitude Decimal @db.Decimal(11, 8)
-
-  // TODO: нужно ли?
-  // Адрес для отображения
-  // address String?
-  // city String?
-  // country String?
+  longitude Decimal @db.Decimal(11, 8)
 
   // Гео-индекс для поиска "рядом со мной"
   geoHash String? @map("geo_hash") // для быстрого поиска по радиусу
 
-  listing Listing @relation(fields: [listingId], references: [id], onDelete: Cascade)
-
   createdAt DateTime @default(now()) @map("created_at")
   updatedAt DateTime @updatedAt
 
+  @@index([userId])
   @@index([listingId])
-  @@index([latitude, longtitude])
+  @@index([latitude, longitude])
   @@index([geoHash])
   @@map("map_locations")
 }
@@ -484,13 +529,13 @@ model File {
   createdAt DateTime @default(now()) @map("created_at")
   updatedAt DateTime @updatedAt @map("updated_at")
 
-  userId    String? @map("user_id") @db.Uuid
-  listingId String? @map("listing_id") @db.Uuid
+  userId      String? @map("user_id") @db.Uuid
+  listingId   String? @map("listing_id") @db.Uuid
   complaintId String? @map("complaint_id") @db.Uuid
 
   // Relations (опциональные, т.к. ownerId универсальный)
-  user    User?    @relation(fields: [userId], references: [id], map: "file_user_fk", onDelete: Cascade)
-  listing Listing? @relation(fields: [listingId], references: [id], map: "file_listing_fk", onDelete: Cascade)
+  user      User?      @relation(fields: [userId], references: [id], map: "file_user_fk", onDelete: Cascade)
+  listing   Listing?   @relation(fields: [listingId], references: [id], map: "file_listing_fk", onDelete: Cascade)
   complaint Complaint? @relation(fields: [complaintId], references: [id], map: "file_complaint_fk", onDelete: Cascade)
 
   // TODO: один аватар у одного ползователя
@@ -873,6 +918,44 @@ model ListingSlot {
 
   @@index([userSlotId, releasedAt])
   @@map("listing_slots")
+}
+
+// ================ LEGAL ENTITY TYPES ================
+
+model LegalEntityType {
+  id   Int  @id @default(autoincrement())
+  data Json
+
+  profiles Profile[]
+
+  createdAt DateTime @default(now()) @map("created_at")
+  updatedAt DateTime @updatedAt @map("updated_at")
+
+  @@map("legal_entity_types")
+}
+
+// ================ ACTIVITIES ================
+model Activity {
+  id   Int    @id @default(autoincrement())
+  name String @unique
+
+  userActivities UserActivity[]
+
+  createdAt DateTime @default(now()) @map("created_at")
+  updatedAt DateTime @updatedAt @map("updated_at")
+
+  @@map("activities")
+}
+
+// ================ USER SUGGESTIONS ================
+model UserSuggestion {
+  id Int @id @default(autoincrement())
+  text String
+
+  createdAt DateTime @default(now()) @map("created_at")
+  updatedAt DateTime @updatedAt @map("updated_at")
+
+  @@map("user_suggestions")
 }
 
 // ================ ENUMS ================

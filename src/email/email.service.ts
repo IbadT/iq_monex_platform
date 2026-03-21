@@ -1,10 +1,10 @@
 import { Injectable, Logger, Inject } from '@nestjs/common';
 import { ConfigService } from '@nestjs/config';
 import { Transporter, SendMailOptions } from 'nodemailer';
-import { 
-  NOREPLY_TRANSPORT, 
-  SUPPORT_TRANSPORT, 
-  EmailSender 
+import {
+  NOREPLY_TRANSPORT,
+  SUPPORT_TRANSPORT,
+  EmailSender,
 } from './email.constants';
 
 // Export EmailSender for use in other modules
@@ -34,7 +34,13 @@ export interface SendEmailParams extends BaseEmailParams {
 }
 
 export interface TemplateEmailParams extends BaseEmailParams {
-  template: 'welcome' | 'password-reset' | 'verify-email' | 'new-message' | 'listing-approved' | 'payment-success';
+  template:
+    | 'welcome'
+    | 'password-reset'
+    | 'verify-email'
+    | 'new-message'
+    | 'listing-approved'
+    | 'payment-success';
   data: Record<string, string | number>;
 }
 
@@ -53,42 +59,53 @@ export class EmailService {
    */
   async send(params: SendEmailParams): Promise<{ messageId: string }> {
     const { sender = EmailSender.NOREPLY, ...mailOptions } = params;
-    
-    const transporter = sender === EmailSender.SUPPORT 
-      ? this.supportTransporter 
-      : this.noreplyTransporter;
 
-    const fromName = sender === EmailSender.SUPPORT
-      ? this.configService.get('EMAIL_SUPPORT_NAME')
-      : this.configService.get('EMAIL_NOREPLY_NAME');
+    const transporter =
+      sender === EmailSender.SUPPORT
+        ? this.supportTransporter
+        : this.noreplyTransporter;
 
-    const fromAddress = sender === EmailSender.SUPPORT
-      ? this.configService.get('SMTP_SUPPORT_USER')
-      : this.configService.get('SMTP_NOREPLY_USER');
+    const fromName =
+      sender === EmailSender.SUPPORT
+        ? this.configService.get('EMAIL_SUPPORT_NAME')
+        : this.configService.get('EMAIL_NOREPLY_NAME');
+
+    const fromAddress =
+      sender === EmailSender.SUPPORT
+        ? this.configService.get('SMTP_SUPPORT_USER')
+        : this.configService.get('SMTP_NOREPLY_USER');
 
     // Debug logging
     this.logger.log(`[DEBUG] Sender: ${sender}, fromAddress: ${fromAddress}`);
 
     const options: SendMailOptions = {
       from: `"${fromName}" <${fromAddress}>`,
-      to: Array.isArray(mailOptions.to) ? mailOptions.to.join(', ') : mailOptions.to,
+      to: Array.isArray(mailOptions.to)
+        ? mailOptions.to.join(', ')
+        : mailOptions.to,
       subject: mailOptions.subject,
       text: mailOptions.text,
       html: mailOptions.html,
       attachments: mailOptions.attachments,
-      replyTo: sender === EmailSender.NOREPLY 
-        ? this.configService.get('SMTP_NOREPLY_USER') // noreply → используем тот же email
-        : mailOptions.replyTo,
+      replyTo:
+        sender === EmailSender.NOREPLY
+          ? this.configService.get('SMTP_NOREPLY_USER') // noreply → используем тот же email
+          : mailOptions.replyTo,
       cc: mailOptions.cc,
       bcc: mailOptions.bcc,
     };
 
     try {
       const info = await transporter.sendMail(options);
-      this.logger.log(`[${sender.toUpperCase()}] Email sent to ${mailOptions.to}: ${info.messageId}`);
+      this.logger.log(
+        `[${sender.toUpperCase()}] Email sent to ${mailOptions.to}: ${info.messageId}`,
+      );
       return { messageId: info.messageId };
     } catch (error) {
-      this.logger.error(`[${sender.toUpperCase()}] Failed to send to ${mailOptions.to}:`, error);
+      this.logger.error(
+        `[${sender.toUpperCase()}] Failed to send to ${mailOptions.to}:`,
+        error,
+      );
       throw new EmailSendException(`Failed to send email: ${error.message}`);
     }
   }
@@ -101,7 +118,10 @@ export class EmailService {
       to,
       sender: EmailSender.NOREPLY,
       subject: 'Добро пожаловать! 🎉',
-      html: this.templates.welcome({ userName, appUrl: this.configService.get('APP_URL') || '' }),
+      html: this.templates.welcome({
+        userName,
+        appUrl: this.configService.get('APP_URL') || '',
+      }),
       text: `Привет, ${userName}! Добро пожаловать в наше приложение.`,
     });
   }
@@ -120,7 +140,7 @@ export class EmailService {
   /** Сброс пароля */
   async sendPasswordReset(to: string, token: string): Promise<void> {
     const resetUrl = `${this.configService.get('APP_URL')}/auth/reset-password?token=${token}`;
-    
+
     await this.send({
       to,
       sender: EmailSender.NOREPLY,
@@ -142,12 +162,20 @@ export class EmailService {
   }
 
   /** Уведомление о входе с нового устройства */
-  async sendSecurityAlert(to: string, deviceInfo: string, location: string): Promise<void> {
+  async sendSecurityAlert(
+    to: string,
+    deviceInfo: string,
+    location: string,
+  ): Promise<void> {
     await this.send({
       to,
       sender: EmailSender.NOREPLY,
       subject: '⚠️ Новый вход в аккаунт',
-      html: this.templates.securityAlert({ deviceInfo, location, time: new Date().toLocaleString('ru-RU') }),
+      html: this.templates.securityAlert({
+        deviceInfo,
+        location,
+        time: new Date().toLocaleString('ru-RU'),
+      }),
       text: `Обнаружен вход с устройства: ${deviceInfo}, локация: ${location}`,
     });
   }
@@ -155,7 +183,12 @@ export class EmailService {
   // === ПОДДЕРЖКА / ОБЩЕНИЯ (support) ===
 
   /** Ответ пользователю из тикета поддержки */
-  async sendSupportReply(to: string, ticketId: string, message: string, agentName: string): Promise<void> {
+  async sendSupportReply(
+    to: string,
+    ticketId: string,
+    message: string,
+    agentName: string,
+  ): Promise<void> {
     await this.send({
       to,
       sender: EmailSender.SUPPORT,
@@ -167,17 +200,29 @@ export class EmailService {
   }
 
   /** Уведомление о создании тикета */
-  async sendTicketCreated(to: string, ticketId: string, subject: string): Promise<void> {
+  async sendTicketCreated(
+    to: string,
+    ticketId: string,
+    subject: string,
+  ): Promise<void> {
     await this.send({
       to,
       sender: EmailSender.SUPPORT,
       subject: `Обращение #${ticketId} создано`,
-      html: this.templates.ticketCreated({ ticketId, subject, appUrl: this.configService.get('APP_URL') || '' }),
+      html: this.templates.ticketCreated({
+        ticketId,
+        subject,
+        appUrl: this.configService.get('APP_URL') || '',
+      }),
     });
   }
 
   /** Массовая рассылка от поддержки (важные объявления) */
-  async sendBroadcast(to: string[], subject: string, content: string): Promise<void> {
+  async sendBroadcast(
+    to: string[],
+    subject: string,
+    content: string,
+  ): Promise<void> {
     // Отправляем пачками по 50 штук
     const batchSize = 50;
     for (let i = 0; i < to.length; i += batchSize) {

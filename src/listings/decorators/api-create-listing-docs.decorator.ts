@@ -59,10 +59,10 @@ export function CreateListingApiDocs() {
               'data:image/jpeg;base64,/9j/4AAQSkZJRgABAQAAAQ...',
               'data:image/jpeg;base64,/9j/4AAQSkZJRgABAQAAAQ...',
             ],
-            map: {
+            maps: {
               type: 'OFFICE',
               latitude: 55.7558,
-              longtitude: 37.6173,
+              longitude: 37.6173,
             },
           },
         },
@@ -111,10 +111,10 @@ export function CreateListingApiDocs() {
               'data:image/jpeg;base64,/9j/4AAQSkZJRgABAQAAAQ...',
               'data:image/jpeg;base64,/9j/4AAQSkZJRgABAQAAAQ...',
             ],
-            map: {
+            maps: {
               type: 'OFFICE',
               latitude: 55.7558,
-              longtitude: 37.6173,
+              longitude: 37.6173,
             },
           },
         },
@@ -197,7 +197,7 @@ export function CreateListingApiDocs() {
             ],
             description: 'Массив base64 строк для изображений (макс. 10)',
           },
-          map: {
+          maps: {
             type: 'object',
             properties: {
               type: {
@@ -211,7 +211,7 @@ export function CreateListingApiDocs() {
                 example: 55.7558,
                 description: 'Широта',
               },
-              longtitude: {
+              longitude: {
                 type: 'number',
                 example: 37.6173,
                 description: 'Долгота',

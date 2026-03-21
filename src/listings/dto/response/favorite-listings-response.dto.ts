@@ -6,26 +6,26 @@ export class FavoriteListingsResponseDto {
     description: 'Массив избранных объявлений',
     type: 'array',
     items: {
-      type: 'object'
-    }
+      type: 'object',
+    },
   })
   listings: Listing[];
 
   @ApiProperty({
     description: 'Общее количество избранных',
-    example: 25
+    example: 25,
   })
   total: number;
 
   @ApiProperty({
     description: 'Текущая страница',
-    example: 1
+    example: 1,
   })
   page: number;
 
   @ApiProperty({
     description: 'Количество элементов на странице',
-    example: 20
+    example: 20,
   })
   limit: number;
 

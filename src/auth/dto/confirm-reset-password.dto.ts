@@ -1,11 +1,11 @@
-import { ApiProperty } from "@nestjs/swagger";
-import { IsNotEmpty, IsString, MinLength } from "class-validator";
+import { ApiProperty } from '@nestjs/swagger';
+import { IsNotEmpty, IsString, MinLength } from 'class-validator';
 
 export class ConfirmResetPasswordDto {
   @ApiProperty({
-    description: "Новый пароль пользователя",
-    example: "NewSecurePassword123!",
-    required: true
+    description: 'Новый пароль пользователя',
+    example: 'NewSecurePassword123!',
+    required: true,
   })
   @IsNotEmpty()
   @IsString()
@@ -13,18 +13,18 @@ export class ConfirmResetPasswordDto {
   newPassword: string;
 
   @ApiProperty({
-    description: "Код подтверждения из email",
-    example: "123456",
-    required: true
+    description: 'Код подтверждения из email',
+    example: '123456',
+    required: true,
   })
   @IsNotEmpty()
   @IsString()
   code: string;
 
   @ApiProperty({
-    description: "Email пользователя",
-    example: "user@example.com",
-    required: true
+    description: 'Email пользователя',
+    example: 'user@example.com',
+    required: true,
   })
   @IsNotEmpty()
   @IsString()

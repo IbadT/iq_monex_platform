@@ -12,42 +12,46 @@ import { UpdateWorkerDto } from './dto/update-worker.dto';
 export class WorkersController {
   constructor(private readonly workersService: WorkersService) {}
 
-  @Post("")
+  @Post('')
   @Protected()
   async createWorker(
     @CurrentUser() user: JwtPayload,
-    @Body() body: CreateWorkersDto
+    @Body() body: CreateWorkersDto,
   ) {
     return await this.workersService.createWorker(user.id, body.workers);
   }
 
   // установить статут работника в false
-  @Post(":id/change-status")
-  async changeWorkerActiveStatus(@Body() body: ChangeWorkerStatus) {
-    return await this.workersService.changeWorkerActiveStatus(body.id);
+  @Post(':id/change-status')
+  @Protected()
+  async changeWorkerActiveStatus(
+    @CurrentUser() user: JwtPayload,
+    @Body() body: ChangeWorkerStatus
+  ) {
+    return await this.workersService.changeWorkerActiveStatus(body.id, user.id);
   }
 
-  @Get("")
+  @Get('')
   @Protected()
   async getUserWorkers(@CurrentUser() user: JwtPayload) {
     return await this.workersService.getUserWorkers(user.id);
   }
 
-  @Get("roles")
+  @Get('roles')
   async getRoles() {
     return await this.workersService.getRoles();
   }
 
-  @Post("roles")
+  @Post('roles')
   async createRole(@Body() body: CreateRoleDto) {
     return await this.workersService.createRole(body);
   }
 
-  @Patch("")
+  @Patch('')
   @Protected()
   async updateWorkers(
     @CurrentUser() user: JwtPayload,
-    @Body() body: UpdateWorkerDto
+    @Body() body: UpdateWorkerDto,
   ) {
     return await this.workersService.updateWorkers(user.id, body);
   }

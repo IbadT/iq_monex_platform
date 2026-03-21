@@ -47,7 +47,7 @@ describe('CategoriesService', () => {
   describe('categoriesList', () => {
     it('should return cached categories', async () => {
       const cacheKey = 'categories';
-      
+
       const mockCategories = [
         {
           id: 1,
@@ -75,7 +75,7 @@ describe('CategoriesService', () => {
 
     it('should fetch from database when cache is empty', async () => {
       const cacheKey = 'categories';
-      
+
       const mockCategories = [
         {
           id: 1,
@@ -95,11 +95,11 @@ describe('CategoriesService', () => {
 
       // Mock cache miss
       cacheService.get = jest.fn().mockResolvedValue(null);
-      
+
       // Mock prisma methods
       const prisma = require('@/lib/prisma').prisma;
       prisma.category.findMany = jest.fn().mockResolvedValue(mockCategories);
-      
+
       // Mock cache set
       cacheService.set = jest.fn().mockResolvedValue(true);
 

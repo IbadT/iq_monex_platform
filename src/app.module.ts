@@ -27,9 +27,16 @@ import { LikesModule } from './likes/likes.module';
 import { FavoritesModule } from './favorites/favorites.module';
 import { SearchModule } from './search/search.module';
 import { JwtAuthModule } from './auth/jwt/jwt.module';
+import { CronTasksModule } from './cron_tasks/cron_tasks.module';
+import { SentryGlobalFilter, SentryModule } from '@sentry/nestjs/setup';
+import { APP_FILTER } from '@nestjs/core';
+import { MapLocationsModule } from './map_locations/map_locations.module';
+import { ActivitiesModule } from './activities/activities.module';
+import { TariffsModule } from './tariffs/tariffs.module';
 
 @Module({
   imports: [
+    SentryModule.forRoot(),
     JwtAuthModule,
     ConfigModule.forRoot({
       isGlobal: true,
@@ -64,8 +71,19 @@ import { JwtAuthModule } from './auth/jwt/jwt.module';
     SubscriptionServiceModule,
     LikesModule,
     FavoritesModule,
+    CronTasksModule,
+    MapLocationsModule,
+    ActivitiesModule,
+    TariffsModule,
   ],
   controllers: [AppController],
-  providers: [AppService, CacheService],
+  providers: [
+    AppService,
+    CacheService,
+    {
+      provide: APP_FILTER,
+      useClass: SentryGlobalFilter,
+    },
+  ],
 })
 export class AppModule {}

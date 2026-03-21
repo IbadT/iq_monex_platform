@@ -13,11 +13,11 @@ import { LoggerModule } from '@/common/logger/logger.module';
       useFactory: (configService: ConfigService, logger: AppLogger) => {
         const username = configService.get('ELASTICSEARCH_USERNAME');
         const password = configService.get('ELASTICSEARCH_PASSWORD');
-        
+
         const config: any = {
           node: configService.getOrThrow<string>('ELASTICSEARCH_NODE'),
         };
-        
+
         if (username && password) {
           config.auth = {
             username,
