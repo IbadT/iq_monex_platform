@@ -1,8 +1,12 @@
-import { Injectable, ConflictException, NotFoundException } from '@nestjs/common';
+import {
+  Injectable,
+  ConflictException,
+  NotFoundException,
+} from '@nestjs/common';
 import { prisma } from '@/lib/prisma';
 import { CacheService } from '@/cache/cacheService.service';
 import { WorkersService } from '@/workers/workers.service';
-import { MapLocationsService } from '@/map_locations/map-locations.service';
+import { MapLocationsService } from '@/map_locations/map_locations.service';
 import { ActivitiesService } from '@/activities/activities.service';
 import { SearchService } from '@/search/search.service';
 import { User } from './entities/user.entity';
@@ -49,7 +53,9 @@ export class UsersService {
     }
 
     try {
-      this.logger.log(`🚀 Starting Elasticsearch profile search for: "${search || 'all'}"`);
+      this.logger.log(
+        `🚀 Starting Elasticsearch profile search for: "${search || 'all'}"`,
+      );
 
       // Строим Elasticsearch query
       const esQuery: any = {
@@ -69,12 +75,7 @@ export class UsersService {
         esQuery.query.bool.must.push({
           multi_match: {
             query: search,
-            fields: [
-              'user.name^3',
-              'description^2',
-              'phone^1.5',
-              'email^1.5',
-            ],
+            fields: ['user.name^3', 'description^2', 'phone^1.5', 'email^1.5'],
             type: 'best_fields',
             fuzziness: 'AUTO',
             operator: 'and',
@@ -104,7 +105,9 @@ export class UsersService {
             'activities.activityId': activityIds,
           },
         });
-        this.logger.log(`🎯 Activities filter applied: ${activityIds.join(', ')}`);
+        this.logger.log(
+          `🎯 Activities filter applied: ${activityIds.join(', ')}`,
+        );
       }
 
       // Если нет must условий, но есть поиск, заменяем на match_all
@@ -235,8 +238,8 @@ export class UsersService {
         currency: true,
       },
       orderBy: {
-        createdAt: 'desc'
-      }
+        createdAt: 'desc',
+      },
     };
 
     // Текстовый поиск по имени компании
@@ -246,9 +249,9 @@ export class UsersService {
         user: {
           name: {
             contains: query.query,
-            mode: 'insensitive'
-          }
-        }
+            mode: 'insensitive',
+          },
+        },
       };
     }
 
@@ -261,11 +264,11 @@ export class UsersService {
           receivedReviews: {
             some: {
               rating: {
-                gte: query.ratingMin
-              }
-            }
-          }
-        }
+                gte: query.ratingMin,
+              },
+            },
+          },
+        },
       };
     }
 
@@ -277,16 +280,16 @@ export class UsersService {
           activities: {
             some: {
               activityId: {
-                in: query.activityIds
-              }
-            }
-          }
-        }
+                in: query.activityIds,
+              },
+            },
+          },
+        },
       };
     }
 
     const profiles = await prisma.profile.findMany(dbQuery);
-    
+
     return {
       rows: profiles,
       pagination: {
@@ -367,7 +370,7 @@ export class UsersService {
     }
 
     const userEntity = User.fromUpdateUserDto(user, user.profile);
-    
+
     await this.cacheService.setUserById(id, userEntity, 3600);
     return userEntity;
   }
@@ -484,7 +487,7 @@ export class UsersService {
 
   async updateUser(id: string, body: UpdateUserDto): Promise<User> {
     this.logger.log(`Обновление пользователя id: ${id}, body: ${body}`);
-    
+
     try {
       // Начинаем транзакцию для атомарности операций
       const result = await prisma.$transaction(async (tx: PrismaClient) => {
@@ -543,7 +546,7 @@ export class UsersService {
               currency: true,
             },
           });
-          
+
           // Индексируем обновленный профиль в Elasticsearch
           await this.searchService.indexProfile(updatedProfile, tx);
         } else {
@@ -579,7 +582,7 @@ export class UsersService {
               currency: true,
             },
           });
-          
+
           // Индексируем новый профиль в Elasticsearch
           await this.searchService.indexProfile(newProfile, tx);
         }

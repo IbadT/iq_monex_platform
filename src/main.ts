@@ -31,6 +31,7 @@ async function bootstrap() {
     new ValidationPipe({
       transform: true, // ✅ Включаем автоматическое преобразование
       transformOptions: {
+        // enableImplicitConversion: true, // ✅ Включаем неявное преобразование
         enableImplicitConversion: true, // ✅ Включаем неявное преобразование
       },
       whitelist: true, // ✅ Удаляем лишние поля

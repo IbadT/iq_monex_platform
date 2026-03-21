@@ -3,7 +3,7 @@ import { UsersService } from './users.service';
 import { AppLogger } from '@/common/logger/logger.service';
 import { CacheService } from '@/cache/cacheService.service';
 import { WorkersService } from '@/workers/workers.service';
-import { MapLocationsService } from '@/map_locations/map-locations.service';
+import { MapLocationsService } from '@/map_locations/map_locations.service';
 import { ActivitiesService } from '@/activities/activities.service';
 import { SearchService } from '@/search/search.service';
 import { UpdateUserDto } from './dto/update-user.dto';
@@ -15,20 +15,20 @@ describe('UsersService', () => {
   beforeEach(async () => {
     // Mock prisma methods
     const prisma = require('@/lib/prisma').prisma;
-    
+
     prisma.user = {
       findUnique: jest.fn(),
       update: jest.fn(),
       findMany: jest.fn(),
       create: jest.fn(),
     };
-    
+
     prisma.profile = {
       findUnique: jest.fn(),
       update: jest.fn(),
       create: jest.fn(),
     };
-    
+
     prisma.$transaction = jest.fn((callback) => callback(prisma));
 
     const mockCacheService = {
@@ -37,27 +37,27 @@ describe('UsersService', () => {
       delUserById: jest.fn(),
       del: jest.fn(),
     };
-    
+
     const mockWorkersService = {
       createWorker: jest.fn(),
       changeWorkerActiveStatus: jest.fn(),
       getUserWorkers: jest.fn(),
       getRoles: jest.fn(),
     };
-    
+
     const mockMapLocationsService = {
       createMapLocation: jest.fn(),
       updateMapLocation: jest.fn(),
       deleteMapLocation: jest.fn(),
       getMapLocationsByUserId: jest.fn(),
     };
-    
+
     const mockActivitiesService = {
       getAllActivities: jest.fn(),
       getActivityById: jest.fn(),
       processActivities: jest.fn(),
     };
-    
+
     const mockSearchService = {
       searchUsers: jest.fn(),
       indexProfile: jest.fn(),
