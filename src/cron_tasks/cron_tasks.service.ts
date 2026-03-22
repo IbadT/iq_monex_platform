@@ -4,6 +4,8 @@ import { exec } from 'child_process';
 import { promisify } from 'util';
 import * as fs from 'fs';
 import * as path from 'path';
+import { prisma } from '@/lib/prisma';
+import { ListingStatus } from '@/listings/enums/listing-status.enum';
 
 const execAsync = promisify(exec);
 
@@ -59,6 +61,29 @@ export class CronTasksService {
       this.logger.error(' Ошибка при создании бэкапа:', error.message);
       throw error;
     }
+  }
+
+  // TODO: перенести в триггер функцию в postgres
+  @Cron(CronExpression.EVERY_DAY_AT_MIDNIGHT)
+  async deleteExpiredListing() {
+    const expired = await prisma.listing.findMany({
+      where: {
+        status: ListingStatus.ARCHIVED,
+        autoDeleteAt: {
+          lte: new Date(),
+        },
+      },
+    });
+
+    await prisma.listing.deleteMany({
+      where: {
+        id: {
+          in: expired.map((i) => i.id),
+        },
+      },
+    });
+
+    this.logger.log(`Deleted ${expired.length} expired listing(ARCHIVED)`);
   }
 
   async manualBackup() {

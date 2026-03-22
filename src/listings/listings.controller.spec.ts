@@ -19,7 +19,7 @@ describe('ListingsController', () => {
       getRecomendsByListingId: jest.fn(),
       listingsByUserId: jest.fn(),
       createListing: jest.fn(),
-      listingPublishFromDraft: jest.fn(),
+      changeListingStatus: jest.fn(),
       makeComplaintToListing: jest.fn(),
       editListingById: jest.fn(),
       deleteListingById: jest.fn(),

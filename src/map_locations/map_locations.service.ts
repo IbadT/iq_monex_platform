@@ -5,13 +5,41 @@ import {
 } from '@/listings/dto/request/create-map-location.dto';
 import { MapLocationProcessData } from './interfaces/map-location.interface';
 import { prisma } from '@/lib/prisma';
-import { Prisma, PrismaClient } from 'prisma/generated/client';
+import { Prisma } from 'prisma/generated/client';
 import { EnterpriceQueryDto } from './dto/request/enterprice-query.dto';
 import * as ngeohash from 'ngeohash';
 
 @Injectable()
 export class MapLocationsService {
   constructor() {}
+
+  /**
+   * Создает геолокации для объявления в рамках транзакции
+   * @param tx - Транзакция Prisma
+   * @param maps - Массив геолокаций
+   * @param listingId - ID объявления
+   */
+  async createMapLocationsForListing(
+    tx: Prisma.TransactionClient,
+    maps: CreateMapLocationDto[],
+    listingId: string,
+  ): Promise<void> {
+    if (!maps || maps.length === 0) {
+      return;
+    }
+
+    await tx.mapLocation.createMany({
+      data: maps.map((map) => ({
+        type: map.type,
+        latitude: map.latitude,
+        longitude: map.longitude,
+        address: map.address,
+        listingId: listingId,
+        // Добавляем geoHash для быстрого поиска
+        geoHash: ngeohash.encode(map.latitude, map.longitude, 7),
+      })),
+    });
+  }
 
   async enterprisesList(query: EnterpriceQueryDto) {
     const { latitude, longitude, radius, filter, activityIds, rating } = query;
@@ -160,7 +188,7 @@ export class MapLocationsService {
   private async processLocationAction(
     location: CreateMapLocationDto,
     userId: string,
-    tx: PrismaClient,
+    tx: Prisma.TransactionClient,
   ): Promise<any> {
     switch (location.action) {
       case LocationAction.CREATE:
@@ -185,7 +213,7 @@ export class MapLocationsService {
   private async handleCreateLocation(
     location: CreateMapLocationDto,
     userId: string,
-    tx: PrismaClient,
+    tx: Prisma.TransactionClient,
   ) {
     const geoHash = MapLocationsService.encode(
       location.latitude,
@@ -207,7 +235,7 @@ export class MapLocationsService {
   private async handleUpdateLocation(
     location: CreateMapLocationDto,
     userId: string,
-    tx: PrismaClient,
+    tx: Prisma.TransactionClient,
   ) {
     if (!location.id) {
       throw new BadRequestException(
@@ -235,7 +263,7 @@ export class MapLocationsService {
   private async handleDeleteLocation(
     location: CreateMapLocationDto,
     userId: string,
-    tx: PrismaClient,
+    tx: Prisma.TransactionClient,
   ) {
     if (!location.id) {
       throw new BadRequestException(
