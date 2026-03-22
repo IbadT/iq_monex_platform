@@ -13,6 +13,14 @@ export class FavoriteService {
     private readonly logger: AppLogger,
   ) {}
 
+    async favoriteUsers(userId: string) {
+      return await prisma.favorite.findMany({
+        where: {
+          userId,
+          type: FavoriteType.USER,
+        },
+      });
+    }
 
   async addFavoriteToUser(userId: string, body: AddFavoriteToUserDto) {
       const existFavorite = await prisma.favorite.findFirst({

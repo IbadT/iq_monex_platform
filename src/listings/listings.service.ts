@@ -11,7 +11,7 @@ import { prisma } from '@/lib/prisma';
 import { StatusQueryDto } from './dto/request/status-query.dto';
 import { ListingStatus } from './enums/listing-status.enum';
 import { FileOwnerType, FileKind } from '../../prisma/generated/enums';
-import { Decimal } from '../../prisma/generated/internal/prismaNamespace';
+import { Decimal, TransactionIsolationLevel } from '../../prisma/generated/internal/prismaNamespace';
 import { CacheService } from '@/cache/cacheService.service';
 import { S3Service } from '@/s3/s3.service';
 import { SubscriptionService } from '@/subscription/subscription.service';
@@ -32,8 +32,9 @@ import { FORBIDDEN_WORDS } from './forbidden-words/forbidden-words';
 import { CategoriesService } from '@/categories/categories.service';
 import { DictionariesService } from '@/dictionaries/dictionaries.service';
 import { MapLocationsService } from '@/map_locations/map_locations.service';
-import { Prisma } from '../../prisma/generated/client';
 import { IListing } from './interfaces/listing.interface';
+// import { Prisma } from 'prisma/generated/browser';
+import { PrismaClient } from 'prisma/generated/client';
 
 @Injectable()
 export class ListingsService {
@@ -434,20 +435,29 @@ export class ListingsService {
       throw new BadRequestException(`Объявление с id: ${listingId} не найдено`);
     }
 
-    return await prisma.$transaction(async (tx: Prisma.TransactionClient) => {
-      // TODO: если в status находится PUBLISHED, то проверить слоты
+    return await prisma.$transaction(async (tx: PrismaClient) => {
+      // проверка активных объявлений для PUBLISHED
       if (status === ListingStatus.PUBLISHED) {
         const availableSlots =
           await this.subscriptionService.getUserAvailableSlots(userId);
         this.logger.log(`Доступных слотов: ${availableSlots.length}`);
 
-        if (!availableSlots || availableSlots.length === 0) {
+        if (availableSlots.length === 0) {
           throw new BadRequestException(
             'Нет доступных слотов для создания объявления',
           );
         }
 
-        const updatedListing = await tx.listing.update({
+        if (checkIfListingExist.status === ListingStatus.ARCHIVED) {
+          await tx.listing.create({
+            data: {
+              ...checkIfListingExist,
+              status: ListingStatus.PUBLISHED,
+            },
+          });
+        }
+
+        await tx.listing.update({
           where: { id: listingId },
           data: {
             status: status,
@@ -458,11 +468,23 @@ export class ListingsService {
         // Создаем связь объявления со слотом
         return await tx.listingSlot.create({
           data: {
-            listingId: updatedListing.id,
+            listingId,
             userSlotId: availableSlots[0].id,
             assignedAt: new Date(),
           },
         });
+      }
+
+      // если статус НЕ PUBLISHED, то освобождаем слоты
+      if (checkIfListingExist.status === ListingStatus.PUBLISHED) {
+        // await tx.listingSlot.deleteMany({
+        await tx.listingSlot.delete({
+          where: {
+            listingId,
+          },
+        });
+
+        this.logger.log(`Освобожден слот для объявления ${listingId}`);
       }
 
       if (status === ListingStatus.ARCHIVED) {
@@ -476,10 +498,9 @@ export class ListingsService {
             autoDeleteAt: this.calculateAutoDeleteDate(),
           },
         });
-
-        // TODO: удалить объявления из зарезервированного слота
       }
 
+      // Остальные статусы (DRAFT, TEMPLATE)
       return await tx.listing.update({
         where: { id: listingId },
         data: {
@@ -533,7 +554,7 @@ export class ListingsService {
     const now = new Date();
 
     const result = await prisma.$transaction(
-      async (tx: Prisma.TransactionClient) => {
+      async (tx: PrismaClient) => {
         const updateResult = await tx.listing.updateMany({
           where: {
             id: {
@@ -570,7 +591,8 @@ export class ListingsService {
       {
         maxWait: 5000,
         timeout: 10000,
-        isolationLevel: Prisma.TransactionIsolationLevel.Serializable,
+        // isolationLevel: Prisma.TransactionIsolationLevel.Serializable,
+        isolationLevel: TransactionIsolationLevel.Serializable,
       },
     );
 
@@ -702,7 +724,9 @@ export class ListingsService {
     // this.logger.log(`Объявление для создания: ${JSON.stringify(body)}`);
 
     // Проверяем существование категории
-    await this.categoriesService.checkCategoryById(listing.categoryId);
+    if (listing.categoryId) {
+      await this.categoriesService.checkCategoryById(listing.categoryId);
+    }
 
     // Проверяем существование валюты
     if (listing.currencyId) {
@@ -716,16 +740,15 @@ export class ListingsService {
 
     try {
       const res = await prisma.$transaction(
-        async (tx: Prisma.TransactionClient) => {
+        async (tx: PrismaClient) => {
           let createdListing;
 
-          // TODO: проверка доступных(пустых) слотов для PUBLISHED
           if (listing.status === ListingStatus.PUBLISHED) {
             const availableSlots =
               await this.subscriptionService.getUserAvailableSlots(userId);
             this.logger.log(`Доступных слотов: ${availableSlots.length}`);
 
-            if (!availableSlots || availableSlots.length === 0) {
+            if (availableSlots.length === 0) {
               throw new BadRequestException(
                 'Нет доступных слотов для создания объявления',
               );
@@ -800,19 +823,34 @@ export class ListingsService {
             });
 
             // Отправляем задачи в RabbitMQ для асинхронной загрузки в S3
-            files.forEach(async (fileData, index) => {
-              const fileRecord = fileRecords[index];
-              await this.rabbitmqService.sendFileUpload({
-                listingId: createdListing.id,
-                fileType: 'document',
-                fileIndex: index,
-                fileData, // base64 данные
-                fileName: fileRecord.fileName,
-                contentType: fileRecord.fileType,
-                fileSize: fileRecord.fileSize,
-                s3Key: fileRecord.s3Key,
-              });
-            });
+            // files.forEach(async (fileData, index) => {
+            //   const fileRecord = fileRecords[index];
+            //   await this.rabbitmqService.sendFileUpload({
+            //     listingId: createdListing.id,
+            //     fileType: 'document',
+            //     fileIndex: index,
+            //     fileData, // base64 данные
+            //     fileName: fileRecord.fileName,
+            //     contentType: fileRecord.fileType,
+            //     fileSize: fileRecord.fileSize,
+            //     s3Key: fileRecord.s3Key,
+            //   });
+            // });
+            await Promise.all(
+              files.map(async (fileData, index) => {
+                const fileRecord = fileRecords[index];
+                return this.rabbitmqService.sendFileUpload({
+                  listingId: createdListing.id,
+                  fileType: 'document',
+                  fileIndex: index,
+                  fileData,
+                  fileName: fileRecord.fileName,
+                  contentType: fileRecord.fileType,
+                  fileSize: fileRecord.fileSize,
+                  s3Key: fileRecord.s3Key,
+                });
+              }),
+            );
           }
 
           // Создаем фото если указаны
@@ -853,19 +891,34 @@ export class ListingsService {
             });
 
             // Отправляем задачи в RabbitMQ для асинхронной загрузки в S3
-            photos.forEach(async (photoData, index) => {
-              const photoRecord = photoRecords[index];
-              await this.rabbitmqService.sendFileUpload({
-                listingId: createdListing.id,
-                fileType: 'photo',
-                fileIndex: index,
-                fileData: photoData, // base64 данные
-                fileName: photoRecord.fileName,
-                contentType: photoRecord.fileType,
-                fileSize: photoRecord.fileSize,
-                s3Key: photoRecord.s3Key,
-              });
-            });
+            // photos.forEach(async (photoData, index) => {
+            //   const photoRecord = photoRecords[index];
+            //   await this.rabbitmqService.sendFileUpload({
+            //     listingId: createdListing.id,
+            //     fileType: 'photo',
+            //     fileIndex: index,
+            //     fileData: photoData, // base64 данные
+            //     fileName: photoRecord.fileName,
+            //     contentType: photoRecord.fileType,
+            //     fileSize: photoRecord.fileSize,
+            //     s3Key: photoRecord.s3Key,
+            //   });
+            // });
+            await Promise.all(
+              photos.map(async (photoData, index) => {
+                const photoRecord = photoRecords[index];
+                return this.rabbitmqService.sendFileUpload({
+                  listingId: createdListing.id,
+                  fileType: 'photo',
+                  fileIndex: index,
+                  fileData: photoData,
+                  fileName: photoRecord.fileName,
+                  contentType: photoRecord.fileType,
+                  fileSize: photoRecord.fileSize,
+                  s3Key: photoRecord.s3Key,
+                });
+              }),
+            );
           }
 
           // записываем в elasticSearch
@@ -1061,5 +1114,3 @@ export class ListingsService {
     );
   }
 }
-
-// 953

@@ -12,15 +12,19 @@ import { AppLogger } from '@/common/logger/logger.service';
 import { Protected } from '@/common/decorators';
 import { CurrentUser } from '@/common/decorators/current-user.decorator';
 import { JwtPayload } from '@/common/interfaces/jwt-payload.interface';
-import { ApiCreateFavoriteDocs } from './decorators/api-create-favorite-docs.decorator';
-import { ApiDeleteFavoriteDocs } from './decorators/api-delete-favorite-docs.decorator';
-import { ApiGetFavoriteByIdDocs } from './decorators/api-get-favorite-by-id-docs.decorator';
-import { ApiGetFavoritesListDocs } from './decorators/api-get-favorites-list-docs.decorator';
+import { 
+  ApiGetFavoritesListDocs,
+  ApiCreateFavoriteDocs,
+  ApiAddFavoriteToUserDocs,
+  ApiDeleteFavoriteDocs,
+  ApiGetFavoriteByIdDocs,
+  ApiGetUserFavoritesDocs,
+} from './decorators';
 import { CreateFavoriteDto } from './dto/create-favorite.dto';
 import { ApiTags } from '@nestjs/swagger';
 import { AddFavoriteToUserDto } from './dto/add-favorite-to-user.dto';
 
-@ApiTags("Favorites")
+@ApiTags('Favorites')
 @Controller('favorites')
 export class FavoriteController {
   constructor(
@@ -55,9 +59,16 @@ export class FavoriteController {
     return await this.favoriteService.create(user.id, body);
   }
 
+  @Get("users")
+  @Protected()
+  @ApiGetUserFavoritesDocs()
+  async favoriteUsers(@CurrentUser() user: JwtPayload) {
+    return await this.favoriteService.favoriteUsers(user.id);
+  }
 
   @Post('users')
   @Protected()
+  @ApiAddFavoriteToUserDocs()
   async addFavoriteToUser(
     @CurrentUser() user: JwtPayload,
     @Body() body: AddFavoriteToUserDto,

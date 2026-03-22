@@ -1,19 +1,21 @@
 import { ApiProperty } from '@nestjs/swagger';
-import { IsNotEmpty, IsString, IsUUID } from 'class-validator';
+import { IsNotEmpty, IsString, IsUUID, IsEnum } from 'class-validator';
+import { ComplaintReasonType } from '../enums/complaint-reason-type.enum';
 
-export class MakeComplaintToUser {
+export class MakeComplaintToUserDto {
   @ApiProperty({
-    description: '',
-    example: '',
+    description: 'Тип жалобы',
+    example: ComplaintReasonType.SPAM,
     required: true,
+    enum: ComplaintReasonType,
   })
   @IsNotEmpty()
-  @IsString()
+  @IsEnum(ComplaintReasonType)
   type: string;
 
   @ApiProperty({
-    description: '',
-    example: '',
+    description: 'Текст жалобы',
+    example: 'Пользователь спамит в комментариях',
     required: true,
   })
   @IsNotEmpty()
@@ -21,11 +23,11 @@ export class MakeComplaintToUser {
   text: string;
 
   @ApiProperty({
-    description: '',
-    example: '',
+    description: 'ID пользователя, на которого оставляется жалоба',
+    example: '123e4567-e89b-12d3-a456-426614174001',
     required: true,
   })
-  @IsString()
+  @IsNotEmpty()
   @IsUUID()
   userId: string;
 

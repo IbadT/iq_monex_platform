@@ -9,6 +9,7 @@ import { SubscriptionService } from '@/subscription/subscription.service';
 import { SearchModule } from '@/search/search.module';
 import { CategoriesService } from '@/categories/categories.service';
 import { MapLocationsService } from '@/map_locations/map_locations.service';
+import { DictionariesService } from '@/dictionaries/dictionaries.service';
 
 @Module({
   imports: [JwtAuthModule, SearchModule, RabbitmqModule],
@@ -20,6 +21,7 @@ import { MapLocationsService } from '@/map_locations/map_locations.service';
     SubscriptionService,
     CategoriesService,
     MapLocationsService,
+    DictionariesService,
   ],
 })
 export class ListingsModule {}

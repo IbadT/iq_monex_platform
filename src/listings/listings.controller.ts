@@ -26,7 +26,12 @@ import { JwtPayload } from '@/common/interfaces/jwt-payload.interface';
 import { CurrentUser } from '@/common/decorators/current-user.decorator';
 import { MakeComplaintToListing } from './dto/request/make-complaint-to-listing.dto';
 import { GetRecomentQueryDto } from './dto/request/get-recoment-query.dto';
-// import { GetFavoritesQueryDto } from './dto/request/get-favorites-query.dto';
+import { ApiBulkRestoreDocs } from './decorators/api-bulk-restore-docs.decorator';
+import { ApiComplaintDocs } from './decorators/api-complaint-docs.decorator';
+import { ApiEditListingDocs } from './decorators/api-edit-listing-docs.decorator';
+import { ApiDeleteListingDocs } from './decorators/api-delete-listing-docs.decorator';
+import { ApiGetRecomendsDocs } from './decorators/api-get-recomends-docs.decorator';
+import { ApiGetUserListingsDocs } from './decorators/api-get-user-listings-docs.decorator';
 
 @Controller('listings')
 export class ListingsController {
@@ -53,6 +58,7 @@ export class ListingsController {
   }
 
   @Get(':listingId/recomends')
+  @ApiGetRecomendsDocs()
   async getRecomendsByListingId(
     @Param('listingId') listingId: string,
     @Query() query: GetRecomentQueryDto,
@@ -61,6 +67,7 @@ export class ListingsController {
   }
 
   @Get('users/:user_id')
+  @ApiGetUserListingsDocs()
   async listingsByUserId(@Param('user_id', ParseUUIDPipe) user_id: string) {
     return await this.listingsService.listingsByUserId(user_id);
   }
@@ -90,12 +97,14 @@ export class ListingsController {
   // Переместить ВСЕ объявления из ARCHIVE в PUBLISHED
   @Post('bulk-restore')
   @Protected()
+  @ApiBulkRestoreDocs()
   async bulkRestore(@CurrentUser() user: JwtPayload) {
     return await this.listingsService.bulkRestore(user.id);
   }
 
   @Post('complaint')
   @Protected()
+  @ApiComplaintDocs()
   async makeComplaintToListing(
     @CurrentUser() user: JwtPayload,
     @Body() body: MakeComplaintToListing,
@@ -108,16 +117,18 @@ export class ListingsController {
   // TODO: добавить документацию
   @Patch('edit/:id')
   @Protected()
+  @ApiEditListingDocs()
   async editListingById(
     @CurrentUser() user: JwtPayload,
     @Param('id', ParseUUIDPipe) id: string,
-    body: UpdateListingDto,
+    @Body() body: UpdateListingDto,
   ) {
     return await this.listingsService.editListingById(id, user, body);
   }
 
   @Delete(':id')
   @Protected()
+  @ApiDeleteListingDocs()
   @HttpCode(HttpStatus.NO_CONTENT)
   async deleteListingById(
     @CurrentUser() user: JwtPayload,

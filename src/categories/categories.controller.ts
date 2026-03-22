@@ -13,8 +13,17 @@ import {
   SubcategoryResponseDto,
   SubSubcategoryResponseDto,
 } from './dto/response/categories-response.dto';
-import { CategoriesApiDocs } from './decorators/categories.decorator';
-import { ApiQuery, ApiTags } from '@nestjs/swagger';
+import { 
+  CategoriesApiDocs, 
+  ApiGetCategoryTreeDocs, 
+  ApiGetSubcategoriesDocs, 
+  ApiGetSubcategoryTreeDocs, 
+  ApiGetSubsubcategoriesDocs, 
+  ApiGetLegalEntityTypesDocs, 
+  ApiPostLegalEntitySeedDocs, 
+  ApiPostCategoriesSeedDocs 
+} from './decorators';
+import { ApiTags, ApiQuery } from '@nestjs/swagger';
 import { Language } from '@/dictionaries/dto/request/get-currency.dto';
 import { GetLegalEntityTypesDto } from './dto/request/get-legal-entity-types.dto';
 
@@ -33,29 +42,34 @@ export class CategoriesController {
   }
 
   @Get('categories/:id/tree')
+  @ApiGetCategoryTreeDocs()
   async getCategoryTreeById(@Param('id', ParseIntPipe) id: number) {
     return await this.categoriesService.getCategoryTreeById(id);
   }
 
   @Get('subcategories')
   @Public()
+  @ApiGetSubcategoriesDocs()
   async getSubCategories(): Promise<SubcategoryResponseDto[]> {
     return await this.categoriesService.subcategoriesList();
   }
 
   @Get('subcategories/:id/tree')
+  @ApiGetSubcategoryTreeDocs()
   async getSubCategoriesTreeById(@Param('id', ParseIntPipe) id: number) {
     return await this.categoriesService.getCategoryTreeById(id);
   }
 
   @Get('subsubcategories')
   @Public()
+  @ApiGetSubsubcategoriesDocs()
   async getSubSubcategories(): Promise<SubSubcategoryResponseDto[]> {
     return await this.categoriesService.subsubcategoriesList();
   }
 
   @Get('legal-entity-types')
   @Public()
+  @ApiGetLegalEntityTypesDocs()
   @ApiQuery({
     name: 'lang',
     enum: Language,
@@ -71,12 +85,14 @@ export class CategoriesController {
 
   @Post('legal-entity-types/seed')
   @Public()
+  @ApiPostLegalEntitySeedDocs()
   async addSeedLegalEntityTypes() {
     return await this.categoriesService.addSeedLegalEntityTypes();
   }
 
   @Post('seed')
   @Public()
+  @ApiPostCategoriesSeedDocs()
   async addSeedDatas(): Promise<string> {
     return await this.categoriesService.seedCategories();
   }

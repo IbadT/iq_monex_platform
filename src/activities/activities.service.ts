@@ -1,5 +1,12 @@
-import { Injectable, BadRequestException, ConflictException } from '@nestjs/common';
-import { AddActivityToUserDto, ActivityAction } from '@/users/dto/add-activity-to-user.dto';
+import {
+  Injectable,
+  BadRequestException,
+  ConflictException,
+} from '@nestjs/common';
+import {
+  AddActivityToUserDto,
+  ActivityAction,
+} from '@/users/dto/add-activity-to-user.dto';
 import { ActivityProcessData } from '@/users/interfaces/activity.interface';
 import { prisma } from '@/lib/prisma';
 import { CacheService } from '@/cache/cacheService.service';
@@ -9,120 +16,67 @@ import { PrismaClient } from 'prisma/generated/client';
 export class ActivitiesService {
   constructor(private readonly cacheService: CacheService) {}
 
-        async addUserActivity(userId: string, body: AddActivityToUserDto) {
-          try {
-            if (body.id) {
-              await this.cacheService.del(`activities/users:${userId}`);
-              await this.cacheService.del(`activities`);
-              return await prisma.userActivity.create({
-                data: {
-                  userId,
-                  activityId: body.id
-                }
-              })
-            } else if (body.activity) {
-              // Сначала проверим, существует ли активность с таким именем
-              let activity = await prisma.activity.findFirst({
-                where: { name: body.activity }
-              });
-              
-              if (!activity) {
-                // Если не существует, создаем новую
-                activity = await prisma.activity.create({
-                  data: {
-                    name: body.activity
-                  }
-                });
-              }
-              
-              // Очищаем кэш
-              await this.cacheService.del(`activities/users:${userId}`);
-              await this.cacheService.del(`activities`);
-              
-              try {
-                return await prisma.userActivity.create({
-                  data: {
-                    userId,
-                    activityId: activity.id
-                  }
-                });
-              } catch (error) {
-                if (error.code === 'P2002') {
-                  throw new ConflictException('User already has this activity');
-                }
-                throw error;
-              }
-            }
-      
-            throw new BadRequestException('Activity id or activity name is required');
-          } catch (error) {
-            if (error.code === 'P2002') {
-              throw new ConflictException('User already has this activity');
-            }
-            throw error;
-          }
-        }
+  async addUserActivity(userId: string, body: AddActivityToUserDto) {
+    try {
+      switch (body.action) {
+        case ActivityAction.CREATE:
+          return await this.handleCreateActivity(body, userId, prisma);
 
-  async processActivities(data: ActivityProcessData) {
-    const { userId, activities, tx } = data;
-    
-    if (!activities || activities.length === 0) {
-      return;
-    }
+        case ActivityAction.BIND:
+          return await this.handleBindActivity(body, userId, prisma);
 
-    for (const activity of activities) {
-      await this.processActivityAction(activity, userId, tx);
+        case ActivityAction.UPDATE:
+          return await this.handleUpdateActivity(body, userId, prisma);
+
+        case ActivityAction.DELETE:
+          return await this.handleDeleteActivity(body, userId, prisma);
+
+        case ActivityAction.IGNORE:
+          return null;
+
+        default:
+          throw new BadRequestException(`Unknown action: ${body.action}`);
+      }
+    } catch (error) {
+      if (error.code === 'P2002') {
+        throw new ConflictException('User already has this activity');
+      }
+      throw error;
     }
   }
 
-  private async processActivityAction(
-    activity: AddActivityToUserDto, 
-    userId: string, 
-    tx: PrismaClient
-  ): Promise<any> {
-    switch (activity.action) {
-      case ActivityAction.CREATE:
-        return await this.handleCreateActivity(activity, userId, tx);
-      
-      case ActivityAction.UPDATE:
-        return await this.handleUpdateActivity(activity, userId, tx);
-      
-      case ActivityAction.DELETE:
-        return await this.handleDeleteActivity(activity, userId, tx);
-      
-      case ActivityAction.IGNORE:
-        return null;
-      
-      default:
-        throw new BadRequestException(`Unknown activity action: ${activity.action}`);
-    }
-  }
-
-  private async handleCreateActivity(activity: AddActivityToUserDto, userId: string, tx: PrismaClient) {
-    if (!activity.activity) {
+  private async handleCreateActivity(
+    body: AddActivityToUserDto,
+    userId: string,
+    tx: PrismaClient,
+  ) {
+    if (!body.activity) {
       throw new BadRequestException('Activity name is required for CREATE action');
     }
 
     // Сначала проверим, существует ли активность с таким именем
-    let activityRecord = await tx.activity.findFirst({
-      where: { name: activity.activity }
+    let activity = await tx.activity.findFirst({
+      where: { name: body.activity },
     });
-    
-    if (!activityRecord) {
+
+    if (!activity) {
       // Если не существует, создаем новую
-      activityRecord = await tx.activity.create({
+      activity = await tx.activity.create({
         data: {
-          name: activity.activity,
+          name: body.activity,
         },
       });
     }
-    
-    // Создаем связь пользователя с активностью
+
+    // Очищаем кэш
+    await this.cacheService.del(`activities/users:${userId}`);
+    await this.cacheService.del(`activities`);
+
     try {
-      await tx.userActivity.create({
+      return await tx.userActivity.create({
         data: {
-          userId: userId,
-          activityId: activityRecord.id,
+          userId,
+          activityId: activity.id,
         },
       });
     } catch (error) {
@@ -133,73 +87,157 @@ export class ActivitiesService {
     }
   }
 
-  private async handleUpdateActivity(activity: AddActivityToUserDto, userId: string, tx: PrismaClient) {
-    if (!activity.id) {
-      throw new BadRequestException('Activity ID is required for UPDATE action');
+  private async handleBindActivity(
+    body: AddActivityToUserDto,
+    userId: string,
+    tx: PrismaClient,
+  ) {
+    if (!body.id) {
+      throw new BadRequestException('Activity ID is required for BIND action');
     }
 
-    if (!activity.activity) {
-      throw new BadRequestException('Activity name is required for UPDATE action');
-    }
-
-    // Проверяем, что активность существует
-    const existingActivity = await tx.activity.findUnique({
-      where: { id: activity.id },
+    // Проверяем существование активности
+    const activity = await tx.activity.findUnique({
+      where: { id: body.id },
     });
 
-    if (!existingActivity) {
-      throw new BadRequestException(`Activity with id ${activity.id} not found`);
+    if (!activity) {
+      throw new BadRequestException(`Activity with ID ${body.id} not found`);
     }
 
-    // Обновляем активность
+    // Очищаем кэш
+    await this.cacheService.del(`activities/users:${userId}`);
+    await this.cacheService.del(`activities`);
+
     try {
-      await tx.activity.update({
-        where: { id: activity.id },
+      return await tx.userActivity.create({
         data: {
-          name: activity.activity,
+          userId,
+          activityId: body.id,
         },
       });
     } catch (error) {
       if (error.code === 'P2002') {
-        throw new ConflictException(`Activity with name "${activity.activity}" already exists`);
+        throw new ConflictException('User already has this activity');
       }
       throw error;
     }
+  }
 
-    // Проверяем, есть ли связь с пользователем
-    const currentUserActivity = await tx.userActivity.findUnique({
+  private async handleUpdateActivity(
+    body: AddActivityToUserDto,
+    userId: string,
+    tx: PrismaClient,
+  ) {
+    if (!body.id) {
+      throw new BadRequestException('Activity ID is required for UPDATE action');
+    }
+
+    // Находим существующую связь пользователя с активностью
+    const userActivity = await tx.userActivity.findFirst({
       where: {
-        userId_activityId: {
-          userId: userId,
-          activityId: activity.id,
-        },
+        userId,
+        activityId: body.id,
       },
     });
 
-    if (!currentUserActivity) {
-      // Создаем связь пользователя с активностью
-      await tx.userActivity.create({
-        data: {
-          userId: userId,
-          activityId: activity.id,
-        },
+    if (!userActivity) {
+      throw new BadRequestException('User activity not found');
+    }
+
+    // Если указано новое название активности, обновляем или создаем активность
+    if (body.activity) {
+      let activity = await tx.activity.findFirst({
+        where: { name: body.activity },
+      });
+
+      if (!activity) {
+        activity = await tx.activity.create({
+          data: { name: body.activity },
+        });
+      }
+
+      // Очищаем кэш
+      await this.cacheService.del(`activities/users:${userId}`);
+      await this.cacheService.del(`activities`);
+
+      return await tx.userActivity.update({
+        where: { id: userActivity.id },
+        data: { activityId: activity.id },
       });
     }
+
+    throw new BadRequestException('Activity name is required for UPDATE action');
   }
 
-  private async handleDeleteActivity(activity: AddActivityToUserDto, userId: string, tx: PrismaClient) {
-    if (!activity.id) {
+  private async handleDeleteActivity(
+    body: AddActivityToUserDto,
+    userId: string,
+    tx: PrismaClient,
+  ) {
+    if (!body.id) {
       throw new BadRequestException('Activity ID is required for DELETE action');
     }
 
-    await tx.userActivity.delete({
+    // Находим и удаляем связь пользователя с активностью
+    const userActivity = await tx.userActivity.findFirst({
       where: {
-        userId_activityId: {
-          userId: userId,
-          activityId: activity.id,
-        },
+        userId,
+        activityId: body.id,
       },
     });
+
+    if (!userActivity) {
+      throw new BadRequestException('User activity not found');
+    }
+
+    // Очищаем кэш
+    await this.cacheService.del(`activities/users:${userId}`);
+    await this.cacheService.del(`activities`);
+
+    return await tx.userActivity.delete({
+      where: { id: userActivity.id },
+    });
+  }
+
+  async processActivities(data: ActivityProcessData) {
+    const { userId, activities, tx } = data;
+
+    if (!activities || activities.length === 0) {
+      return;
+    }
+
+    for (const activity of activities) {
+      await this.processActivityAction(activity, userId, tx);
+    }
+  }
+
+  private async processActivityAction(
+    activity: AddActivityToUserDto,
+    userId: string,
+    tx: PrismaClient,
+  ): Promise<any> {
+    switch (activity.action) {
+      case ActivityAction.CREATE:
+        return await this.handleCreateActivity(activity, userId, tx);
+
+      case ActivityAction.BIND:
+        return await this.handleBindActivity(activity, userId, tx);
+
+      case ActivityAction.UPDATE:
+        return await this.handleUpdateActivity(activity, userId, tx);
+
+      case ActivityAction.DELETE:
+        return await this.handleDeleteActivity(activity, userId, tx);
+
+      case ActivityAction.IGNORE:
+        return null;
+
+      default:
+        throw new BadRequestException(
+          `Unknown activity action: ${activity.action}`,
+        );
+    }
   }
 
   async getActivities() {
@@ -221,10 +259,10 @@ export class ActivitiesService {
     const cacheKey = `activities/users:${userId}`;
     const cachedData = await this.cacheService.get(cacheKey);
     if (cachedData) return cachedData;
-    
+
     const activities = await prisma.userActivity.findMany({
       where: {
-        userId
+        userId,
       },
       include: {
         activity: true,

@@ -102,57 +102,57 @@ export function ApiCreateReviewDocs() {
             example: '123e4567-e89b-12d3-a456-426614174000',
             description: 'UUID созданного отзыва',
           },
-          listingId: {
-            type: 'string',
-            example: '123e4567-e89b-12d3-a456-426614174000',
-            description: 'ID объявления',
-          },
-          userId: {
-            type: 'string',
-            example: '123e4567-e89b-12d3-a456-426614174000',
-            description: 'ID пользователя-автора',
-          },
-          title: {
-            type: 'string',
-            example: 'Отличное объявление',
-            description: 'Заголовок отзыва',
-          },
-          content: {
-            type: 'string',
-            example:
-              'Продавец очень вежливый, товар соответствует описанию. Рекомендую!',
-            description: 'Содержание отзыва',
-          },
-          rating: {
-            type: 'number',
-            example: 5,
-            minimum: 1,
-            maximum: 5,
-            description: 'Рейтинг от 1 до 5',
-          },
-          photos: {
-            type: 'array',
-            items: {
-              type: 'string',
-            },
-            maxItems: 5,
-            example: [
-              'data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAYAAAAfFcSJAAAADUlEQVR42mNk+M9QDwADhgGAWjR9awAAAABJRU5ErkJggg==',
-            ],
-            description: 'Массив base64 строк для файлов (макс. 5)',
-          },
-          createdAt: {
-            type: 'string',
-            format: 'date-time',
-            example: '2024-01-15T10:30:00Z',
-            description: 'Дата создания отзыва',
-          },
-          updatedAt: {
-            type: 'string',
-            format: 'date-time',
-            example: '2024-01-15T10:30:00Z',
-            description: 'Дата обновления отзыва',
-          },
+          // listingId: {
+          //   type: 'string',
+          //   example: '123e4567-e89b-12d3-a456-426614174000',
+          //   description: 'ID объявления',
+          // },
+          // userId: {
+          //   type: 'string',
+          //   example: '123e4567-e89b-12d3-a456-426614174000',
+          //   description: 'ID пользователя-автора',
+          // },
+          // title: {
+          //   type: 'string',
+          //   example: 'Отличное объявление',
+          //   description: 'Заголовок отзыва',
+          // },
+          // content: {
+          //   type: 'string',
+          //   example:
+          //     'Продавец очень вежливый, товар соответствует описанию. Рекомендую!',
+          //   description: 'Содержание отзыва',
+          // },
+          // rating: {
+          //   type: 'number',
+          //   example: 5,
+          //   minimum: 1,
+          //   maximum: 5,
+          //   description: 'Рейтинг от 1 до 5',
+          // },
+          // photos: {
+          //   type: 'array',
+          //   items: {
+          //     type: 'string',
+          //   },
+          //   maxItems: 5,
+          //   example: [
+          //     'data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAYAAAAfFcSJAAAADUlEQVR42mNk+M9QDwADhgGAWjR9awAAAABJRU5ErkJggg==',
+          //   ],
+          //   description: 'Массив base64 строк для файлов (макс. 5)',
+          // },
+          // createdAt: {
+          //   type: 'string',
+          //   format: 'date-time',
+          //   example: '2024-01-15T10:30:00Z',
+          //   description: 'Дата создания отзыва',
+          // },
+          // updatedAt: {
+          //   type: 'string',
+          //   format: 'date-time',
+          //   example: '2024-01-15T10:30:00Z',
+          //   description: 'Дата обновления отзыва',
+          // },
         },
       },
     }),

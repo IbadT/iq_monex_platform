@@ -14,9 +14,14 @@ import { Protected } from '@/common/decorators';
 import { UpdateUserDto } from './dto/update-user.dto';
 import { CurrentUser } from '@/common/decorators/current-user.decorator';
 import { JwtPayload } from '@/common/interfaces/jwt-payload.interface';
-import { MakeComplaintToUser } from './dto/make-complaint-to-user.dto';
+import { MakeComplaintToUserDto } from './dto/make-complaint-to-user.dto';
 import { ApiUpdateUserDocs } from './decorators/api-update-user-docs.decorator';
 import { GetProfilesDto } from './dto/get-profiles.dto';
+import { ApiGetProfilesDocs } from './decorators/api-get-profiles-docs.decorator';
+import { ApiGetProfileByIdDocs } from './decorators/api-get-profile-by-id-docs.decorator';
+import { ApiGetUserByAccountNumberDocs } from './decorators/api-get-user-by-account-number-docs.decorator';
+import { ApiMakeComplaintToUserDocs } from './decorators/api-make-complaint-to-user-docs.decorator';
+import { ApiSeedRolesDocs } from './decorators/api-seed-roles-docs.decorator';
 
 @ApiTags('Users')
 @Controller('users')
@@ -25,9 +30,8 @@ export class UsersController {
 
   // получить все профили
   @Get('profiles')
-  async getProfiles(
-    @Query() query: GetProfilesDto
-  ) {
+  @ApiGetProfilesDocs()
+  async getProfiles(@Query() query: GetProfilesDto) {
     // Если есть поисковый запрос, используем Elasticsearch
     if (query.query || query.ratingMin !== null || query.activityIds) {
       return await this.usersService.searchProfiles(query);
@@ -39,22 +43,25 @@ export class UsersController {
   // получить свой профиль
   // получить профиль
   @Get(':id/profiles')
+  @ApiGetProfileByIdDocs()
   async getProfileById(@Param('id', ParseUUIDPipe) id: string) {
     return await this.usersService.getUserById(id);
   }
 
   @Get(':account_number')
+  @ApiGetUserByAccountNumberDocs()
   async getUserByAccountNumber(
     @Param('account_number') account_number: string,
   ) {
     return await this.usersService.getUserByAccountNumber(account_number);
   }
 
-  @Get('favorites')
-  @Protected()
-  async getUserFavoritesProfiles(@CurrentUser() user: JwtPayload) {
-    return await this.usersService.getUserFavoritesProfiles(user.id);
-  }
+  // @Get('favorites')
+  // @Protected()
+  // @ApiGetUserFavoritesDocs()
+  // async getUserFavoritesProfiles(@CurrentUser() user: JwtPayload) {
+  //   return await this.usersService.getUserFavoritesProfiles(user.id);
+  // }
 
   // @Post('favorites')
   // @Protected()
@@ -67,14 +74,16 @@ export class UsersController {
 
   @Post('users/:id/complaint')
   @Protected()
+  @ApiMakeComplaintToUserDocs()
   async makeComplaintToUser(
     @CurrentUser() user: JwtPayload,
-    @Body() body: MakeComplaintToUser,
+    @Body() body: MakeComplaintToUserDto,
   ) {
     return await this.usersService.makeComplaintToUser(user.id, body);
   }
 
   @Post('seed-roles')
+  @ApiSeedRolesDocs()
   async seedRoles() {
     return await this.usersService.seedRoles();
   }

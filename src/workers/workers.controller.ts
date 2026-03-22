@@ -7,6 +7,12 @@ import { Protected } from '@/common/decorators';
 import { CurrentUser } from '@/common/decorators/current-user.decorator';
 import { JwtPayload } from '@/common/interfaces/jwt-payload.interface';
 import { UpdateWorkerDto } from './dto/update-worker.dto';
+import { ApiCreateWorkerDocs } from './decorators/api-create-worker-docs.decorator';
+import { ApiChangeWorkerStatusDocs } from './decorators/api-change-worker-status-docs.decorator';
+import { ApiGetUserWorkersDocs } from './decorators/api-get-user-workers-docs.decorator';
+import { ApiGetRolesDocs } from './decorators/api-get-roles-docs.decorator';
+import { ApiCreateRoleDocs } from './decorators/api-create-role-docs.decorator';
+import { ApiUpdateWorkersDocs } from './decorators/api-update-workers-docs.decorator';
 
 @Controller('workers')
 export class WorkersController {
@@ -14,6 +20,7 @@ export class WorkersController {
 
   @Post('')
   @Protected()
+  @ApiCreateWorkerDocs()
   async createWorker(
     @CurrentUser() user: JwtPayload,
     @Body() body: CreateWorkersDto,
@@ -24,6 +31,7 @@ export class WorkersController {
   // установить статут работника в false
   @Post(':id/change-status')
   @Protected()
+  @ApiChangeWorkerStatusDocs()
   async changeWorkerActiveStatus(
     @CurrentUser() user: JwtPayload,
     @Body() body: ChangeWorkerStatus
@@ -33,22 +41,26 @@ export class WorkersController {
 
   @Get('')
   @Protected()
+  @ApiGetUserWorkersDocs()
   async getUserWorkers(@CurrentUser() user: JwtPayload) {
     return await this.workersService.getUserWorkers(user.id);
   }
 
   @Get('roles')
+  @ApiGetRolesDocs()
   async getRoles() {
     return await this.workersService.getRoles();
   }
 
   @Post('roles')
+  @ApiCreateRoleDocs()
   async createRole(@Body() body: CreateRoleDto) {
     return await this.workersService.createRole(body);
   }
 
   @Patch('')
   @Protected()
+  @ApiUpdateWorkersDocs()
   async updateWorkers(
     @CurrentUser() user: JwtPayload,
     @Body() body: UpdateWorkerDto,

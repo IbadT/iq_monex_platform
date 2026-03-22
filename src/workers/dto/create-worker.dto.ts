@@ -20,11 +20,16 @@ export enum WorkerAction {
 
 export class CreateWorkerDto {
   @ApiProperty({
-    description: "ID сотрудника",
-    example: "123e4567-e89b-12d3-a456-426614174000",
-    required: false
+    description: 'ID сотрудника (если action: CREATE, то id не передавать)',
+    example: '123e4567-e89b-12d3-a456-426614174000',
+    required: false,
   })
-  @ValidateIf((object: CreateWorkerDto) => object.action === WorkerAction.UPDATE || object.action === WorkerAction.DELETE || object.action === WorkerAction.ACTIVITY)
+  @ValidateIf(
+    (object: CreateWorkerDto) =>
+      object.action === WorkerAction.UPDATE ||
+      object.action === WorkerAction.DELETE ||
+      object.action === WorkerAction.ACTIVITY,
+  )
   @IsOptional()
   @IsUUID()
   id?: string | null;
@@ -69,7 +74,8 @@ export class CreateWorkerDto {
   roleId: string;
 
   @ApiProperty({
-    description: 'Действие с сотрудником (CREATE - создать нового, UPDATE - обновить существующего, IGNORE - не трогать, DELETE - удалить)',
+    description:
+      'Действие с сотрудником (CREATE - создать нового, UPDATE - обновить существующего, IGNORE - не трогать, DELETE - удалить)',
     enum: WorkerAction,
     example: WorkerAction.CREATE,
     required: true,
@@ -81,9 +87,9 @@ export class CreateWorkerDto {
 
   constructor(
     id: string | null,
-    name: string, 
-    email: string, 
-    phone: string, 
+    name: string,
+    email: string,
+    phone: string,
     roleId: string,
     action: WorkerAction,
   ) {

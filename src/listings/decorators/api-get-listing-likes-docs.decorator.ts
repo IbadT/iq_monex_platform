@@ -19,14 +19,16 @@ export const ApiGetListingLikesDocs = () =>
       description: 'Список лайков получен',
       schema: {
         example: {
-          listingId: 'uuid',
+          listingId: 'bcea00ce-0a3b-4063-9289-1fd63662cbd3',
           likesCount: 42,
           likes: [
             {
-              id: 'uuid',
+              id: 'bcea00ce-0a3b-4063-9289-1fd63662cbd3',
+              listingIId: 'bcea00ce-0a3b-4063-9289-1fd63662cbd3',
+              userId: 'bcea00ce-0a3b-4063-9289-1fd63662cbd3',
               createdAt: '2026-03-09T18:47:00.000Z',
               user: {
-                id: 'uuid',
+                id: 'bcea00ce-0a3b-4063-9289-1fd63662cbd3',
                 name: 'Имя пользователя',
                 email: 'user@example.com',
               },
