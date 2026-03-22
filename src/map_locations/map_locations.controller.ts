@@ -1,7 +1,16 @@
-import { Controller } from '@nestjs/common';
-// import { MapLocationsService } from './map_locations.service';
+import { Controller, Post, Body } from '@nestjs/common';
+import { MapLocationsService } from './map_locations.service';
+import { EnterpriceQueryDto } from './dto/request/enterprice-query.dto';
+// import { ApiFindEnterprisesOperation } from './decorators/enterprice.decorator';
 
 @Controller('map-locations')
 export class MapLocationsController {
-  // constructor(private readonly mapLocationsService: MapLocationsService) {}
+  constructor(private readonly mapLocationsService: MapLocationsService) {}
+
+  // TODO: добавить limit, offset
+  @Post('enterprises')
+  // @ApiFindEnterprisesOperation()
+  async enterprisesList(@Body() body: EnterpriceQueryDto) {
+    return await this.mapLocationsService.enterprisesList(body);
+  }
 }

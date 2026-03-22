@@ -14,12 +14,7 @@ import { ListingsService } from './listings.service';
 import { ListingQueryDto } from './dto/request/listing-query.dto';
 import { CreateListingDto } from './dto/request/create-listing.dto';
 import { UpdateListingDto } from './dto/request/update-listing.dto';
-// import { AddFavoriteListingDto } from './dto/request/add-favorite-listing.dto';
 import { Protected } from '@/common/decorators/protected.decorator';
-// import {
-//   ApiToggleFavoriteDocs,
-//   // ApiGetFavoritesDocs,
-// } from './decorators/api-toggle-favorite-docs.decorator';
 import { StatusQueryDto } from './dto/request/status-query.dto';
 import { ApiChangeStatusDocs } from './decorators/api-change-status-docs.decorator';
 import { ChangeListingStatusDto } from './dto/request/change-listing-status.dto';
@@ -85,8 +80,18 @@ export class ListingsController {
   @Post('change-status')
   @ApiChangeStatusDocs()
   @Protected()
-  async changeListingStatus(@Body() body: ChangeListingStatusDto) {
-    return await this.listingsService.listingPublishFromDraft(body);
+  async changeListingStatus(
+    @CurrentUser() user: JwtPayload,
+    @Body() body: ChangeListingStatusDto,
+  ) {
+    return await this.listingsService.changeListingStatus(user.id, body);
+  }
+
+  // Переместить ВСЕ объявления из ARCHIVE в PUBLISHED
+  @Post('bulk-restore')
+  @Protected()
+  async bulkRestore(@CurrentUser() user: JwtPayload) {
+    return await this.listingsService.bulkRestore(user.id);
   }
 
   @Post('complaint')

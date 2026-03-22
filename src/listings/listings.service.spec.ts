@@ -1,14 +1,16 @@
 import { Test, TestingModule } from '@nestjs/testing';
 import { ListingsService } from './listings.service';
 import { ListingQueryDto } from './dto/request/listing-query.dto';
-import { ListingStatus } from './enums/listing-status.enum';
-import { ListingCondition } from './enums/listing-status.enum';
+import { ListingStatus, ListingCondition } from './enums/listing-status.enum';
 import { CacheService } from '@/cache/cacheService.service';
 import { S3Service } from '@/s3/s3.service';
 import { SubscriptionService } from '@/subscription/subscription.service';
 import { SearchService } from '@/search/search.service';
 import { RabbitmqService } from '@/rabbitmq/rabbitmq.service';
 import { AppLogger } from '@/common/logger/logger.service';
+import { CategoriesService } from '@/categories/categories.service';
+import { DictionariesService } from '@/dictionaries/dictionaries.service';
+import { MapLocationsService } from '@/map_locations/map_locations.service';
 
 describe('ListingsService', () => {
   let service: ListingsService;
@@ -52,6 +54,19 @@ describe('ListingsService', () => {
       verbose: jest.fn(),
     };
 
+    const mockCategoriesService = {
+      checkCategoryById: jest.fn(),
+    };
+
+    const mockDictionariesService = {
+      chechCurrencyById: jest.fn(),
+      checkUnitMeasurement: jest.fn(),
+    };
+
+    const mockMapLocationsService = {
+      createMapLocationsForListing: jest.fn(),
+    };
+
     const module: TestingModule = await Test.createTestingModule({
       providers: [
         ListingsService,
@@ -78,6 +93,18 @@ describe('ListingsService', () => {
         {
           provide: AppLogger,
           useValue: mockLogger,
+        },
+        {
+          provide: CategoriesService,
+          useValue: mockCategoriesService,
+        },
+        {
+          provide: DictionariesService,
+          useValue: mockDictionariesService,
+        },
+        {
+          provide: MapLocationsService,
+          useValue: mockMapLocationsService,
         },
       ],
     }).compile();

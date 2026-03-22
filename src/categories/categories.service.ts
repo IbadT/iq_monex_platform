@@ -1,4 +1,8 @@
-import { Injectable, NotFoundException } from '@nestjs/common';
+import {
+  BadRequestException,
+  Injectable,
+  NotFoundException,
+} from '@nestjs/common';
 import { CacheService } from '@/cache/cacheService.service';
 import { prisma } from '@/lib/prisma';
 import {
@@ -35,6 +39,18 @@ export class CategoriesService {
     });
 
     return legalEntityTypesWithLang;
+  }
+
+  async checkCategoryById(id: number) {
+    const hasCategory = await prisma.category.findUnique({
+      where: {
+        id,
+      },
+    });
+    if (!hasCategory) {
+      throw new BadRequestException(`Категория с ID ${id} не найдена`);
+    }
+    return !!hasCategory;
   }
 
   async addSeedLegalEntityTypes() {

@@ -1,4 +1,8 @@
-import { Injectable, NotFoundException } from '@nestjs/common';
+import {
+  BadRequestException,
+  Injectable,
+  NotFoundException,
+} from '@nestjs/common';
 import { ConfigService } from '@nestjs/config';
 import axios from 'axios';
 import { Language } from './dto/request/get-currency.dto';
@@ -44,6 +48,31 @@ export class DictionariesService {
     private readonly cacheService: CacheService,
     private readonly logger: AppLogger,
   ) {}
+
+  async chechCurrencyById(id: number) {
+    const hasCurrency = await prisma.currency.findUnique({
+      where: {
+        id,
+      },
+    });
+
+    if (!hasCurrency) {
+      throw new BadRequestException(`Валюта с ID ${id} не найдена`);
+    }
+    return !!hasCurrency;
+  }
+
+  async checkUnitMeasurement(id: number) {
+    const hasUnitMeasurement = await prisma.unitMeasurement.findUnique({
+      where: { id },
+    });
+
+    if (!hasUnitMeasurement) {
+      throw new BadRequestException(`Единица измерения с ID ${id} не найдена`);
+    }
+
+    return !!hasUnitMeasurement;
+  }
 
   async getCategoryRates() {
     const valuts: CurrencyRateEntity[] = await prisma.currencyRate.findMany();
