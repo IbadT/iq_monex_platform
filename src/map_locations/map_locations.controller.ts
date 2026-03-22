@@ -1,7 +1,7 @@
 import { Controller, Post, Body } from '@nestjs/common';
 import { MapLocationsService } from './map_locations.service';
 import { EnterpriceQueryDto } from './dto/request/enterprice-query.dto';
-// import { ApiFindEnterprisesOperation } from './decorators/enterprice.decorator';
+import { ApiEnterprisesDocs } from './decorators/api-enterprises-docs.decorator';
 
 @Controller('map-locations')
 export class MapLocationsController {
@@ -9,7 +9,7 @@ export class MapLocationsController {
 
   // TODO: добавить limit, offset
   @Post('enterprises')
-  // @ApiFindEnterprisesOperation()
+  @ApiEnterprisesDocs()
   async enterprisesList(@Body() body: EnterpriceQueryDto) {
     return await this.mapLocationsService.enterprisesList(body);
   }

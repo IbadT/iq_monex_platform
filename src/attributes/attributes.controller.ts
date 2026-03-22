@@ -3,7 +3,7 @@ import { AttributesService } from './attributes.service';
 import { Language } from '@/dictionaries/dto/request/get-currency.dto';
 import { GetSpecificationDto } from './dto/request/specification.dto';
 import { Public } from '@/common/decorators';
-import { ApiQuery } from '@nestjs/swagger';
+import { ApiGetSpecificationsDocs } from './decorators';
 
 // Спецификации для объявлений
 // TODO: добавить redis
@@ -13,13 +13,7 @@ export class AttributesController {
 
   @Get('')
   @Public()
-  @ApiQuery({
-    name: 'lang',
-    enum: Language,
-    required: false,
-    description: 'Язык (ru, en, kz)',
-    example: Language.RU,
-  })
+  @ApiGetSpecificationsDocs()
   async specificationList(@Query() query: GetSpecificationDto) {
     const lang = query.lang ?? Language.RU;
     return await this.attributesService.list(lang);

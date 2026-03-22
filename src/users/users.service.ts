@@ -14,12 +14,11 @@ import { UpdateUserDto } from './dto/update-user.dto';
 import { AppLogger } from '@/common/logger/logger.service';
 import { RoleType } from './enums/role-type.enum';
 import { roles } from './default/roleData';
-import { FavoriteType } from '@/favorites/enums/favorite-type.enum';
-import { MakeComplaintToUser } from './dto/make-complaint-to-user.dto';
 import { ComplaintType } from './enums/complaint-type.enum';
 import { PaginationDto } from '@/common/dto/pagintation.dto';
 import { PrismaClient } from 'prisma/generated/client';
 import { GetProfilesDto } from './dto/get-profiles.dto';
+import { MakeComplaintToUserDto } from './dto/make-complaint-to-user.dto';
 
 @Injectable()
 export class UsersService {
@@ -150,6 +149,8 @@ export class UsersService {
 
       // Получаем полные данные из Prisma для найденных ID с сортировкой
       const dbStartTime = Date.now();
+
+      // TODO: вынести по отдельным запосам для скорости
       const profiles = await prisma.profile.findMany({
         where: {
           id: { in: profileIds },
@@ -217,6 +218,7 @@ export class UsersService {
   }
 
   async getProfilesFromDB(query: GetProfilesDto) {
+    // TODO: вынести по отдельным запосам для скорости
     const dbQuery: any = {
       take: query.limit,
       skip: query.offset,
@@ -383,16 +385,16 @@ export class UsersService {
     });
   }
 
-  async getUserFavoritesProfiles(userId: string) {
-    return await prisma.favorite.findMany({
-      where: {
-        userId,
-        type: FavoriteType.USER,
-      },
-    });
-  }
+  // async getUserFavoritesProfiles(userId: string) {
+  //   return await prisma.favorite.findMany({
+  //     where: {
+  //       userId,
+  //       type: FavoriteType.USER,
+  //     },
+  //   });
+  // }
 
-  async makeComplaintToUser(userId: string, body: MakeComplaintToUser) {
+  async makeComplaintToUser(userId: string, body: MakeComplaintToUserDto) {
     const checkComplaintAlreadyExist = await prisma.complaint.findFirst({
       where: {
         authorId: userId,
@@ -413,40 +415,6 @@ export class UsersService {
       },
     });
   }
-
-  // async addFavoriteToUser(userId: string, body: AddFavoriteToUserDto) {
-  //   const existFavorite = await prisma.favorite.findFirst({
-  //     where: {
-  //       userId,
-  //       targetUserId: body.userId,
-  //       type: FavoriteType.USER,
-  //     },
-  //   });
-
-  //   // проверка, что этот пользователь не добавляет самого себя
-  //   if (userId === existFavorite?.targetUserId) {
-  //     throw new BadRequestException(
-  //       'Пользователь не может добавить в избранное сам себя',
-  //     );
-  //   }
-
-  //   // если существует, то убрать из избранного
-  //   if (existFavorite) {
-  //     return await prisma.favorite.delete({
-  //       where: {
-  //         id: existFavorite.id,
-  //       },
-  //     });
-  //   } else {
-  //     return await prisma.favorite.create({
-  //       data: {
-  //         userId,
-  //         targetUserId: body.userId,
-  //         type: FavoriteType.USER,
-  //       },
-  //     });
-  //   }
-  // }
 
   async createUser(data: {
     email: string;
@@ -491,6 +459,7 @@ export class UsersService {
     try {
       // Начинаем транзакцию для атомарности операций
       const result = await prisma.$transaction(async (tx: PrismaClient) => {
+        // TODO: вынести по отдельным запосам для скорости
         // 1. Обновляем основные данные пользователя
         const updatedUser = await tx.user.update({
           where: { id },
@@ -514,6 +483,7 @@ export class UsersService {
         });
 
         if (existingProfile) {
+          // TODO: вынести по отдельным запосам для скорости
           // Обновляем существующий профиль
           const updatedProfile = await tx.profile.update({
             where: { userId: id },
@@ -550,6 +520,7 @@ export class UsersService {
           // Индексируем обновленный профиль в Elasticsearch
           await this.searchService.indexProfile(updatedProfile, tx);
         } else {
+          // TODO: вынести по отдельным запосам для скорости
           // Создаем новый профиль
           const newProfile = await tx.profile.create({
             data: {

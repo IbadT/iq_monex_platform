@@ -94,24 +94,93 @@ export class MapLocationsService {
     }
 
     // 7. Выполняем запрос к БД (быстрый поиск по индексу geoHash)
-    const candidates = await prisma.mapLocation.findMany({
+    // const candidates = await prisma.mapLocation.findMany({
+    //   where: whereConditions,
+    //   include: {
+    //     user: {
+    //       include: {
+    //         profile: true,
+    //         userActivities: {
+    //           include: {
+    //             activity: true,
+    //           },
+    //         },
+    //       },
+    //     },
+    //   },
+    //   take: 1000, // Ограничиваем для производительности
+    // });
+
+    // Шаг 8: Быстрый поиск mapLocations (без user)
+    const locations = await prisma.mapLocation.findMany({
       where: whereConditions,
-      include: {
+      select: {
+        id: true,
+        latitude: true,
+        longitude: true,
+        type: true,
+        userId: true,
         user: {
-          include: {
+          select: {
+            id: true,
+            email: true,
+            name: true,
+            accountNumber: true,
+            isVerified: true,
+            rating: true,
+            reviewsCount: true,
+            roleId: true,
+            createdAt: true,
+            updatedAt: true,
             profile: true,
             userActivities: {
-              include: {
-                activity: true,
+              select: {
+                id: true,
+                userId: true,
+                createdAt: true,
+                updatedAt: true,
+                activityId: true,
+                activity: {
+                  select: {
+                    id: true,
+                    name: true,
+                    createdAt: true,
+                    updatedAt: true,
+                  },
+                },
               },
             },
           },
         },
       },
-      take: 1000, // Ограничиваем для производительности
+      take: 1000,
     });
 
-    // 8. Точная фильтрация по расстоянию формулой Haversine
+    // Шаг 9: Получаем users отдельно (один запрос на 1000 записей!)
+    const userIds = [
+      ...new Set(
+        locations
+          .map((l) => l.userId)
+          .filter((id): id is string => id !== null),
+      ),
+    ];
+
+    const users = await prisma.user.findMany({
+      where: { id: { in: userIds } },
+      include: {
+        profile: true,
+        userActivities: { include: { activity: true } },
+      },
+    });
+
+    // Шаг 10: Собираем в памяти
+    const userMap = new Map(users.map((u) => [u.id, u]));
+    const candidates = locations.map((loc) => ({
+      ...loc,
+      user: loc.userId !== null ? userMap.get(loc.userId) : null,
+    }));
+
+    // 11. Точная фильтрация по расстоянию формулой Haversine
     // Геохеш даёт приблизительный отбор, Haversine — точный
     const results = candidates
       .map((location) => ({

@@ -21,6 +21,7 @@ import { ApiGetAllReviewsDocs } from './decorators/api-get-all-reviews-docs.deco
 import { ApiGetReviewByIdDocs } from './decorators/api-get-review-by-id-docs.decorator';
 import { ApiUpdateReviewDocs } from './decorators/api-update-review-docs.decorator';
 import { ApiDeleteReviewDocs } from './decorators/api-delete-review-docs.decorator';
+import { ApiCreateReviewToUserDocs } from './decorators/api-create-review-to-user-docs.decorator';
 // import { AppLogger } from '@/common/logger/logger.service';
 import { Admin, Protected } from '@/common/decorators';
 import { PaginationDto } from '@/common/dto/pagintation.dto';
@@ -37,8 +38,28 @@ export class ReviewsController {
 
   @Get('users/:id')
   @Protected()
+  //   [
+  //   {
+  //     "id": "4b41bdb4-f243-488c-8426-36a9546bbe67",
+  //     "authorId": "bcea00ce-0a3b-4063-9289-1fd63662cbd3",
+  //     "targetType": "USER",
+  //     "listingId": null,
+  //     "targetUserId": "99b57487-70b1-400b-af55-2f065db76053",
+  //     "rating": 5,
+  //     "title": null,
+  //     "content": "Отличный мастер, рекомендую!",
+  //     "status": "PENDING",
+  //     "likesCount": 0,
+  //     "reportsCount": 0,
+  //     "replyContent": null,
+  //     "replyAt": null,
+  //     "replyAuthorId": null,
+  //     "createdAt": "2026-03-22T16:24:33.144Z",
+  //     "updatedAt": "2026-03-22T16:24:33.144Z"
+  //   }
+  // ]
   async getUserReviews(
-    @Param("id", ParseUUIDPipe) id: string,
+    @Param('id', ParseUUIDPipe) id: string,
     @Query() query: PaginationDto,
   ) {
     return await this.reviewsService.getUserReviews(id, query);
@@ -46,6 +67,7 @@ export class ReviewsController {
 
   @Post('users')
   @Protected()
+  @ApiCreateReviewToUserDocs()
   async createReviewToUser(
     @CurrentUser() user: JwtPayload,
     @Body() body: CreateReviewToUserDto,

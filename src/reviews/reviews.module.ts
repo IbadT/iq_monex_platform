@@ -10,6 +10,9 @@ import { RabbitmqService } from '@/rabbitmq/rabbitmq.service';
 import { ReviewFileUploadConsumerService } from '@/rabbitmq/review-file-upload-consumer.service';
 import { SubscriptionServiceModule } from '@/subscription/subscription.module';
 import { SearchModule } from '@/search/search.module';
+import { CategoriesService } from '@/categories/categories.service';
+import { DictionariesService } from '@/dictionaries/dictionaries.service';
+import { MapLocationsService } from '@/map_locations/map_locations.service';
 
 @Module({
   imports: [
@@ -26,6 +29,9 @@ import { SearchModule } from '@/search/search.module';
     S3Service,
     RabbitmqService,
     ReviewFileUploadConsumerService,
+    CategoriesService,
+    DictionariesService,
+    MapLocationsService,
   ],
 })
 export class ReviewsModule {}

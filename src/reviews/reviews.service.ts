@@ -100,19 +100,34 @@ export class ReviewsService {
         });
 
         // Отправляем задачи в RabbitMQ для асинхронной загрузки в S3
-        body.photos.forEach(async (photoData, index) => {
-          const photoRecord = photoRecords[index];
-          await this.rabbitmqService.sendReviewFileUpload({
-            reviewId: review.id,
-            fileType: 'photo',
-            fileIndex: index,
-            fileData: photoData, // base64 данные
-            fileName: photoRecord.fileName,
-            contentType: photoRecord.fileType,
-            fileSize: photoRecord.fileSize,
-            s3Key: photoRecord.s3Key,
-          });
-        });
+        // body.photos.forEach(async (photoData, index) => {
+        //   const photoRecord = photoRecords[index];
+        //   await this.rabbitmqService.sendReviewFileUpload({
+        //     reviewId: review.id,
+        //     fileType: 'photo',
+        //     fileIndex: index,
+        //     fileData: photoData, // base64 данные
+        //     fileName: photoRecord.fileName,
+        //     contentType: photoRecord.fileType,
+        //     fileSize: photoRecord.fileSize,
+        //     s3Key: photoRecord.s3Key,
+        //   });
+        // });
+        await Promise.all(
+          body.photos.map(async (photoData, index) => {
+            const photoRecord = photoRecords[index];
+            return this.rabbitmqService.sendReviewFileUpload({
+              reviewId: review.id,
+              fileType: 'photo',
+              fileIndex: index,
+              fileData: photoData,
+              fileName: photoRecord.fileName,
+              contentType: photoRecord.fileType,
+              fileSize: photoRecord.fileSize,
+              s3Key: photoRecord.s3Key,
+            });
+          }),
+        );
       }
 
       // Обновляем рейтинг и количество отзывов пользователя, которому оставили отзыв

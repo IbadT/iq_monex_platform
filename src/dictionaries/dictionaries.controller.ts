@@ -5,7 +5,14 @@ import { GetCurrencyDto } from './dto/request/get-currency.dto';
 import { GetConvertValueFromAmountDto } from './dto/request/get-convert-valut-from-amount.dto';
 import { Language } from './dto/request/get-currency.dto';
 import { Public } from '@/common/decorators/public.decorator';
-import { ApiGetMeasurementsGroupsOperation } from './decorators/swagger.decorators';
+import {
+  ApiGetMeasurementsGroupsOperation,
+  ApiPostSeedDocs,
+  ApiGetValutesDocs,
+  ApiPostConvertValutDocs,
+  ApiGetCurrenciesDocs,
+  ApiGetUnitsDocs,
+} from './decorators';
 import { Cron, CronExpression } from '@nestjs/schedule';
 
 // валюты и единицы изменения
@@ -16,17 +23,20 @@ export class DictionariesController {
   constructor(private readonly dictionariesService: DictionariesService) {}
 
   @Post('seed')
+  @ApiPostSeedDocs()
   async addSeedDatas(): Promise<string> {
     return await this.dictionariesService.seedDictionariesData();
   }
 
   @Cron(CronExpression.EVERY_DAY_AT_8PM)
   @Get('valutes') // ДЛЯ ЗАПУСКА ВРУЧНУЮ
+  @ApiGetValutesDocs()
   async categoryRates() {
     return await this.dictionariesService.categoryRates();
   }
 
   @Post('valutes/convert')
+  @ApiPostConvertValutDocs()
   async convertValutFromAmount(@Body() body: GetConvertValueFromAmountDto) {
     return await this.dictionariesService.convertValutFromAmount(body);
   }
@@ -38,6 +48,7 @@ export class DictionariesController {
 
   @Get('currencies')
   @Public()
+  @ApiGetCurrenciesDocs()
   @ApiQuery({
     name: 'lang',
     enum: Language,
@@ -52,6 +63,7 @@ export class DictionariesController {
 
   @Get('units')
   @Public()
+  @ApiGetUnitsDocs()
   @ApiQuery({
     name: 'lang',
     enum: Language,

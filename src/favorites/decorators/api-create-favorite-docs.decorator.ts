@@ -1,6 +1,7 @@
 import { ApiOperation, ApiResponse, ApiTags, ApiBody } from '@nestjs/swagger';
 import { CreateFavoriteDto } from '../dto/create-favorite.dto';
 import { applyDecorators } from '@nestjs/common';
+import { FavoriteType } from '../enums/favorite-type.enum';
 
 export const ApiCreateFavoriteDocs = () => {
   return applyDecorators(
@@ -39,10 +40,22 @@ export const ApiCreateFavoriteDocs = () => {
             example: '123e4567-e89b-12d3-a456-426614174000',
             description: 'ID пользователя',
           },
+          type: {
+            type: 'string',
+            description:
+              'Тип архива (LISTING - объявление/USER - пользователь)',
+            example: FavoriteType.LISTING,
+          },
           listingId: {
             type: 'string',
             example: '123e4567-e89b-12d3-a456-426614174000',
-            description: 'ID объявления',
+            description: 'ID объявления, если type: LISTING или null',
+          },
+          targetUserId: {
+            type: 'string',
+            example: '123e4567-e89b-12d3-a456-426614174000',
+            description:
+              'ID пользователя в избранном, если type: USER или null',
           },
           createdAt: {
             type: 'string',
