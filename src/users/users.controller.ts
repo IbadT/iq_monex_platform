@@ -56,22 +56,6 @@ export class UsersController {
     return await this.usersService.getUserByAccountNumber(account_number);
   }
 
-  // @Get('favorites')
-  // @Protected()
-  // @ApiGetUserFavoritesDocs()
-  // async getUserFavoritesProfiles(@CurrentUser() user: JwtPayload) {
-  //   return await this.usersService.getUserFavoritesProfiles(user.id);
-  // }
-
-  // @Post('favorites')
-  // @Protected()
-  // async addFavoriteToUser(
-  //   @CurrentUser() user: JwtPayload,
-  //   @Body() body: AddFavoriteToUserDto,
-  // ) {
-  //   return await this.usersService.addFavoriteToUser(user.id, body);
-  // }
-
   @Post('users/:id/complaint')
   @Protected()
   @ApiMakeComplaintToUserDocs()

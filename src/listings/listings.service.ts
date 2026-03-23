@@ -11,7 +11,10 @@ import { prisma } from '@/lib/prisma';
 import { StatusQueryDto } from './dto/request/status-query.dto';
 import { ListingStatus } from './enums/listing-status.enum';
 import { FileOwnerType, FileKind } from '../../prisma/generated/enums';
-import { Decimal, TransactionIsolationLevel } from '../../prisma/generated/internal/prismaNamespace';
+import {
+  Decimal,
+  TransactionIsolationLevel,
+} from '../../prisma/generated/internal/prismaNamespace';
 import { CacheService } from '@/cache/cacheService.service';
 import { S3Service } from '@/s3/s3.service';
 import { SubscriptionService } from '@/subscription/subscription.service';
@@ -33,7 +36,6 @@ import { CategoriesService } from '@/categories/categories.service';
 import { DictionariesService } from '@/dictionaries/dictionaries.service';
 import { MapLocationsService } from '@/map_locations/map_locations.service';
 import { IListing } from './interfaces/listing.interface';
-// import { Prisma } from 'prisma/generated/browser';
 import { PrismaClient } from 'prisma/generated/client';
 
 @Injectable()
@@ -739,194 +741,192 @@ export class ListingsService {
     }
 
     try {
-      const res = await prisma.$transaction(
-        async (tx: PrismaClient) => {
-          let createdListing;
+      const res = await prisma.$transaction(async (tx: PrismaClient) => {
+        let createdListing;
 
-          if (listing.status === ListingStatus.PUBLISHED) {
-            const availableSlots =
-              await this.subscriptionService.getUserAvailableSlots(userId);
-            this.logger.log(`Доступных слотов: ${availableSlots.length}`);
+        if (listing.status === ListingStatus.PUBLISHED) {
+          const availableSlots =
+            await this.subscriptionService.getUserAvailableSlots(userId);
+          this.logger.log(`Доступных слотов: ${availableSlots.length}`);
 
-            if (availableSlots.length === 0) {
-              throw new BadRequestException(
-                'Нет доступных слотов для создания объявления',
-              );
-            }
-
-            createdListing = await this.createListingByStatus(userId, listing);
-
-            // Создаем связь объявления со слотом
-            await tx.listingSlot.create({
-              data: {
-                listingId: createdListing.id,
-                userSlotId: availableSlots[0].id,
-                assignedAt: new Date(),
-              },
-            });
-
-            // if (maps && maps.length > 0) {
-            //   await this.mapLocationsService.createMapLocationsForListing(
-            //     tx,
-            //     maps,
-            //     createdListing.id,
-            //   );
-            // }
+          if (availableSlots.length === 0) {
+            throw new BadRequestException(
+              'Нет доступных слотов для создания объявления',
+            );
           }
 
           createdListing = await this.createListingByStatus(userId, listing);
 
-          // Создаем геолокацию если указана
-          if (maps && maps.length > 0) {
-            await this.mapLocationsService.createMapLocationsForListing(
-              tx,
-              maps,
+          // Создаем связь объявления со слотом
+          await tx.listingSlot.create({
+            data: {
+              listingId: createdListing.id,
+              userSlotId: availableSlots[0].id,
+              assignedAt: new Date(),
+            },
+          });
+
+          // if (maps && maps.length > 0) {
+          //   await this.mapLocationsService.createMapLocationsForListing(
+          //     tx,
+          //     maps,
+          //     createdListing.id,
+          //   );
+          // }
+        }
+
+        createdListing = await this.createListingByStatus(userId, listing);
+
+        // Создаем геолокацию если указана
+        if (maps && maps.length > 0) {
+          await this.mapLocationsService.createMapLocationsForListing(
+            tx,
+            maps,
+            createdListing.id,
+          );
+        }
+
+        // Создаем файлы если указаны
+        if (files && files.length > 0) {
+          // Сначала создаем записи в БД с base64 данными
+          const fileRecords = files.map((fileData, index) => {
+            const fileName = this.s3Service.generateFileNameFromBase64(
+              fileData,
+              index,
+              'file',
+            );
+            const s3Key = this.s3Service.generateDocumentKey(
               createdListing.id,
+              index,
             );
-          }
+            const contentType =
+              this.s3Service.getContentTypeFromBase64(fileData);
+            const fileSize = this.s3Service.getFileSizeFromBase64(fileData);
 
-          // Создаем файлы если указаны
-          if (files && files.length > 0) {
-            // Сначала создаем записи в БД с base64 данными
-            const fileRecords = files.map((fileData, index) => {
-              const fileName = this.s3Service.generateFileNameFromBase64(
+            return {
+              ownerType: FileOwnerType.LISTING,
+              listingId: createdListing.id,
+              url: fileData, // Пока храним base64
+              fileType: contentType,
+              fileName,
+              fileSize,
+              kind: FileKind.DOCUMENT,
+              sortOrder: index,
+              s3Key,
+              s3Bucket: '', // Будет заполнено после загрузки в S3
+              uploadStatus: 'pending', // Статус ожидания загрузки
+            };
+          });
+
+          // Сохраняем файлы в БД
+          await tx.file.createMany({
+            data: fileRecords,
+          });
+
+          // Отправляем задачи в RabbitMQ для асинхронной загрузки в S3
+          // files.forEach(async (fileData, index) => {
+          //   const fileRecord = fileRecords[index];
+          //   await this.rabbitmqService.sendFileUpload({
+          //     listingId: createdListing.id,
+          //     fileType: 'document',
+          //     fileIndex: index,
+          //     fileData, // base64 данные
+          //     fileName: fileRecord.fileName,
+          //     contentType: fileRecord.fileType,
+          //     fileSize: fileRecord.fileSize,
+          //     s3Key: fileRecord.s3Key,
+          //   });
+          // });
+          await Promise.all(
+            files.map(async (fileData, index) => {
+              const fileRecord = fileRecords[index];
+              return this.rabbitmqService.sendFileUpload({
+                listingId: createdListing.id,
+                fileType: 'document',
+                fileIndex: index,
                 fileData,
-                index,
-                'file',
-              );
-              const s3Key = this.s3Service.generateDocumentKey(
-                createdListing.id,
-                index,
-              );
-              const contentType =
-                this.s3Service.getContentTypeFromBase64(fileData);
-              const fileSize = this.s3Service.getFileSizeFromBase64(fileData);
+                fileName: fileRecord.fileName,
+                contentType: fileRecord.fileType,
+                fileSize: fileRecord.fileSize,
+                s3Key: fileRecord.s3Key,
+              });
+            }),
+          );
+        }
 
-              return {
-                ownerType: FileOwnerType.LISTING,
-                listingId: createdListing.id,
-                url: fileData, // Пока храним base64
-                fileType: contentType,
-                fileName,
-                fileSize,
-                kind: FileKind.DOCUMENT,
-                sortOrder: index,
-                s3Key,
-                s3Bucket: '', // Будет заполнено после загрузки в S3
-                uploadStatus: 'pending', // Статус ожидания загрузки
-              };
-            });
-
-            // Сохраняем файлы в БД
-            await tx.file.createMany({
-              data: fileRecords,
-            });
-
-            // Отправляем задачи в RabbitMQ для асинхронной загрузки в S3
-            // files.forEach(async (fileData, index) => {
-            //   const fileRecord = fileRecords[index];
-            //   await this.rabbitmqService.sendFileUpload({
-            //     listingId: createdListing.id,
-            //     fileType: 'document',
-            //     fileIndex: index,
-            //     fileData, // base64 данные
-            //     fileName: fileRecord.fileName,
-            //     contentType: fileRecord.fileType,
-            //     fileSize: fileRecord.fileSize,
-            //     s3Key: fileRecord.s3Key,
-            //   });
-            // });
-            await Promise.all(
-              files.map(async (fileData, index) => {
-                const fileRecord = fileRecords[index];
-                return this.rabbitmqService.sendFileUpload({
-                  listingId: createdListing.id,
-                  fileType: 'document',
-                  fileIndex: index,
-                  fileData,
-                  fileName: fileRecord.fileName,
-                  contentType: fileRecord.fileType,
-                  fileSize: fileRecord.fileSize,
-                  s3Key: fileRecord.s3Key,
-                });
-              }),
+        // Создаем фото если указаны
+        if (photos && photos.length > 0) {
+          // Сначала создаем записи в БД с base64 данными
+          const photoRecords = photos.map((photoData, index) => {
+            const fileName = this.s3Service.generateFileNameFromBase64(
+              photoData,
+              index,
+              'photo',
             );
-          }
-
-          // Создаем фото если указаны
-          if (photos && photos.length > 0) {
-            // Сначала создаем записи в БД с base64 данными
-            const photoRecords = photos.map((photoData, index) => {
-              const fileName = this.s3Service.generateFileNameFromBase64(
-                photoData,
-                index,
-                'photo',
-              );
-              const s3Key = this.s3Service.generatePhotoKey(
-                createdListing.id,
-                index,
-              );
-              const contentType =
-                this.s3Service.getContentTypeFromBase64(photoData);
-              const fileSize = this.s3Service.getFileSizeFromBase64(photoData);
-
-              return {
-                ownerType: FileOwnerType.LISTING,
-                listingId: createdListing.id,
-                url: photoData, // Пока храним base64
-                fileType: contentType,
-                fileName,
-                fileSize,
-                kind: FileKind.PHOTO,
-                sortOrder: index,
-                s3Key,
-                s3Bucket: '', // Будет заполнено после загрузки в S3
-                uploadStatus: 'pending', // Статус ожидания загрузки
-              };
-            });
-
-            // Сохраняем фото в БД
-            await tx.file.createMany({
-              data: photoRecords,
-            });
-
-            // Отправляем задачи в RabbitMQ для асинхронной загрузки в S3
-            // photos.forEach(async (photoData, index) => {
-            //   const photoRecord = photoRecords[index];
-            //   await this.rabbitmqService.sendFileUpload({
-            //     listingId: createdListing.id,
-            //     fileType: 'photo',
-            //     fileIndex: index,
-            //     fileData: photoData, // base64 данные
-            //     fileName: photoRecord.fileName,
-            //     contentType: photoRecord.fileType,
-            //     fileSize: photoRecord.fileSize,
-            //     s3Key: photoRecord.s3Key,
-            //   });
-            // });
-            await Promise.all(
-              photos.map(async (photoData, index) => {
-                const photoRecord = photoRecords[index];
-                return this.rabbitmqService.sendFileUpload({
-                  listingId: createdListing.id,
-                  fileType: 'photo',
-                  fileIndex: index,
-                  fileData: photoData,
-                  fileName: photoRecord.fileName,
-                  contentType: photoRecord.fileType,
-                  fileSize: photoRecord.fileSize,
-                  s3Key: photoRecord.s3Key,
-                });
-              }),
+            const s3Key = this.s3Service.generatePhotoKey(
+              createdListing.id,
+              index,
             );
-          }
+            const contentType =
+              this.s3Service.getContentTypeFromBase64(photoData);
+            const fileSize = this.s3Service.getFileSizeFromBase64(photoData);
 
-          // записываем в elasticSearch
-          // await this.indexListingInElasticsearch(createdListing);
+            return {
+              ownerType: FileOwnerType.LISTING,
+              listingId: createdListing.id,
+              url: photoData, // Пока храним base64
+              fileType: contentType,
+              fileName,
+              fileSize,
+              kind: FileKind.PHOTO,
+              sortOrder: index,
+              s3Key,
+              s3Bucket: '', // Будет заполнено после загрузки в S3
+              uploadStatus: 'pending', // Статус ожидания загрузки
+            };
+          });
 
-          return createdListing;
-        },
-      );
+          // Сохраняем фото в БД
+          await tx.file.createMany({
+            data: photoRecords,
+          });
+
+          // Отправляем задачи в RabbitMQ для асинхронной загрузки в S3
+          // photos.forEach(async (photoData, index) => {
+          //   const photoRecord = photoRecords[index];
+          //   await this.rabbitmqService.sendFileUpload({
+          //     listingId: createdListing.id,
+          //     fileType: 'photo',
+          //     fileIndex: index,
+          //     fileData: photoData, // base64 данные
+          //     fileName: photoRecord.fileName,
+          //     contentType: photoRecord.fileType,
+          //     fileSize: photoRecord.fileSize,
+          //     s3Key: photoRecord.s3Key,
+          //   });
+          // });
+          await Promise.all(
+            photos.map(async (photoData, index) => {
+              const photoRecord = photoRecords[index];
+              return this.rabbitmqService.sendFileUpload({
+                listingId: createdListing.id,
+                fileType: 'photo',
+                fileIndex: index,
+                fileData: photoData,
+                fileName: photoRecord.fileName,
+                contentType: photoRecord.fileType,
+                fileSize: photoRecord.fileSize,
+                s3Key: photoRecord.s3Key,
+              });
+            }),
+          );
+        }
+
+        // записываем в elasticSearch
+        // await this.indexListingInElasticsearch(createdListing);
+
+        return createdListing;
+      });
       await this.cacheSevice.del(cacheKey);
 
       // Индексируем в Elasticsearch после успешной транзакции

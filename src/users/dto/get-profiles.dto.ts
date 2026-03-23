@@ -1,5 +1,5 @@
 import { ApiProperty } from "@nestjs/swagger";
-import { IsArray, IsUUID, IsString, IsNumber, Min, Max } from "class-validator";
+import { IsArray, IsUUID, IsString, IsNumber, Min, Max, IsOptional } from "class-validator";
 import { Type } from "class-transformer";
 
 export class GetProfilesDto {
@@ -32,8 +32,9 @@ export class GetProfilesDto {
         example: "Строительная компания",
         required: false,
     })
+    @IsOptional()
     @IsString()
-    query: string | null;
+    query?: string | "";
 
     @ApiProperty({
         description: "Минимальный рейтинг компании",
@@ -42,11 +43,12 @@ export class GetProfilesDto {
         minimum: 0,
         maximum: 5,
     })
+    @IsOptional()
     @Type(() => Number)
     @IsNumber()
     @Min(0)
     @Max(5)
-    ratingMin: number | null;
+    ratingMin?: number;
 
     @ApiProperty({
         description: "Массив ID активностей для фильтрации",
@@ -54,15 +56,22 @@ export class GetProfilesDto {
         required: false,
         type: [String],
     })
+    @IsOptional()
     @IsArray()
     @IsUUID('all', { each: true })
-    activityIds: string[] | null;
+    activityIds?: string[];
 
-    constructor(limit: number, offset: number, query: string, ratingMin: number, activitiIds: string[]) {
+    constructor(limit: number, offset: number, query?: string, ratingMin?: number, activitiIds?: string[]) {
         this.limit = limit;
         this.offset = offset;
-        this.query = query;
-        this.ratingMin = ratingMin;
-        this.activityIds = activitiIds;
+        if (activitiIds) {
+            this.activityIds = activitiIds;
+        }
+        if (ratingMin !== undefined) {
+            this.ratingMin = ratingMin;
+        }
+        if (query !== undefined) {
+            this.query = query;
+        }
     }
 }

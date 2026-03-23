@@ -158,6 +158,11 @@ export class UsersService {
         include: {
           user: {
             include: {
+              favorites: true,
+              favoritedBy: true,
+              locations: true,
+              userActivities: true,
+              files: true,
               receivedReviews: {
                 select: {
                   rating: true,
@@ -225,6 +230,11 @@ export class UsersService {
       include: {
         user: {
           include: {
+            favorites: true,
+            favoritedBy: true,
+            locations: true,
+            userActivities: true,
+            files: true,
             receivedReviews: {
               select: {
                 rating: true,
@@ -279,7 +289,7 @@ export class UsersService {
       dbQuery.where = {
         ...dbQuery.where,
         user: {
-          activities: {
+          userActivities: {
             some: {
               activityId: {
                 in: query.activityIds,
@@ -357,11 +367,24 @@ export class UsersService {
     const user = await prisma.user.findUnique({
       where: { id },
       include: {
+        favorites: true,
+        favoritedBy: true,
+        files: true,
         workers: true,
+        locations: true,
+        userActivities: true,
         profile: {
           include: {
             legalEntityType: true,
             currency: true,
+          },
+        },
+        receivedReviews: {
+          select: {
+            rating: true,
+          },
+          orderBy: {
+            createdAt: 'desc',
           },
         },
       },

@@ -38,7 +38,7 @@ model User {
   message          Message[]         @relation("SentMessages")
   chatParticipants ChatParticipant[]
   listings         Listing[]
-  // favorites        Favorite[]
+
   authoredReviews  Review[]          @relation("AuthoredReviews")
   receivedReviews  Review[]          @relation("ReceivedReviews")
   reviewLikes      ReviewLike[]
