@@ -10,6 +10,7 @@ import { ApiCreateTariffDocs } from './decorators/api-create-tariff-docs.decorat
 import { ApiSeedTariffsDocs } from './decorators/api-seed-tariffs-docs.decorator';
 import { ApiUpdateTariffDocs } from './decorators/api-update-tariff-docs.decorator';
 import { ApiGetTariffByIdDocs } from './decorators/api-get-tariff-by-id-docs.decorator';
+import { TariffResponseDto } from './dto/response/tariff-response.dto';
 
 @ApiTags('Tariffs')
 @Controller('tariffs')
@@ -18,10 +19,19 @@ export class TariffsController {
 
   @Get()
   @ApiGetAllTariffsDocs()
-  async getAllTariffs() {
+  async getAllTariffs(): Promise<TariffResponseDto[]> {
     return await this.tariffsService.getAllTariffs();
   }
 
+  @Get(':id')
+  @ApiGetTariffByIdDocs()
+  async getTariffById(
+    @Param('id', ParseUUIDPipe) id: string,
+  ): Promise<TariffResponseDto> {
+    return await this.tariffsService.getTariffById(id);
+  }
+
+  // ? ДОБАВИТЬ ОТВЕТ
   @Post()
   @Admin()
   @ApiCreateTariffDocs()
@@ -29,6 +39,7 @@ export class TariffsController {
     return await this.tariffsService.createTariff(body);
   }
 
+  // TODO: убрать
   @Post('seed')
   @Admin()
   @ApiSeedTariffsDocs()
@@ -36,6 +47,7 @@ export class TariffsController {
     return await this.tariffsService.seedTariffsFromData();
   }
 
+  // ? ДОБАВИТЬ ОТВЕТ
   @Patch(':id')
   @Admin()
   @ApiUpdateTariffDocs()
@@ -44,11 +56,5 @@ export class TariffsController {
     @Body() body: UpdateTariffDto,
   ) {
     return await this.tariffsService.updateTariff(id, body);
-  }
-
-  @Get(':id')
-  @ApiGetTariffByIdDocs()
-  async getTariffById(@Param('id', ParseUUIDPipe) id: string) {
-    return await this.tariffsService.getTariffById(id);
   }
 }

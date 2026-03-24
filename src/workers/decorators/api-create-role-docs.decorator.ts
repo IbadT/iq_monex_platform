@@ -2,6 +2,7 @@ import { applyDecorators } from '@nestjs/common';
 import { ApiOperation, ApiBody, ApiResponse } from '@nestjs/swagger';
 import { HttpStatus } from '@nestjs/common';
 import { CreateRoleDto } from '../dto/create-role.dto';
+import { RoleResponseDto } from '../dto/response/role-response.dto';
 
 export function ApiCreateRoleDocs() {
   return applyDecorators(
@@ -16,44 +17,7 @@ export function ApiCreateRoleDocs() {
     ApiResponse({
       status: HttpStatus.CREATED,
       description: 'Роль успешно создана',
-      schema: {
-        type: 'object',
-        properties: {
-          id: {
-            type: 'uuid',
-            description: 'ID созданной роли',
-            example: '550e8400-e29b-41d4-a716-446655440000',
-          },
-          role: {
-            type: 'string',
-            description: 'Название роли',
-            example: 'Менеджер',
-          },
-          code: {
-            type: 'string',
-            description: 'Код роли',
-            example: 'MANAGER',
-          },
-          type: {
-            type: 'string',
-            description: 'Тип роли',
-            example: 'WORKER',
-            enum: ['USER', 'WORKER'],
-          },
-          createdAt: {
-            type: 'string',
-            format: 'date-time',
-            description: 'Дата создания',
-            example: '2024-01-01T00:00:00.000Z',
-          },
-          updatedAt: {
-            type: 'string',
-            format: 'date-time',
-            description: 'Дата обновления',
-            example: '2024-01-01T00:00:00.000Z',
-          },
-        },
-      },
+      type: RoleResponseDto,
     }),
     ApiResponse({
       status: HttpStatus.CONFLICT,

@@ -16,6 +16,10 @@ import { CreateReviewToUserDto } from './dto/create-review.to-user.dto';
 import { S3Service } from '@/s3/s3.service';
 import { RabbitmqService } from '@/rabbitmq/rabbitmq.service';
 import { PrismaClient } from 'prisma/generated/client';
+import { GetReviewsDto } from './dto/response/get-reviews.dto';
+import { CreateReviesResponseDto } from './dto/response/create-reviews-response.dto';
+import { ReviewResponseDto } from './dto/response/review-by-id-response.dto';
+import { ReviewMapper } from './mappers/review.mapper';
 
 @Injectable()
 export class ReviewsService {
@@ -26,7 +30,10 @@ export class ReviewsService {
     private readonly rabbitmqService: RabbitmqService,
   ) {}
 
-  async getUserReviews(userId: string, query: PaginationDto) {
+  async getUserReviews(
+    userId: string,
+    query: PaginationDto,
+  ): Promise<GetReviewsDto[]> {
     return await prisma.review.findMany({
       where: {
         targetUserId: userId,
@@ -37,7 +44,10 @@ export class ReviewsService {
     });
   }
 
-  async createReviewToUser(userId: string, body: CreateReviewToUserDto) {
+  async createReviewToUser(
+    userId: string,
+    body: CreateReviewToUserDto,
+  ): Promise<CreateReviesResponseDto> {
     // Проверяем что пользователь не пытается оставить отзыв самому себе
     if (userId === body.userId) {
       throw new ConflictException(
@@ -151,7 +161,10 @@ export class ReviewsService {
     });
   }
 
-  async create(authorId: string, body: CreateReviewDto) {
+  async create(
+    authorId: string,
+    body: CreateReviewDto,
+  ): Promise<CreateReviesResponseDto> {
     // const cacheKey = `listings:${body.listingId}`;
     // let hasListing = await this.cacheService.get(cacheKey);
     const { photos, ...review } = body;
@@ -224,7 +237,7 @@ export class ReviewsService {
             reviewsCount: newReviewsCount, // Обновляем количество отзывов
           },
         });
-        return reviewListing.id;
+        return reviewListing;
       });
     } catch (error) {
       this.logger.log(`Ошибка при создании комментария к объявлению: ${error}`);
@@ -258,35 +271,47 @@ export class ReviewsService {
     return reviews;
   }
 
-  async findOne(id: string) {
-    const cacheKey = `revies/id:${id}`;
-    const cachedData = await this.cacheService.get(cacheKey);
+  async findOne(id: string): Promise<ReviewResponseDto> {
+    const cacheKey = `reviews/id:${id}`;
+    const cachedData = await this.cacheService.get<ReviewResponseDto>(cacheKey);
     if (cachedData) return cachedData;
 
     const review = await prisma.review.findFirst({
       where: { id },
       include: {
         likes: true,
-        author: true,
+        author: {
+          select: {
+            id: true,
+            name: true,
+          },
+        },
         files: true,
       },
     });
 
-    if (review) {
-      await this.cacheService.set({
-        baseKey: cacheKey,
-        ttl: 900,
-        value: review,
-      });
+    if (!review) {
+      throw new NotFoundException(`Отзыв с ID ${id} не найден`);
     }
 
-    return review;
+    const response = ReviewMapper.toResponse(review);
+
+    await this.cacheService.set({
+      baseKey: cacheKey,
+      ttl: 900,
+      value: response,
+    });
+
+    return response;
   }
 
-  async update(id: string, updateReviewDto: UpdateReviewDto) {
-    const cacheKey = `revies/id:${id}`;
-    const cachedData = await this.cacheService.get(cacheKey);
-    if (cachedData) return cachedData;
+  async update(
+    id: string,
+    updateReviewDto: UpdateReviewDto,
+  ): Promise<CreateReviesResponseDto> {
+    // const cacheKey = `revies/id:${id}`;
+    // const cachedData = await this.cacheService.get(cacheKey);
+    // if (cachedData) return cachedData;
 
     return await prisma.review.update({
       where: { id },

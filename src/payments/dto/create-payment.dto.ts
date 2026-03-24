@@ -1,11 +1,5 @@
 import { ApiProperty } from '@nestjs/swagger';
-import {
-  IsArray,
-  IsEnum,
-  IsString,
-  IsUUID,
-  IsOptional,
-} from 'class-validator';
+import { IsArray, IsEnum, IsString, IsUUID, IsOptional } from 'class-validator';
 
 export enum PaymentType {
   EXTEND_PACKAGES = 'EXTEND_PACKAGES', // Продление пакетов на 100 дней

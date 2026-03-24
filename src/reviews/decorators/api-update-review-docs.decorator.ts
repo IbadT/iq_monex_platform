@@ -7,6 +7,7 @@ import {
 } from '@nestjs/swagger';
 import { UpdateReviewDto } from '../dto/update-review.dto';
 import { applyDecorators } from '@nestjs/common';
+import { CreateReviesResponseDto } from '../dto/response/create-reviews-response.dto';
 
 export const ApiUpdateReviewDocs = () => {
   return applyDecorators(
@@ -56,46 +57,7 @@ export const ApiUpdateReviewDocs = () => {
     ApiResponse({
       status: 200,
       description: 'Отзыв успешно обновлен',
-      schema: {
-        type: 'object',
-        properties: {
-          success: { type: 'boolean', example: true },
-          message: { type: 'string', example: 'Review updated successfully' },
-          data: {
-            type: 'object',
-            properties: {
-              id: {
-                type: 'string',
-                example: '123e4567-e89b-12d3-a456-426614174000',
-                description: 'UUID обновленного отзыва',
-              },
-              title: {
-                type: 'string',
-                example: 'Обновленный заголовок',
-                description: 'Новый заголовок отзыва',
-              },
-              content: {
-                type: 'string',
-                example:
-                  'Обновленное содержание отзыва с дополнительной информацией',
-                description: 'Новое содержание отзыва',
-              },
-              rating: {
-                type: 'number',
-                example: 4,
-                minimum: 1,
-                maximum: 5,
-                description: 'Новый рейтинг от 1 до 5',
-              },
-              updatedAt: {
-                type: 'string',
-                example: '2024-01-15T11:30:00Z',
-                description: 'Дата обновления отзыва',
-              },
-            },
-          },
-        },
-      },
+      type: CreateReviesResponseDto,
     }),
 
     ApiResponse({

@@ -11,6 +11,8 @@ import { ActivityProcessData } from '@/users/interfaces/activity.interface';
 import { prisma } from '@/lib/prisma';
 import { CacheService } from '@/cache/cacheService.service';
 import { PrismaClient } from 'prisma/generated/client';
+import { ActivityResponseDto } from './dto/response/activity-response.dto';
+import { UserActivityResponseDto } from './dto/response/user-activity.response.dto';
 
 @Injectable()
 export class ActivitiesService {
@@ -51,7 +53,9 @@ export class ActivitiesService {
     tx: PrismaClient,
   ) {
     if (!body.activity) {
-      throw new BadRequestException('Activity name is required for CREATE action');
+      throw new BadRequestException(
+        'Activity name is required for CREATE action',
+      );
     }
 
     // Сначала проверим, существует ли активность с таким именем
@@ -130,7 +134,9 @@ export class ActivitiesService {
     tx: PrismaClient,
   ) {
     if (!body.id) {
-      throw new BadRequestException('Activity ID is required for UPDATE action');
+      throw new BadRequestException(
+        'Activity ID is required for UPDATE action',
+      );
     }
 
     // Находим существующую связь пользователя с активностью
@@ -167,7 +173,9 @@ export class ActivitiesService {
       });
     }
 
-    throw new BadRequestException('Activity name is required for UPDATE action');
+    throw new BadRequestException(
+      'Activity name is required for UPDATE action',
+    );
   }
 
   private async handleDeleteActivity(
@@ -176,7 +184,9 @@ export class ActivitiesService {
     tx: PrismaClient,
   ) {
     if (!body.id) {
-      throw new BadRequestException('Activity ID is required for DELETE action');
+      throw new BadRequestException(
+        'Activity ID is required for DELETE action',
+      );
     }
 
     // Находим и удаляем связь пользователя с активностью
@@ -240,24 +250,30 @@ export class ActivitiesService {
     }
   }
 
-  async getActivities() {
+  async getActivities(): Promise<ActivityResponseDto[]> {
     const cacheKey = `activities`;
-    const cachedData = await this.cacheService.get(cacheKey);
+    const cachedData =
+      await this.cacheService.get<ActivityResponseDto[]>(cacheKey);
     if (cachedData) return cachedData;
 
     const activities = await prisma.activity.findMany();
+    const response = activities.map(
+      (activity) => new ActivityResponseDto(activity.id, activity.name),
+    );
+
     await this.cacheService.set({
       baseKey: cacheKey,
       ttl: 3600,
-      value: activities,
+      value: response,
     });
 
-    return activities;
+    return response;
   }
 
-  async getUserActivities(userId: string) {
+  async getUserActivities(userId: string): Promise<UserActivityResponseDto[]> {
     const cacheKey = `activities/users:${userId}`;
-    const cachedData = await this.cacheService.get(cacheKey);
+    const cachedData =
+      await this.cacheService.get<UserActivityResponseDto[]>(cacheKey);
     if (cachedData) return cachedData;
 
     const activities = await prisma.userActivity.findMany({
@@ -274,12 +290,22 @@ export class ActivitiesService {
       },
     });
 
+    const response = activities.map(
+      (userActivity) =>
+        new UserActivityResponseDto(
+          userActivity.id,
+          userActivity.userId,
+          userActivity.activityId,
+          userActivity.activity,
+        ),
+    );
+
     await this.cacheService.set({
       baseKey: cacheKey,
       ttl: 3600,
-      value: activities,
+      value: response,
     });
 
-    return activities;
+    return response;
   }
 }

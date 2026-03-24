@@ -1,6 +1,7 @@
 import { applyDecorators } from '@nestjs/common';
 import { ApiOperation, ApiResponse } from '@nestjs/swagger';
 import { HttpStatus } from '@nestjs/common';
+import { SubcategoryResponseDto } from '../dto/response/categories-response.dto';
 
 export function ApiGetSubcategoriesDocs() {
   return applyDecorators(
@@ -12,29 +13,8 @@ export function ApiGetSubcategoriesDocs() {
     ApiResponse({
       status: HttpStatus.OK,
       description: 'Список подкатегорий успешно получен',
-      schema: {
-        type: 'array',
-        items: {
-          type: 'object',
-          properties: {
-            id: {
-              type: 'integer',
-              description: 'ID подкатегории',
-              example: 2,
-            },
-            name: {
-              type: 'string',
-              description: 'Название подкатегории',
-              example: 'Телефоны',
-            },
-            parentId: {
-              type: 'integer',
-              description: 'ID родителя',
-              example: 2,
-            },
-          },
-        },
-      },
+      type: SubcategoryResponseDto,
+      isArray: true,
     }),
     ApiResponse({
       status: HttpStatus.INTERNAL_SERVER_ERROR,

@@ -7,6 +7,7 @@ import { MapLocationsService } from '@/map_locations/map_locations.service';
 import { ActivitiesService } from '@/activities/activities.service';
 import { SearchService } from '@/search/search.service';
 import { UpdateUserDto } from './dto/update-user.dto';
+import { UserResponseDto } from './dto/response/user-response.dto';
 const prisma = require('@/lib/prisma').prisma;
 
 describe('UsersService', () => {
@@ -178,6 +179,7 @@ describe('UsersService', () => {
         profile: null,
         workers: [],
         receivedReviews: [],
+        role: { id: 'role-123', name: 'User', code: 'USER', role: 'User' },
         createdAt: new Date(),
         updatedAt: new Date(),
       };
@@ -204,7 +206,15 @@ describe('UsersService', () => {
           },
         },
       });
-      expect(result).toEqual(mockUpdatedUser);
+      expect(result).toEqual(
+        new UserResponseDto(
+          mockUpdatedUser.id,
+          mockUpdatedUser.email,
+          mockUpdatedUser.name,
+          mockUpdatedUser.accountNumber,
+          mockUpdatedUser.role,
+        ),
+      );
     });
 
     it('should update user with multiple fields', async () => {
@@ -229,6 +239,7 @@ describe('UsersService', () => {
         profile: null,
         workers: undefined,
         receivedReviews: undefined,
+        role: { id: 'role-123', name: 'User', code: 'USER', role: 'User' },
         createdAt: new Date(),
         updatedAt: new Date(),
       };
@@ -253,7 +264,15 @@ describe('UsersService', () => {
           },
         },
       });
-      expect(result).toEqual(mockUpdatedUser);
+      expect(result).toEqual(
+        new UserResponseDto(
+          mockUpdatedUser.id,
+          mockUpdatedUser.email,
+          mockUpdatedUser.name,
+          mockUpdatedUser.accountNumber,
+          mockUpdatedUser.role,
+        ),
+      );
     });
   });
 });

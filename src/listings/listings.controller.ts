@@ -32,6 +32,11 @@ import { ApiEditListingDocs } from './decorators/api-edit-listing-docs.decorator
 import { ApiDeleteListingDocs } from './decorators/api-delete-listing-docs.decorator';
 import { ApiGetRecomendsDocs } from './decorators/api-get-recomends-docs.decorator';
 import { ApiGetUserListingsDocs } from './decorators/api-get-user-listings-docs.decorator';
+import { ListingResposeDto } from './dto/response/listing-response.dto';
+import { CreateListingResponseDto } from './dto/response/create-listing-response.dto';
+import { ChangeStatusResponseDto } from './dto/response/change-status-response.dto';
+import { BulkRestoreResponseDto } from './dto/response/bulk-restore-response.dto';
+import { CreateListingComplaintResponseDto } from './dto/response/create-listing-complaint-response.dto';
 
 @Controller('listings')
 export class ListingsController {
@@ -53,7 +58,7 @@ export class ListingsController {
   async listingById(
     @Param('id', ParseUUIDPipe) id: string,
     @Query() query: StatusQueryDto,
-  ) {
+  ): Promise<ListingResposeDto> {
     return await this.listingsService.listingById(id, query);
   }
 
@@ -68,7 +73,9 @@ export class ListingsController {
 
   @Get('users/:user_id')
   @ApiGetUserListingsDocs()
-  async listingsByUserId(@Param('user_id', ParseUUIDPipe) user_id: string) {
+  async listingsByUserId(
+    @Param('user_id', ParseUUIDPipe) user_id: string,
+  ): Promise<ListingResposeDto[]> {
     return await this.listingsService.listingsByUserId(user_id);
   }
 
@@ -79,7 +86,7 @@ export class ListingsController {
   async createListing(
     @CurrentUser() user: JwtPayload,
     @Body() body: CreateListingDto,
-  ) {
+  ): Promise<CreateListingResponseDto> {
     return await this.listingsService.createListing(user.id, body);
   }
 
@@ -90,7 +97,7 @@ export class ListingsController {
   async changeListingStatus(
     @CurrentUser() user: JwtPayload,
     @Body() body: ChangeListingStatusDto,
-  ) {
+  ): Promise<ChangeStatusResponseDto> {
     return await this.listingsService.changeListingStatus(user.id, body);
   }
 
@@ -98,7 +105,9 @@ export class ListingsController {
   @Post('bulk-restore')
   @Protected()
   @ApiBulkRestoreDocs()
-  async bulkRestore(@CurrentUser() user: JwtPayload) {
+  async bulkRestore(
+    @CurrentUser() user: JwtPayload,
+  ): Promise<BulkRestoreResponseDto> {
     return await this.listingsService.bulkRestore(user.id);
   }
 
@@ -108,7 +117,7 @@ export class ListingsController {
   async makeComplaintToListing(
     @CurrentUser() user: JwtPayload,
     @Body() body: MakeComplaintToListing,
-  ) {
+  ): Promise<CreateListingComplaintResponseDto> {
     return await this.listingsService.makeComplaintToListing(user.id, body);
   }
 

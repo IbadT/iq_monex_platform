@@ -77,23 +77,39 @@ export class User {
 
   @ApiProperty({
     description: 'User profile data',
-    required: false,
   })
   profile: Profile | null;
 
   @ApiProperty({
     description: 'User workers',
-    required: false,
-    type: 'array',
   })
   workers: any[] | null;
 
   @ApiProperty({
+    description: 'User activities',
+  })
+  userActivities: any[] | null;
+
+  @ApiProperty({
+    description: 'User locations',
+  })
+  locations: any[] | null;
+
+  @ApiProperty({
     description: 'User received reviews',
-    required: false,
-    type: 'array',
   })
   receivedReviews: Review[] | null;
+
+
+  @ApiProperty({
+    description: 'User favorites',
+  })
+  favorites: any[] | null;
+
+  @ApiProperty({
+    description: 'ID которых добавил этот пользователь',
+  })
+  favoritedBy: any[] | null;
 
   @ApiProperty({
     example: '2022-01-01T00:00:00.000Z',
@@ -119,7 +135,11 @@ export class User {
     updatedAt: Date,
     profile: Profile | null,
     workers: any[] | null,
+    userActivities: any[] | null,
+    locations: any[] | null,
     receivedReviews: Review[] | null,
+    favorites: any[] | null,
+    favoritedBy: any[] | null,
   ) {
     this.id = id;
     this.email = email;
@@ -132,7 +152,11 @@ export class User {
     this.updatedAt = updatedAt;
     this.profile = profile;
     this.workers = workers;
+    this.userActivities = userActivities;
+    this.locations = locations;
     this.receivedReviews = receivedReviews;
+    this.favorites = favorites;
+    this.favoritedBy = favoritedBy;
   }
 
   static fromUpdateUserDto(user: any, profileData: Profile | null): User {
@@ -165,7 +189,11 @@ export class User {
       user.updatedAt,
       profile,
       user.workers,
+      user.userActivities,
+      user.locations,
       user.receivedReviews,
+      user.favorites,
+      user.favoritedBy,
     );
   }
 }

@@ -26,6 +26,9 @@ import { ApiCreateReviewToUserDocs } from './decorators/api-create-review-to-use
 import { Admin, Protected } from '@/common/decorators';
 import { PaginationDto } from '@/common/dto/pagintation.dto';
 import { CreateReviewToUserDto } from '@/reviews/dto/create-review.to-user.dto';
+import { GetReviewsDto } from './dto/response/get-reviews.dto';
+import { CreateReviesResponseDto } from './dto/response/create-reviews-response.dto';
+import { ReviewResponseDto } from './dto/response/review-by-id-response.dto';
 
 // TODO: добавить логику для выставления лайков коментариям
 // TODO: добавить логику удаления коментария
@@ -38,30 +41,10 @@ export class ReviewsController {
 
   @Get('users/:id')
   @Protected()
-  //   [
-  //   {
-  //     "id": "4b41bdb4-f243-488c-8426-36a9546bbe67",
-  //     "authorId": "bcea00ce-0a3b-4063-9289-1fd63662cbd3",
-  //     "targetType": "USER",
-  //     "listingId": null,
-  //     "targetUserId": "99b57487-70b1-400b-af55-2f065db76053",
-  //     "rating": 5,
-  //     "title": null,
-  //     "content": "Отличный мастер, рекомендую!",
-  //     "status": "PENDING",
-  //     "likesCount": 0,
-  //     "reportsCount": 0,
-  //     "replyContent": null,
-  //     "replyAt": null,
-  //     "replyAuthorId": null,
-  //     "createdAt": "2026-03-22T16:24:33.144Z",
-  //     "updatedAt": "2026-03-22T16:24:33.144Z"
-  //   }
-  // ]
   async getUserReviews(
     @Param('id', ParseUUIDPipe) id: string,
     @Query() query: PaginationDto,
-  ) {
+  ): Promise<GetReviewsDto[]> {
     return await this.reviewsService.getUserReviews(id, query);
   }
 
@@ -71,7 +54,7 @@ export class ReviewsController {
   async createReviewToUser(
     @CurrentUser() user: JwtPayload,
     @Body() body: CreateReviewToUserDto,
-  ) {
+  ): Promise<CreateReviesResponseDto> {
     return await this.reviewsService.createReviewToUser(user.id, body);
   }
 
@@ -83,7 +66,7 @@ export class ReviewsController {
     @CurrentUser() user: JwtPayload,
     @Body()
     body: CreateReviewDto,
-  ) {
+  ): Promise<CreateReviesResponseDto> {
     return this.reviewsService.create(user.id, body);
   }
 
@@ -97,7 +80,7 @@ export class ReviewsController {
 
   @Get('listings/:id')
   @ApiGetReviewByIdDocs()
-  findOne(@Param('id') id: string) {
+  findOne(@Param('id') id: string): Promise<ReviewResponseDto> {
     return this.reviewsService.findOne(id);
   }
 
@@ -105,7 +88,10 @@ export class ReviewsController {
   @Patch('listings/:id')
   @Admin()
   @ApiUpdateReviewDocs()
-  update(@Param('id') id: string, @Body() updateReviewDto: UpdateReviewDto) {
+  update(
+    @Param('id') id: string,
+    @Body() updateReviewDto: UpdateReviewDto,
+  ): Promise<CreateReviesResponseDto> {
     return this.reviewsService.update(id, updateReviewDto);
   }
 

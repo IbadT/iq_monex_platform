@@ -1,6 +1,7 @@
 import { applyDecorators } from '@nestjs/common';
 import { ApiOperation, ApiBody, ApiResponse } from '@nestjs/swagger';
 import { CreateListingDto } from '../dto/request/create-listing.dto';
+import { CreateListingResponseDto } from '../dto/response/create-listing-response.dto';
 
 export function CreateListingApiDocs() {
   return applyDecorators(
@@ -123,115 +124,7 @@ export function CreateListingApiDocs() {
     ApiResponse({
       status: 201,
       description: 'Объявление успешно создано',
-      schema: {
-        type: 'object',
-        properties: {
-          id: {
-            type: 'string',
-            example: '123e4567-e89b-12d3-a456-426614174000',
-            description: 'UUID созданного объявления',
-          },
-          categoryId: {
-            type: 'number',
-            example: 123,
-            description: 'ID категории объявления',
-          },
-          status: {
-            type: 'string',
-            enum: ['DRAFT', 'PUBLISHED', 'TEMPLATE'],
-            example: 'PUBLISHED',
-            description: 'Статус объявления',
-          },
-          title: {
-            type: 'string',
-            example: 'iPhone 13 Pro Max',
-            description: 'Заголовок объявления',
-          },
-          description: {
-            type: 'string',
-            example: 'Отличное состояние, использовался 6 месяцев',
-            description: 'Подробное описание объявления',
-          },
-          price: {
-            type: 'number',
-            example: 85000,
-            description: 'Цена объявления',
-          },
-          currencyId: {
-            type: 'number',
-            example: 1,
-            description: 'ID валюты',
-          },
-          priceUnitId: {
-            type: 'number',
-            example: 1,
-            description: 'ID единицы измерения цены',
-          },
-          condition: {
-            type: 'string',
-            enum: ['NEW', 'USED'],
-            example: 'USED',
-            description: 'Состояние товара',
-          },
-          files: {
-            type: 'array',
-            items: {
-              type: 'string',
-            },
-            maxItems: 5,
-            example: [
-              'data:application/pdf;base64,JVBERi0xLjQKJeLjz9M=...',
-              'data:text/plain;base64,SGVsbG8gV29ybGQ=',
-            ],
-            description: 'Массив base64 строк для документов (макс. 5)',
-          },
-          photos: {
-            type: 'array',
-            items: {
-              type: 'string',
-            },
-            maxItems: 10,
-            example: [
-              'data:image/jpeg;base64,/9j/4AAQSkZJRgABAQAAAQ...',
-              'data:image/jpeg;base64,/9j/4AAQSkZJRgABAQAAAQ...',
-            ],
-            description: 'Массив base64 строк для изображений (макс. 10)',
-          },
-          maps: {
-            type: 'object',
-            properties: {
-              type: {
-                type: 'string',
-                enum: ['OFFICE', 'INDUSTRIAL', 'LAND', 'RETAIL', 'RESIDENTIAL'],
-                example: 'OFFICE',
-                description: 'Тип объекта',
-              },
-              latitude: {
-                type: 'number',
-                example: 55.7558,
-                description: 'Широта',
-              },
-              longitude: {
-                type: 'number',
-                example: 37.6173,
-                description: 'Долгота',
-              },
-            },
-          },
-          createdAt: {
-            type: 'string',
-            format: 'date-time',
-            example: '2024-01-15T10:30:00Z',
-            description: 'Дата создания',
-          },
-          updatedAt: {
-            type: 'string',
-            format: 'date-time',
-            example: '2024-01-15T10:30:00Z',
-            description: 'Дата обновления',
-          },
-        },
-      },
+      type: CreateListingResponseDto,
     }),
     ApiResponse({
       status: 400,

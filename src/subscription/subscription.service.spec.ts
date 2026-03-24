@@ -57,6 +57,9 @@ describe('SubscriptionService', () => {
           },
           listingSlot: null,
         },
+        include: {
+          listingSlot: true,
+        },
         orderBy: {
           slotIndex: 'asc',
         },

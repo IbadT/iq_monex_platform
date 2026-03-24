@@ -1,6 +1,7 @@
 import { applyDecorators } from '@nestjs/common';
 import { ApiOperation, ApiParam, ApiResponse } from '@nestjs/swagger';
 import { HttpStatus } from '@nestjs/common';
+import { CategoryTreeResponseDto } from '../dto/response/category-tree-response.dto';
 
 export function ApiGetSubcategoryTreeDocs() {
   return applyDecorators(
@@ -18,50 +19,7 @@ export function ApiGetSubcategoryTreeDocs() {
     ApiResponse({
       status: HttpStatus.OK,
       description: 'Дерево подкатегории успешно получено',
-      schema: {
-        type: 'object',
-        properties: {
-          id: {
-            type: 'integer',
-            description: 'ID подкатегории',
-            example: 2,
-          },
-          name: {
-            type: 'string',
-            description: 'Название подкатегории',
-            example: 'Телефоны',
-          },
-          parentId: {
-            type: 'integer',
-            description: 'ID родителя',
-            example: 1,
-          },
-          children: {
-            type: 'array',
-            description: 'Массив подподкатегорий',
-            items: {
-              type: 'object',
-              properties: {
-                id: {
-                  type: 'integer',
-                  description: 'ID подподкатегории',
-                  example: 3,
-                },
-                name: {
-                  type: 'string',
-                  description: 'Название подподкатегории',
-                  example: 'Смартфоны',
-                },
-                parentId: {
-                  type: 'integer',
-                  description: 'ID родителя',
-                  example: 1,
-                },
-              },
-            },
-          },
-        },
-      },
+      type: CategoryTreeResponseDto,
     }),
     ApiResponse({
       status: HttpStatus.NOT_FOUND,

@@ -1,6 +1,7 @@
 import { applyDecorators } from '@nestjs/common';
 import { ApiOperation, ApiResponse } from '@nestjs/swagger';
 import { HttpStatus } from '@nestjs/common';
+import { CurrencyRateResponseDto } from '../dto/response/currency-rate-response.dto';
 
 export function ApiGetValutesDocs() {
   return applyDecorators(
@@ -13,40 +14,8 @@ export function ApiGetValutesDocs() {
     ApiResponse({
       status: HttpStatus.OK,
       description: 'Курсы валют успешно получены',
-      schema: {
-        type: 'array',
-        items: {
-          type: 'object',
-          properties: {
-            id: {
-              type: 'integer',
-              description: 'ID записи курса',
-              example: 1,
-            },
-            code: {
-              type: 'string',
-              description: 'Код валюты',
-              example: 'USD',
-            },
-            nominal: {
-              type: 'integer',
-              description: 'Номинал валюты',
-              example: 1,
-            },
-            rate: {
-              type: 'number',
-              description: 'Курс валюты к рублю',
-              example: 90.5,
-            },
-            date: {
-              type: 'string',
-              format: 'date-time',
-              description: 'Дата курса',
-              example: '2024-01-01T00:00:00.000Z',
-            },
-          },
-        },
-      },
+      type: CurrencyRateResponseDto,
+      isArray: true,
     }),
     ApiResponse({
       status: HttpStatus.NOT_FOUND,

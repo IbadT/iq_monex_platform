@@ -2,6 +2,39 @@
 а так же, для переиспользования еще можно использовать переиспользуемые декораторы из common/decorators
 
 
+ПРОВЕРИТЬ
+✔ activities @done(26-03-24 00:51)
+✔ attributes @done(26-03-24 00:51)
+✔ auth @done(26-03-24 05:24)
+✔ categories @done(26-03-24 01:18)
+☐ chats
+☐ cron_tasks
+
+✔ dictionaries @done(26-03-24 05:44)
+☐ favorites
+
+✔ likes @done(26-03-24 04:32)
+
+✔ listings @done(26-03-24 16:14)
+☐ listings - осталось два роута
+✔ map_locations @done(26-03-24 04:48)
+☐ payments
+✔ reviews - только на один роут @done(26-03-24 16:26)
+
+✔ subscription @done(26-03-24 04:04)
+✔ tariffs @done(26-03-24 02:44)
+✔ users @done(26-03-24 07:39)
+✔ users - не добавлена для post @done(26-03-24 15:11)
+✔ workers @done(26-03-24 02:09)
+✔ workers не добавлена для post @done(26-03-24 15:25)
+
+
+
+☐ ОПЕЧАТКА В isAcitve в Worker в бд
+
+
+
+
 
 
 проверить для документации:

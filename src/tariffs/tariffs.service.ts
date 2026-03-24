@@ -1,27 +1,33 @@
-import { Injectable, NotFoundException, ConflictException } from '@nestjs/common';
+import {
+  Injectable,
+  NotFoundException,
+  ConflictException,
+} from '@nestjs/common';
 import { prisma } from '@/lib/prisma';
 import { AppLogger } from '@/common/logger/logger.service';
 import { CreateTariffDto } from './dto/create-tariff.dto';
 import { UpdateTariffDto } from './dto/update-tariff.dto';
 import { tariffData } from './default/tariffData';
+import { TariffResponseDto } from './dto/response/tariff-response.dto';
+import { TariffMapper } from './mappers/tariff.mapper';
 
 @Injectable()
 export class TariffsService {
   constructor(private readonly logger: AppLogger) {}
 
-  async getAllTariffs() {
+  async getAllTariffs(): Promise<TariffResponseDto[]> {
     this.logger.log('Получение всех тарифов');
-    
+
     const tariffs = await prisma.tariff.findMany({
       orderBy: { createdAt: 'desc' },
     });
 
-    return tariffs;
+    return TariffMapper.toResponseList(tariffs);
   }
 
-  async getTariffById(id: string) {
+  async getTariffById(id: string): Promise<TariffResponseDto> {
     this.logger.log(`Получение тарифа по ID: ${id}`);
-    
+
     const tariff = await prisma.tariff.findUnique({
       where: { id },
     });
@@ -29,7 +35,8 @@ export class TariffsService {
     if (!tariff) {
       throw new NotFoundException('Тариф не найден');
     }
-    return tariff;
+    // return tariff;
+    return TariffMapper.toResponse(tariff);
     // return {
     //   success: true,
     //   data: tariff,
@@ -38,7 +45,7 @@ export class TariffsService {
 
   async createTariff(body: CreateTariffDto) {
     this.logger.log(`Создание нового тарифа: ${body.code}`);
-    
+
     // Проверяем существует ли тариф с таким кодом
     const existingTariff = await prisma.tariff.findFirst({
       where: { code: body.code as any },
@@ -62,7 +69,7 @@ export class TariffsService {
 
   async updateTariff(id: string, body: UpdateTariffDto) {
     this.logger.log(`Обновление тарифа: ${id}`);
-    
+
     // Проверяем существует ли тариф
     const existingTariff = await prisma.tariff.findUnique({
       where: { id },
@@ -75,7 +82,7 @@ export class TariffsService {
     // Если обновляем код, проверяем что он не занят другим тарифом
     if (body.code) {
       const tariffWithSameCode = await prisma.tariff.findFirst({
-        where: { 
+        where: {
           code: body.code as any,
           id: { not: id },
         },
@@ -101,7 +108,7 @@ export class TariffsService {
 
   async seedTariffsFromData() {
     this.logger.log('Создание тарифов из дефолтных данных...');
-    
+
     const results = [];
     let created = 0;
     let updated = 0;
@@ -130,8 +137,12 @@ export class TariffsService {
               isActive: tariff.isActive,
             },
           });
-          
-          results.push({ code: tariff.code, action: 'updated', id: existingTariff.id });
+
+          results.push({
+            code: tariff.code,
+            action: 'updated',
+            id: existingTariff.id,
+          });
           updated++;
         } else {
           // Создаем новый
@@ -141,18 +152,30 @@ export class TariffsService {
               code: tariff.code as any,
             },
           });
-          
-          results.push({ code: tariff.code, action: 'created', id: newTariff.id });
+
+          results.push({
+            code: tariff.code,
+            action: 'created',
+            id: newTariff.id,
+          });
           created++;
         }
       } catch (error) {
-        this.logger.error(`Ошибка при создании тарифа ${tariff.code}: ${error.message}`);
-        results.push({ code: tariff.code, action: 'error', error: error.message });
+        this.logger.error(
+          `Ошибка при создании тарифа ${tariff.code}: ${error.message}`,
+        );
+        results.push({
+          code: tariff.code,
+          action: 'error',
+          error: error.message,
+        });
         errors++;
       }
     }
 
-    this.logger.log(`Seed тарифов завершен: создано ${created}, обновлено ${updated}, ошибок ${errors}`);
+    this.logger.log(
+      `Seed тарифов завершен: создано ${created}, обновлено ${updated}, ошибок ${errors}`,
+    );
 
     return {
       message: 'Обработка тарифов завершена',

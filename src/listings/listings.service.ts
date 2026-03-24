@@ -11,7 +11,10 @@ import { prisma } from '@/lib/prisma';
 import { StatusQueryDto } from './dto/request/status-query.dto';
 import { ListingStatus } from './enums/listing-status.enum';
 import { FileOwnerType, FileKind } from '../../prisma/generated/enums';
-import { Decimal, TransactionIsolationLevel } from '../../prisma/generated/internal/prismaNamespace';
+import {
+  Decimal,
+  TransactionIsolationLevel,
+} from '../../prisma/generated/internal/prismaNamespace';
 import { CacheService } from '@/cache/cacheService.service';
 import { S3Service } from '@/s3/s3.service';
 import { SubscriptionService } from '@/subscription/subscription.service';
@@ -33,8 +36,13 @@ import { CategoriesService } from '@/categories/categories.service';
 import { DictionariesService } from '@/dictionaries/dictionaries.service';
 import { MapLocationsService } from '@/map_locations/map_locations.service';
 import { IListing } from './interfaces/listing.interface';
-// import { Prisma } from 'prisma/generated/browser';
 import { PrismaClient } from 'prisma/generated/client';
+import { ListingResposeDto } from './dto/response/listing-response.dto';
+import { ListingMapper } from './mappers/listing.mapper';
+import { CreateListingResponseDto } from './dto/response/create-listing-response.dto';
+import { ChangeStatusResponseDto } from './dto/response/change-status-response.dto';
+import { BulkRestoreResponseDto } from './dto/response/bulk-restore-response.dto';
+import { CreateListingComplaintResponseDto } from './dto/response/create-listing-complaint-response.dto';
 
 @Injectable()
 export class ListingsService {
@@ -123,7 +131,10 @@ export class ListingsService {
     return processedListings;
   }
 
-  async makeComplaintToListing(userId: string, body: MakeComplaintToListing) {
+  async makeComplaintToListing(
+    userId: string,
+    body: MakeComplaintToListing,
+  ): Promise<CreateListingComplaintResponseDto> {
     const hasComplaint = await prisma.complaint.findFirst({
       where: {
         authorId: userId,
@@ -142,6 +153,9 @@ export class ListingsService {
         text: body.text,
         complaintType: ComplaintType.LISTING,
         authorId: userId,
+      },
+      select: {
+        id: true,
       },
     });
   }
@@ -422,12 +436,16 @@ export class ListingsService {
     };
   }
 
-  async changeListingStatus(userId: string, body: ChangeListingStatusDto) {
+  async changeListingStatus(
+    userId: string,
+    body: ChangeListingStatusDto,
+  ): Promise<ChangeStatusResponseDto> {
     const { listingId, status } = body;
 
     const checkIfListingExist = await prisma.listing.findFirst({
       where: {
         id: listingId,
+        userId, // Добавляем проверку владельца
       },
     });
 
@@ -436,6 +454,8 @@ export class ListingsService {
     }
 
     return await prisma.$transaction(async (tx: PrismaClient) => {
+      let updatedListing: any;
+
       // проверка активных объявлений для PUBLISHED
       if (status === ListingStatus.PUBLISHED) {
         const availableSlots =
@@ -448,69 +468,172 @@ export class ListingsService {
           );
         }
 
-        if (checkIfListingExist.status === ListingStatus.ARCHIVED) {
-          await tx.listing.create({
-            data: {
-              ...checkIfListingExist,
-              status: ListingStatus.PUBLISHED,
-            },
-          });
-        }
-
-        await tx.listing.update({
+        // Обновляем статус объявления
+        updatedListing = await tx.listing.update({
           where: { id: listingId },
           data: {
             status: status,
+            publishedAt: new Date(),
             autoDeleteAt: null,
+            archivedAt: null,
           },
         });
 
         // Создаем связь объявления со слотом
-        return await tx.listingSlot.create({
+        await tx.listingSlot.create({
           data: {
             listingId,
             userSlotId: availableSlots[0].id,
             assignedAt: new Date(),
           },
         });
+
+        return new ChangeStatusResponseDto(
+          updatedListing.id,
+          updatedListing.status,
+          updatedListing.publishedAt,
+          updatedListing.archivedAt,
+          updatedListing.autoDeleteAt,
+        );
       }
 
       // если статус НЕ PUBLISHED, то освобождаем слоты
       if (checkIfListingExist.status === ListingStatus.PUBLISHED) {
-        // await tx.listingSlot.deleteMany({
         await tx.listingSlot.delete({
           where: {
             listingId,
           },
         });
-
         this.logger.log(`Освобожден слот для объявления ${listingId}`);
       }
 
+      // Обработка ARCHIVED
       if (status === ListingStatus.ARCHIVED) {
-        await tx.listing.update({
-          where: {
-            id: listingId,
-          },
+        updatedListing = await tx.listing.update({
+          where: { id: listingId },
           data: {
             status,
             archivedAt: new Date(),
             autoDeleteAt: this.calculateAutoDeleteDate(),
+            publishedAt: null,
+          },
+        });
+      }
+      // Остальные статусы (DRAFT, TEMPLATE)
+      else {
+        updatedListing = await tx.listing.update({
+          where: { id: listingId },
+          data: {
+            status: status,
+            publishedAt: null,
+            archivedAt: null,
+            autoDeleteAt: null,
           },
         });
       }
 
-      // Остальные статусы (DRAFT, TEMPLATE)
-      return await tx.listing.update({
-        where: { id: listingId },
-        data: {
-          status: status,
-        },
-      });
+      return new ChangeStatusResponseDto(
+        updatedListing.id,
+        updatedListing.status,
+        updatedListing.publishedAt,
+        updatedListing.archivedAt,
+        updatedListing.autoDeleteAt,
+      );
     });
   }
 
-  async bulkRestore(userId: string) {
+  // async changeListingStatus(
+  //   userId: string,
+  //   body: ChangeListingStatusDto,
+  // ): Promise<ChangeStatusResponseDto> {
+  //   const { listingId, status } = body;
+
+  //   const checkIfListingExist = await prisma.listing.findFirst({
+  //     where: {
+  //       id: listingId,
+  //     },
+  //   });
+
+  //   if (!checkIfListingExist) {
+  //     throw new BadRequestException(`Объявление с id: ${listingId} не найдено`);
+  //   }
+
+  //   return await prisma.$transaction(async (tx: PrismaClient) => {
+  //     // проверка активных объявлений для PUBLISHED
+  //     if (status === ListingStatus.PUBLISHED) {
+  //       const availableSlots =
+  //         await this.subscriptionService.getUserAvailableSlots(userId);
+  //       this.logger.log(`Доступных слотов: ${availableSlots.length}`);
+
+  //       if (availableSlots.length === 0) {
+  //         throw new BadRequestException(
+  //           'Нет доступных слотов для создания объявления',
+  //         );
+  //       }
+
+  //       if (checkIfListingExist.status === ListingStatus.ARCHIVED) {
+  //         await tx.listing.create({
+  //           data: {
+  //             ...checkIfListingExist,
+  //             status: ListingStatus.PUBLISHED,
+  //           },
+  //         });
+  //       }
+
+  //       await tx.listing.update({
+  //         where: { id: listingId },
+  //         data: {
+  //           status: status,
+  //           autoDeleteAt: null,
+  //         },
+  //       });
+
+  //       // Создаем связь объявления со слотом
+  //       return await tx.listingSlot.create({
+  //         data: {
+  //           listingId,
+  //           userSlotId: availableSlots[0].id,
+  //           assignedAt: new Date(),
+  //         },
+  //       });
+  //     }
+
+  //     // если статус НЕ PUBLISHED, то освобождаем слоты
+  //     if (checkIfListingExist.status === ListingStatus.PUBLISHED) {
+  //       // await tx.listingSlot.deleteMany({
+  //       await tx.listingSlot.delete({
+  //         where: {
+  //           listingId,
+  //         },
+  //       });
+
+  //       this.logger.log(`Освобожден слот для объявления ${listingId}`);
+  //     }
+
+  //     if (status === ListingStatus.ARCHIVED) {
+  //       await tx.listing.update({
+  //         where: {
+  //           id: listingId,
+  //         },
+  //         data: {
+  //           status,
+  //           archivedAt: new Date(),
+  //           autoDeleteAt: this.calculateAutoDeleteDate(),
+  //         },
+  //       });
+  //     }
+
+  //     // Остальные статусы (DRAFT, TEMPLATE)
+  //     updatedListing = await tx.listing.update({
+  //       where: { id: listingId },
+  //       data: {
+  //         status: status,
+  //       },
+  //     });
+  //   });
+  // }
+
+  async bulkRestore(userId: string): Promise<BulkRestoreResponseDto> {
     const [archivedListings, availableSlots] = await Promise.all([
       // получаем все архивные объявления
       prisma.listing.findMany({
@@ -615,7 +738,10 @@ export class ListingsService {
     return !!listing;
   }
 
-  async listingById(id: string, status: StatusQueryDto) {
+  async listingById(
+    id: string,
+    status: StatusQueryDto,
+  ): Promise<ListingResposeDto> {
     // const cachedKey = `listings:${id}`;
     // const cachedListing = await this.cacheSevice.get(cachedKey);
     // if (cachedListing) return cachedListing;
@@ -639,18 +765,18 @@ export class ListingsService {
     });
 
     // Разделяем файлы на фотографии и документы
-    if (listing) {
-      const processedListing = {
-        ...listing,
-        photos: listing.files.filter(
-          (file: any) => file.kind === FileKind.PHOTO,
-        ),
-        files: listing.files.filter(
-          (file: any) => file.kind === FileKind.DOCUMENT,
-        ),
-      };
-      return processedListing;
-    }
+    // if (listing) {
+    //   const processedListing = {
+    //     ...listing,
+    //     photos: listing.files.filter(
+    //       (file: any) => file.kind === FileKind.PHOTO,
+    //     ),
+    //     files: listing.files.filter(
+    //       (file: any) => file.kind === FileKind.DOCUMENT,
+    //     ),
+    //   };
+    //   return processedListing;
+    // }
 
     // if (listing) {
     //   await this.cacheSevice.set({
@@ -660,13 +786,14 @@ export class ListingsService {
     //   });
     // }
 
-    return listing;
+    // return listing;
+    return ListingMapper.toResponse(listing);
   }
 
-  async listingsByUserId(userId: string) {
-    const cacheKey = `listings:userId:${userId}`;
-    const cachedListings = await this.cacheSevice.get(cacheKey);
-    if (cachedListings) return cachedListings;
+  async listingsByUserId(userId: string): Promise<ListingResposeDto[]> {
+    // const cacheKey = `listings:userId:${userId}`;
+    // const cachedListings = await this.cacheSevice.get<ListingResposeDto[]>(cacheKey);
+    // if (cachedListings) return cachedListings;
 
     this.logger.log(`User ID: ${userId}`);
 
@@ -688,26 +815,30 @@ export class ListingsService {
     });
 
     // Разделяем файлы на фотографии и документы
-    const processedListings = listings.map((listing: any) => ({
-      ...listing,
-      photos: listing.files.filter((file: any) => file.kind === FileKind.PHOTO),
-      files: listing.files.filter(
-        (file: any) => file.kind === FileKind.DOCUMENT,
-      ),
-    }));
+    // const processedListings = listings.map((listing: any) => ({
+    //   ...listing,
+    //   photos: listing.files.filter((file: any) => file.kind === FileKind.PHOTO),
+    //   files: listing.files.filter(
+    //     (file: any) => file.kind === FileKind.DOCUMENT,
+    //   ),
+    // }));
 
-    if (processedListings && processedListings.length > 0) {
-      await this.cacheSevice.set({
-        baseKey: cacheKey,
-        ttl: 900,
-        value: processedListings,
-      });
-    }
+    // if (processedListings && processedListings.length > 0) {
+    //   await this.cacheSevice.set({
+    //     baseKey: cacheKey,
+    //     ttl: 900,
+    //     value: processedListings,
+    //   });
+    // }
 
-    return processedListings;
+    // return processedListings;
+    return ListingMapper.toResponseList(listings);
   }
 
-  async createListing(userId: string, body: CreateListingDto) {
+  async createListing(
+    userId: string,
+    body: CreateListingDto,
+  ): Promise<CreateListingResponseDto> {
     // Проверка текста на запрещенные слова
     if (body.title) {
       this.validateText(body.title);
@@ -739,194 +870,192 @@ export class ListingsService {
     }
 
     try {
-      const res = await prisma.$transaction(
-        async (tx: PrismaClient) => {
-          let createdListing;
+      const res = await prisma.$transaction(async (tx: PrismaClient) => {
+        let createdListing;
 
-          if (listing.status === ListingStatus.PUBLISHED) {
-            const availableSlots =
-              await this.subscriptionService.getUserAvailableSlots(userId);
-            this.logger.log(`Доступных слотов: ${availableSlots.length}`);
+        if (listing.status === ListingStatus.PUBLISHED) {
+          const availableSlots =
+            await this.subscriptionService.getUserAvailableSlots(userId);
+          this.logger.log(`Доступных слотов: ${availableSlots.length}`);
 
-            if (availableSlots.length === 0) {
-              throw new BadRequestException(
-                'Нет доступных слотов для создания объявления',
-              );
-            }
-
-            createdListing = await this.createListingByStatus(userId, listing);
-
-            // Создаем связь объявления со слотом
-            await tx.listingSlot.create({
-              data: {
-                listingId: createdListing.id,
-                userSlotId: availableSlots[0].id,
-                assignedAt: new Date(),
-              },
-            });
-
-            // if (maps && maps.length > 0) {
-            //   await this.mapLocationsService.createMapLocationsForListing(
-            //     tx,
-            //     maps,
-            //     createdListing.id,
-            //   );
-            // }
+          if (availableSlots.length === 0) {
+            throw new BadRequestException(
+              'Нет доступных слотов для создания объявления',
+            );
           }
 
           createdListing = await this.createListingByStatus(userId, listing);
 
-          // Создаем геолокацию если указана
-          if (maps && maps.length > 0) {
-            await this.mapLocationsService.createMapLocationsForListing(
-              tx,
-              maps,
+          // Создаем связь объявления со слотом
+          await tx.listingSlot.create({
+            data: {
+              listingId: createdListing.id,
+              userSlotId: availableSlots[0].id,
+              assignedAt: new Date(),
+            },
+          });
+
+          // if (maps && maps.length > 0) {
+          //   await this.mapLocationsService.createMapLocationsForListing(
+          //     tx,
+          //     maps,
+          //     createdListing.id,
+          //   );
+          // }
+        }
+
+        createdListing = await this.createListingByStatus(userId, listing);
+
+        // Создаем геолокацию если указана
+        if (maps && maps.length > 0) {
+          await this.mapLocationsService.createMapLocationsForListing(
+            tx,
+            maps,
+            createdListing.id,
+          );
+        }
+
+        // Создаем файлы если указаны
+        if (files && files.length > 0) {
+          // Сначала создаем записи в БД с base64 данными
+          const fileRecords = files.map((fileData, index) => {
+            const fileName = this.s3Service.generateFileNameFromBase64(
+              fileData,
+              index,
+              'file',
+            );
+            const s3Key = this.s3Service.generateDocumentKey(
               createdListing.id,
+              index,
             );
-          }
+            const contentType =
+              this.s3Service.getContentTypeFromBase64(fileData);
+            const fileSize = this.s3Service.getFileSizeFromBase64(fileData);
 
-          // Создаем файлы если указаны
-          if (files && files.length > 0) {
-            // Сначала создаем записи в БД с base64 данными
-            const fileRecords = files.map((fileData, index) => {
-              const fileName = this.s3Service.generateFileNameFromBase64(
+            return {
+              ownerType: FileOwnerType.LISTING,
+              listingId: createdListing.id,
+              url: fileData, // Пока храним base64
+              fileType: contentType,
+              fileName,
+              fileSize,
+              kind: FileKind.DOCUMENT,
+              sortOrder: index,
+              s3Key,
+              s3Bucket: '', // Будет заполнено после загрузки в S3
+              uploadStatus: 'pending', // Статус ожидания загрузки
+            };
+          });
+
+          // Сохраняем файлы в БД
+          await tx.file.createMany({
+            data: fileRecords,
+          });
+
+          // Отправляем задачи в RabbitMQ для асинхронной загрузки в S3
+          // files.forEach(async (fileData, index) => {
+          //   const fileRecord = fileRecords[index];
+          //   await this.rabbitmqService.sendFileUpload({
+          //     listingId: createdListing.id,
+          //     fileType: 'document',
+          //     fileIndex: index,
+          //     fileData, // base64 данные
+          //     fileName: fileRecord.fileName,
+          //     contentType: fileRecord.fileType,
+          //     fileSize: fileRecord.fileSize,
+          //     s3Key: fileRecord.s3Key,
+          //   });
+          // });
+          await Promise.all(
+            files.map(async (fileData, index) => {
+              const fileRecord = fileRecords[index];
+              return this.rabbitmqService.sendFileUpload({
+                listingId: createdListing.id,
+                fileType: 'document',
+                fileIndex: index,
                 fileData,
-                index,
-                'file',
-              );
-              const s3Key = this.s3Service.generateDocumentKey(
-                createdListing.id,
-                index,
-              );
-              const contentType =
-                this.s3Service.getContentTypeFromBase64(fileData);
-              const fileSize = this.s3Service.getFileSizeFromBase64(fileData);
+                fileName: fileRecord.fileName,
+                contentType: fileRecord.fileType,
+                fileSize: fileRecord.fileSize,
+                s3Key: fileRecord.s3Key,
+              });
+            }),
+          );
+        }
 
-              return {
-                ownerType: FileOwnerType.LISTING,
-                listingId: createdListing.id,
-                url: fileData, // Пока храним base64
-                fileType: contentType,
-                fileName,
-                fileSize,
-                kind: FileKind.DOCUMENT,
-                sortOrder: index,
-                s3Key,
-                s3Bucket: '', // Будет заполнено после загрузки в S3
-                uploadStatus: 'pending', // Статус ожидания загрузки
-              };
-            });
-
-            // Сохраняем файлы в БД
-            await tx.file.createMany({
-              data: fileRecords,
-            });
-
-            // Отправляем задачи в RabbitMQ для асинхронной загрузки в S3
-            // files.forEach(async (fileData, index) => {
-            //   const fileRecord = fileRecords[index];
-            //   await this.rabbitmqService.sendFileUpload({
-            //     listingId: createdListing.id,
-            //     fileType: 'document',
-            //     fileIndex: index,
-            //     fileData, // base64 данные
-            //     fileName: fileRecord.fileName,
-            //     contentType: fileRecord.fileType,
-            //     fileSize: fileRecord.fileSize,
-            //     s3Key: fileRecord.s3Key,
-            //   });
-            // });
-            await Promise.all(
-              files.map(async (fileData, index) => {
-                const fileRecord = fileRecords[index];
-                return this.rabbitmqService.sendFileUpload({
-                  listingId: createdListing.id,
-                  fileType: 'document',
-                  fileIndex: index,
-                  fileData,
-                  fileName: fileRecord.fileName,
-                  contentType: fileRecord.fileType,
-                  fileSize: fileRecord.fileSize,
-                  s3Key: fileRecord.s3Key,
-                });
-              }),
+        // Создаем фото если указаны
+        if (photos && photos.length > 0) {
+          // Сначала создаем записи в БД с base64 данными
+          const photoRecords = photos.map((photoData, index) => {
+            const fileName = this.s3Service.generateFileNameFromBase64(
+              photoData,
+              index,
+              'photo',
             );
-          }
-
-          // Создаем фото если указаны
-          if (photos && photos.length > 0) {
-            // Сначала создаем записи в БД с base64 данными
-            const photoRecords = photos.map((photoData, index) => {
-              const fileName = this.s3Service.generateFileNameFromBase64(
-                photoData,
-                index,
-                'photo',
-              );
-              const s3Key = this.s3Service.generatePhotoKey(
-                createdListing.id,
-                index,
-              );
-              const contentType =
-                this.s3Service.getContentTypeFromBase64(photoData);
-              const fileSize = this.s3Service.getFileSizeFromBase64(photoData);
-
-              return {
-                ownerType: FileOwnerType.LISTING,
-                listingId: createdListing.id,
-                url: photoData, // Пока храним base64
-                fileType: contentType,
-                fileName,
-                fileSize,
-                kind: FileKind.PHOTO,
-                sortOrder: index,
-                s3Key,
-                s3Bucket: '', // Будет заполнено после загрузки в S3
-                uploadStatus: 'pending', // Статус ожидания загрузки
-              };
-            });
-
-            // Сохраняем фото в БД
-            await tx.file.createMany({
-              data: photoRecords,
-            });
-
-            // Отправляем задачи в RabbitMQ для асинхронной загрузки в S3
-            // photos.forEach(async (photoData, index) => {
-            //   const photoRecord = photoRecords[index];
-            //   await this.rabbitmqService.sendFileUpload({
-            //     listingId: createdListing.id,
-            //     fileType: 'photo',
-            //     fileIndex: index,
-            //     fileData: photoData, // base64 данные
-            //     fileName: photoRecord.fileName,
-            //     contentType: photoRecord.fileType,
-            //     fileSize: photoRecord.fileSize,
-            //     s3Key: photoRecord.s3Key,
-            //   });
-            // });
-            await Promise.all(
-              photos.map(async (photoData, index) => {
-                const photoRecord = photoRecords[index];
-                return this.rabbitmqService.sendFileUpload({
-                  listingId: createdListing.id,
-                  fileType: 'photo',
-                  fileIndex: index,
-                  fileData: photoData,
-                  fileName: photoRecord.fileName,
-                  contentType: photoRecord.fileType,
-                  fileSize: photoRecord.fileSize,
-                  s3Key: photoRecord.s3Key,
-                });
-              }),
+            const s3Key = this.s3Service.generatePhotoKey(
+              createdListing.id,
+              index,
             );
-          }
+            const contentType =
+              this.s3Service.getContentTypeFromBase64(photoData);
+            const fileSize = this.s3Service.getFileSizeFromBase64(photoData);
 
-          // записываем в elasticSearch
-          // await this.indexListingInElasticsearch(createdListing);
+            return {
+              ownerType: FileOwnerType.LISTING,
+              listingId: createdListing.id,
+              url: photoData, // Пока храним base64
+              fileType: contentType,
+              fileName,
+              fileSize,
+              kind: FileKind.PHOTO,
+              sortOrder: index,
+              s3Key,
+              s3Bucket: '', // Будет заполнено после загрузки в S3
+              uploadStatus: 'pending', // Статус ожидания загрузки
+            };
+          });
 
-          return createdListing;
-        },
-      );
+          // Сохраняем фото в БД
+          await tx.file.createMany({
+            data: photoRecords,
+          });
+
+          // Отправляем задачи в RabbitMQ для асинхронной загрузки в S3
+          // photos.forEach(async (photoData, index) => {
+          //   const photoRecord = photoRecords[index];
+          //   await this.rabbitmqService.sendFileUpload({
+          //     listingId: createdListing.id,
+          //     fileType: 'photo',
+          //     fileIndex: index,
+          //     fileData: photoData, // base64 данные
+          //     fileName: photoRecord.fileName,
+          //     contentType: photoRecord.fileType,
+          //     fileSize: photoRecord.fileSize,
+          //     s3Key: photoRecord.s3Key,
+          //   });
+          // });
+          await Promise.all(
+            photos.map(async (photoData, index) => {
+              const photoRecord = photoRecords[index];
+              return this.rabbitmqService.sendFileUpload({
+                listingId: createdListing.id,
+                fileType: 'photo',
+                fileIndex: index,
+                fileData: photoData,
+                fileName: photoRecord.fileName,
+                contentType: photoRecord.fileType,
+                fileSize: photoRecord.fileSize,
+                s3Key: photoRecord.s3Key,
+              });
+            }),
+          );
+        }
+
+        // записываем в elasticSearch
+        // await this.indexListingInElasticsearch(createdListing);
+
+        return createdListing;
+      });
       await this.cacheSevice.del(cacheKey);
 
       // Индексируем в Elasticsearch после успешной транзакции

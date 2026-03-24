@@ -82,9 +82,9 @@ describe('UsersController', () => {
       );
 
       const mockUpdatedUser = {
-        id: user.id,
+        id: 'user-123',
         name: 'Updated Name',
-        email: user.email || 'test@example.com',
+        email: 'test@example.com',
         accountNumber: '12345678',
         isVerified: true,
         createdAt: new Date(),
@@ -94,6 +94,7 @@ describe('UsersController', () => {
         profile: null,
         workers: [],
         receivedReviews: [],
+        role: { id: 'role-123', name: 'User', code: 'USER', role: 'User' },
       };
 
       usersService.updateUser.mockResolvedValue(mockUpdatedUser);

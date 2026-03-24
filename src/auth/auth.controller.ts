@@ -56,8 +56,6 @@ export class AuthController {
       maxAge: 15 * 60 * 1000, // 15 минут
     });
 
-    console.log('Cookies set in login response');
-
     return tokens;
   }
 

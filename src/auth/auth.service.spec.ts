@@ -11,6 +11,7 @@ import { NotFoundException, UnauthorizedException } from '@nestjs/common';
 import { User } from '@/users/entities/user.entity';
 import { RoleType } from '@/users/enums/role-type.enum';
 import { LoginResponseDto } from './dto/response/login-response.dto';
+import { UserLoginResponseDto } from './dto/response/user-login-response.dto';
 
 describe('AuthService', () => {
   let service: AuthService;
@@ -164,6 +165,10 @@ describe('AuthService', () => {
         profile: null,
         workers: [],
         receivedReviews: [],
+        userActivities: [],
+        locations: [],
+        favorites: [],
+        favoritedBy: [],
         createdAt: mockUser.createdAt,
         updatedAt: mockUser.updatedAt,
       };
@@ -196,7 +201,10 @@ describe('AuthService', () => {
         new LoginResponseDto(
           mockTokens.accessToken,
           mockTokens.refreshToken,
-          expectedUser,
+          new UserLoginResponseDto(
+            expectedUser.id,
+            expectedUser.email,
+          ),
         ),
       );
     });

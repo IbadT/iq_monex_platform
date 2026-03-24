@@ -14,6 +14,10 @@ import {
   ApiGetUnitsDocs,
 } from './decorators';
 import { Cron, CronExpression } from '@nestjs/schedule';
+import { MeasurementsGroupsResponseDto } from './dto/response/measurements-groups-response.dto';
+import { UnitMeasurementResponseDto } from './dto/response/user-measurement-response.dto';
+import { CurrenciesResponseDto } from './dto/response/currencies-response.dto';
+import { CurrencyRateResponseDto } from './dto/response/currency-rate-response.dto';
 
 // валюты и единицы изменения
 // TODO: добавить redis
@@ -22,6 +26,7 @@ import { Cron, CronExpression } from '@nestjs/schedule';
 export class DictionariesController {
   constructor(private readonly dictionariesService: DictionariesService) {}
 
+  // TODO: убрать
   @Post('seed')
   @ApiPostSeedDocs()
   async addSeedDatas(): Promise<string> {
@@ -37,12 +42,14 @@ export class DictionariesController {
 
   @Post('valutes/convert')
   @ApiPostConvertValutDocs()
-  async convertValutFromAmount(@Body() body: GetConvertValueFromAmountDto) {
+  async convertValutFromAmount(
+    @Body() body: GetConvertValueFromAmountDto,
+  ): Promise<CurrencyRateResponseDto[]> {
     return await this.dictionariesService.convertValutFromAmount(body);
   }
 
   @Get('valutes')
-  async getCategoryRates() {
+  async getCategoryRates(): Promise<CurrencyRateResponseDto[]> {
     return await this.dictionariesService.getCategoryRates();
   }
 
@@ -56,7 +63,9 @@ export class DictionariesController {
     description: 'Язык (ru, en, kz)',
     example: Language.RU,
   })
-  async getCurrencies(@Query() query: GetCurrencyDto) {
+  async getCurrencies(
+    @Query() query: GetCurrencyDto,
+  ): Promise<CurrenciesResponseDto[]> {
     const lang = query.lang ?? Language.RU;
     return await this.dictionariesService.currenciesList(lang);
   }
@@ -71,7 +80,9 @@ export class DictionariesController {
     description: 'Язык (ru, en, kz)',
     example: Language.RU,
   })
-  async getUnitMeasurements(@Query() query: GetCurrencyDto) {
+  async getUnitMeasurements(
+    @Query() query: GetCurrencyDto,
+  ): Promise<UnitMeasurementResponseDto[]> {
     const lang = query.lang ?? Language.RU;
     return await this.dictionariesService.unitMeasurements(lang);
   }
@@ -79,7 +90,9 @@ export class DictionariesController {
   @Get('groups')
   @Public()
   @ApiGetMeasurementsGroupsOperation()
-  async getMeasurementsGroups(@Query() query: GetCurrencyDto) {
+  async getMeasurementsGroups(
+    @Query() query: GetCurrencyDto,
+  ): Promise<MeasurementsGroupsResponseDto> {
     const lang = query.lang ?? Language.RU;
     return await this.dictionariesService.getMeasurementsGroups(lang);
   }

@@ -73,6 +73,7 @@ describe('LikesController', () => {
       };
 
       const result = {
+        id: listingId,
         message: 'Лайк успешно добавлен',
         action: 'liked',
         like: {

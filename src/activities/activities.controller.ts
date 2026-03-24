@@ -1,4 +1,11 @@
-import { Body, Controller, Get, Param, ParseUUIDPipe, Post } from '@nestjs/common';
+import {
+  Body,
+  Controller,
+  Get,
+  Param,
+  ParseUUIDPipe,
+  Post,
+} from '@nestjs/common';
 import { ActivitiesService } from './activities.service';
 import { Protected } from '@/common/decorators';
 import { CurrentUser } from '@/common/decorators/current-user.decorator';
@@ -7,36 +14,39 @@ import { AddActivityToUserDto } from '@/users/dto/add-activity-to-user.dto';
 import { ApiGetActivitiesDocs } from './decorators/get-activities-docs.decorator';
 import { ApiGetUserActivitiesDocs } from './decorators/get-user-activities-docs.decorator';
 import { ApiAddUserActivityDocs } from './decorators/add-user-activity-docs.decorator';
+import { ActivityResponseDto } from './dto/response/activity-response.dto';
+import { UserActivityResponseDto } from './dto/response/user-activity.response.dto';
 
 @Controller('activities')
 export class ActivitiesController {
   constructor(private readonly activitiesService: ActivitiesService) {}
 
-    // получить сферы деятельности
-    @Get()
-    @ApiGetActivitiesDocs()
-    async getActivities() {
-      return await this.activitiesService.getActivities();
-    }
-  
-    // получить сверы деятельности пользователя
-    @Get('users/:userId')
-    @Protected()
-    @ApiGetUserActivitiesDocs()
-    async getUserActivities(
-      @Param('userId', ParseUUIDPipe) userId: string,
-    ) {
-      return await this.activitiesService.getUserActivities(userId);
-    }
-  
-    // добавить сферу деятельности пользователю
-    @Post()
-    @Protected()
-    @ApiAddUserActivityDocs()
-    async addUserActivity(
-      @CurrentUser() user: JwtPayload,
-      @Body() body: AddActivityToUserDto,
-    ) {
-      return await this.activitiesService.addUserActivity(user.id, body);
-    }
+  // получить сферы деятельности
+  @Get()
+  @ApiGetActivitiesDocs()
+  async getActivities(): Promise<ActivityResponseDto[]> {
+    return await this.activitiesService.getActivities();
+  }
+
+  // получить сверы деятельности пользователя
+  @Get('users/:userId')
+  @Protected()
+  @ApiGetUserActivitiesDocs()
+  async getUserActivities(
+    @Param('userId', ParseUUIDPipe) userId: string,
+  ): Promise<UserActivityResponseDto[]> {
+    return await this.activitiesService.getUserActivities(userId);
+  }
+
+  // добавить сферу деятельности пользователю
+  // ? Проверить и добавить документацию + dto
+  @Post()
+  @Protected()
+  @ApiAddUserActivityDocs()
+  async addUserActivity(
+    @CurrentUser() user: JwtPayload,
+    @Body() body: AddActivityToUserDto,
+  ) {
+    return await this.activitiesService.addUserActivity(user.id, body);
+  }
 }

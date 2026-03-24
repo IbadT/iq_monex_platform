@@ -6,12 +6,17 @@ import {
   NotFoundException,
 } from '@nestjs/common';
 import { TransactionClient } from 'prisma/generated/internal/prismaNamespace';
+import { ToggleLikeResponseDto } from './dto/response/toggle-like-response.dto';
+import { GetLikesResponseDto } from './dto/response/get-likes-response.dto';
 
 @Injectable()
 export class LikesService {
   constructor(private readonly logger: AppLogger) {}
 
-  async toggleLike(listingId: string, userId: string) {
+  async toggleLike(
+    listingId: string,
+    userId: string,
+  ): Promise<ToggleLikeResponseDto> {
     this.logger.log(`User ${userId} toggling like for listing ${listingId}`);
 
     return await prisma.$transaction(async (tx: TransactionClient) => {
@@ -58,7 +63,7 @@ export class LikesService {
 
         try {
           // Обновляем счетчик лайков и версию с оптимистической блокировкой
-          const updatedListing = await tx.listing.update({
+          await tx.listing.update({
             where: {
               id: listingId,
               version: listing.version, // Оптимистическая блокировка
@@ -78,11 +83,15 @@ export class LikesService {
             },
           });
 
+          // return {
+          //   message: 'Лайк успешно удален',
+          //   action: 'unliked',
+          //   likesCount: updatedListing.likesCount,
+          //   version: updatedListing.version,
+          // };
           return {
-            message: 'Лайк успешно удален',
-            action: 'unliked',
-            likesCount: updatedListing.likesCount,
-            version: updatedListing.version,
+            id: listingId,
+            action: 'UNLIKED',
           };
         } catch (error: any) {
           // Проверяем на конфликт версий
@@ -95,7 +104,7 @@ export class LikesService {
         }
       } else {
         // Добавляем лайк
-        const like = await tx.listingLike.create({
+        await tx.listingLike.create({
           data: {
             listingId,
             userId,
@@ -112,7 +121,7 @@ export class LikesService {
 
         try {
           // Обновляем счетчик лайков и версию с оптимистической блокировкой
-          const updatedListing = await tx.listing.update({
+          await tx.listing.update({
             where: {
               id: listingId,
               version: listing.version, // Оптимистическая блокировка
@@ -133,18 +142,22 @@ export class LikesService {
             },
           });
 
+          // return {
+          //   message: 'Лайк успешно добавлен',
+          //   action: 'liked',
+          //   like: {
+          //     ...like,
+          //     listing: {
+          //       id: updatedListing.id,
+          //       title: updatedListing.title,
+          //       likesCount: updatedListing.likesCount,
+          //       version: updatedListing.version,
+          //     },
+          //   },
+          // };
           return {
-            message: 'Лайк успешно добавлен',
-            action: 'liked',
-            like: {
-              ...like,
-              listing: {
-                id: updatedListing.id,
-                title: updatedListing.title,
-                likesCount: updatedListing.likesCount,
-                version: updatedListing.version,
-              },
-            },
+            id: listingId,
+            action: 'LIKED',
           };
         } catch (error: any) {
           // Проверяем на конфликт версий
@@ -159,12 +172,15 @@ export class LikesService {
     });
   }
 
-  async getListingLikes(listingId: string) {
+  async getListingLikes(listingId: string): Promise<GetLikesResponseDto> {
     this.logger.log(`Getting likes for listing ${listingId}`);
 
     const likes = await prisma.listingLike.findMany({
       where: { listingId },
-      include: {
+      select: {
+        id: true,
+        listingId: true,
+        userId: true,
         user: {
           select: {
             id: true,
@@ -179,7 +195,6 @@ export class LikesService {
     });
 
     return {
-      listingId,
       likesCount: likes.length,
       likes,
     };

@@ -1,6 +1,7 @@
 import { applyDecorators } from '@nestjs/common';
 import { ApiOperation, ApiBody, ApiResponse } from '@nestjs/swagger';
 import { ChangeListingStatusDto } from '../dto/request/change-listing-status.dto';
+import { ChangeStatusResponseDto } from '../dto/response/change-status-response.dto';
 
 export function ApiChangeStatusDocs() {
   return applyDecorators(
@@ -79,40 +80,7 @@ export function ApiChangeStatusDocs() {
     ApiResponse({
       status: 200,
       description: 'Статус объявления успешно изменен',
-      schema: {
-        type: 'object',
-        properties: {
-          id: {
-            type: 'string',
-            example: '123e4567-e89b-12d3-a456-426614174000',
-            description: 'UUID объявления',
-          },
-          status: {
-            type: 'string',
-            enum: ['DRAFT', 'PUBLISHED', 'TEMPLATE', 'ARCHIVED'],
-            example: 'PUBLISHED',
-            description: 'Новый статус объявления',
-          },
-          publishedAt: {
-            type: 'string',
-            format: 'date-time',
-            example: '2024-01-15T10:30:00Z',
-            description: 'Дата публикации (только для PUBLISHED)',
-          },
-          archivedAt: {
-            type: 'string',
-            format: 'date-time',
-            example: '2024-01-15T10:30:00Z',
-            description: 'Дата архивации (только для ARCHIVED)',
-          },
-          autoDeleteAt: {
-            type: 'string',
-            format: 'date-time',
-            example: '2024-03-15T10:30:00Z',
-            description: 'Дата авто-удаления (только для ARCHIVED)',
-          },
-        },
-      },
+      type: ChangeStatusResponseDto,
     }),
     ApiResponse({
       status: 400,

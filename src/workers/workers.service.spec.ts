@@ -56,16 +56,35 @@ describe('WorkersService', () => {
 
       const workers = [createWorkerDto1, createWorkerDto2];
 
-      const mockResponse = [
-        { id: 'worker-1', name: 'Иванов Иван Иванович' },
-        { id: 'worker-2', name: 'Петров Петр Петрович' },
-      ];
+      const mockResponse = ['worker-1', 'worker-2'];
 
       // Mock prisma methods
       const prisma = require('@/lib/prisma').prisma;
       prisma.role.findUnique.mockResolvedValue({ id: 'role-123', name: 'Worker' });
-      prisma.worker.create.mockResolvedValueOnce(mockResponse[0]);
-      prisma.worker.create.mockResolvedValueOnce(mockResponse[1]);
+      prisma.worker.create.mockResolvedValueOnce({ 
+        id: 'worker-1', 
+        name: 'Иванов Иван Иванович',
+        email: 'ivanov@example.com',
+        phone: '+79991112233',
+        roleId: 'role-456',
+        userId: 'user-123',
+        isActive: true,
+        createdAt: new Date(),
+        updatedAt: new Date(),
+        role: { id: 'role-456', name: 'Worker' }
+      });
+      prisma.worker.create.mockResolvedValueOnce({ 
+        id: 'worker-2', 
+        name: 'Петров Петр Петрович',
+        email: 'petrov@example.com',
+        phone: '+79998765432',
+        roleId: 'role-456',
+        userId: 'user-123',
+        isActive: true,
+        createdAt: new Date(),
+        updatedAt: new Date(),
+        role: { id: 'role-456', name: 'Worker' }
+      });
 
       const result = await service.createWorker(userId, workers);
 
@@ -85,14 +104,23 @@ describe('WorkersService', () => {
 
       const workers = [createWorkerDto];
 
-      const mockResponse = [
-        { id: 'worker-1', name: 'Тестовый Работник' },
-      ];
+      const mockResponse = ['worker-1'];
 
       // Mock prisma methods
       const prisma = require('@/lib/prisma').prisma;
       prisma.role.findUnique.mockResolvedValue({ id: 'role-789', name: 'Worker' });
-      prisma.worker.create.mockResolvedValue(mockResponse[0]);
+      prisma.worker.create.mockResolvedValue({ 
+        id: 'worker-1', 
+        name: 'Тестовый Работник',
+        email: 'worker@example.com',
+        phone: '+79991112233',
+        roleId: 'role-789',
+        userId: 'user-123',
+        isActive: true,
+        createdAt: new Date(),
+        updatedAt: new Date(),
+        role: { id: 'role-789', name: 'Worker' }
+      });
 
       const result = await service.createWorker(userId, workers);
 

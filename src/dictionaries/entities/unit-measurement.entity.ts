@@ -1,3 +1,5 @@
+import { UnitMeasurementResponseDto } from '../dto/response/user-measurement-response.dto';
+
 export class UnitMeasurement {
   id: number;
   name: Record<string, string>;
@@ -9,11 +11,15 @@ export class UnitMeasurement {
     );
   }
 
-  toResponse(lang: string = 'ru') {
-    return {
-      id: this.id,
-      name: this.name[lang] || this.name['ru'],
-    };
+  toResponse(lang: string = 'ru'): UnitMeasurementResponseDto {
+    return new UnitMeasurementResponseDto(
+      this.id,
+      this.name[lang] || this.name['ru'],
+    );
+    // return {
+    //   id: this.id,
+    //   name: this.name[lang] || this.name['ru'],
+    // };
   }
 
   constructor(id: number, name: Record<string, string>) {
