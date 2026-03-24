@@ -94,7 +94,7 @@ describe('ReviewsController', () => {
         ['data:image/png;base64,test'],
       );
 
-      const mockReviewResponse = 'review-123';
+      const mockReviewResponse = { id: 'review-123' };
 
       reviewsService.create.mockResolvedValue(mockReviewResponse);
 

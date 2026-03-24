@@ -22,6 +22,10 @@ import { ApiGetProfileByIdDocs } from './decorators/api-get-profile-by-id-docs.d
 import { ApiGetUserByAccountNumberDocs } from './decorators/api-get-user-by-account-number-docs.decorator';
 import { ApiMakeComplaintToUserDocs } from './decorators/api-make-complaint-to-user-docs.decorator';
 import { ApiSeedRolesDocs } from './decorators/api-seed-roles-docs.decorator';
+import { GetAllProfilesResponseDto } from './dto/response/profile-response.dto';
+import { FullProfileResponseDto } from './dto/response/full-profile-response.dto';
+import { UserResponseDto } from './dto/response/user-response.dto';
+import { ComplaintResponseDto } from './dto/response/complaint-response.dto';
 
 @ApiTags('Users')
 @Controller('users')
@@ -31,28 +35,34 @@ export class UsersController {
   // получить все профили
   @Get('profiles')
   @ApiGetProfilesDocs()
-  async getProfiles(@Query() query: GetProfilesDto) {
+  async getProfiles(
+    @Query() query: GetProfilesDto,
+  ): Promise<GetAllProfilesResponseDto> {
     // Если есть поисковый запрос, используем Elasticsearch
-    if (query.query || query.ratingMin !== null || query.activityIds) {
-      return await this.usersService.searchProfiles(query);
-    }
-    // Иначе используем обычный поиск из БД
-    return await this.usersService.getProfilesFromDB(query);
+    return await this.usersService.searchProfiles(query);
+    // if (query.query || query.ratingMin !== null || query.activityIds) {
+    // }
+    // // Иначе используем обычный поиск из БД
+    // return await this.usersService.getProfilesFromDB(query);
   }
 
   // получить свой профиль
   // получить профиль
   @Get(':id/profiles')
+  @Protected()
   @ApiGetProfileByIdDocs()
-  async getProfileById(@Param('id', ParseUUIDPipe) id: string) {
-    return await this.usersService.getUserById(id);
+  async getProfileById(
+    @CurrentUser() user: JwtPayload,
+    @Param('id', ParseUUIDPipe) id: string,
+  ): Promise<FullProfileResponseDto> {
+    return await this.usersService.getProfileById(user.id, id);
   }
 
   @Get(':account_number')
   @ApiGetUserByAccountNumberDocs()
   async getUserByAccountNumber(
     @Param('account_number') account_number: string,
-  ) {
+  ): Promise<UserResponseDto> {
     return await this.usersService.getUserByAccountNumber(account_number);
   }
 
@@ -62,10 +72,11 @@ export class UsersController {
   async makeComplaintToUser(
     @CurrentUser() user: JwtPayload,
     @Body() body: MakeComplaintToUserDto,
-  ) {
+  ): Promise<ComplaintResponseDto> {
     return await this.usersService.makeComplaintToUser(user.id, body);
   }
 
+  // TODO: убрать
   @Post('seed-roles')
   @ApiSeedRolesDocs()
   async seedRoles() {
@@ -79,7 +90,7 @@ export class UsersController {
   async updateProfile(
     @CurrentUser() user: JwtPayload,
     @Body() body: UpdateUserDto,
-  ) {
+  ): Promise<UserResponseDto> {
     return await this.usersService.updateUser(user.id, body);
   }
 

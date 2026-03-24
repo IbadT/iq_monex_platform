@@ -2,14 +2,14 @@ import { ApiProperty } from '@nestjs/swagger';
 
 export class CategoryResponseDto {
   @ApiProperty({
-    description: '',
+    description: 'ID категории',
     example: 1,
     type: Number,
   })
   id: number;
 
   @ApiProperty({
-    description: '',
+    description: 'Название категории',
     example: 'Готовая продукция',
     type: String,
   })

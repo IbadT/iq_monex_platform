@@ -96,17 +96,8 @@ describe('LikesService', () => {
         `User ${userId} toggling like for listing ${listingId}`,
       );
       expect(result).toEqual({
-        message: 'Лайк успешно добавлен',
-        action: 'liked',
-        like: {
-          ...mockLike,
-          listing: {
-            id: listingId,
-            title: 'Test Listing',
-            likesCount: 6,
-            version: 2,
-          },
-        },
+        action: 'LIKED',
+        id: listingId,
       });
     });
 
@@ -165,10 +156,8 @@ describe('LikesService', () => {
         `User ${userId} toggling like for listing ${listingId}`,
       );
       expect(result).toEqual({
-        message: 'Лайк успешно удален',
-        action: 'unliked',
-        likesCount: 4,
-        version: 2,
+        action: 'UNLIKED',
+        id: listingId,
       });
     });
 

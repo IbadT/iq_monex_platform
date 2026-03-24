@@ -1,6 +1,7 @@
 import { applyDecorators } from '@nestjs/common';
 import { ApiOperation, ApiResponse } from '@nestjs/swagger';
 import { HttpStatus } from '@nestjs/common';
+import { LegalEntityResponseDto } from '../dto/response/legal-entity.response.dto';
 
 export function ApiGetLegalEntityTypesDocs() {
   return applyDecorators(
@@ -11,29 +12,8 @@ export function ApiGetLegalEntityTypesDocs() {
     ApiResponse({
       status: HttpStatus.OK,
       description: 'Список типов юридических лиц успешно получен',
-      schema: {
-        type: 'array',
-        items: {
-          type: 'object',
-          properties: {
-            id: {
-              type: 'integer',
-              description: 'ID типа юридического лица',
-              example: 1,
-            },
-            code: {
-              type: 'string',
-              description: 'Код',
-              example: 'OOO',
-            },
-            name: {
-              type: 'string',
-              description: 'Полное название',
-              example: 'Общество с ограниченной ответственностью',
-            },
-          },
-        },
-      },
+      type: LegalEntityResponseDto,
+      isArray: true,
     }),
     ApiResponse({
       status: HttpStatus.INTERNAL_SERVER_ERROR,

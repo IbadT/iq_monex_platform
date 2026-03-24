@@ -16,8 +16,6 @@ import { TokensDto } from './dto/tokens.dto';
 import { RefreshTokenDto } from './dto/refresh-token.dto';
 import { ResetPasswordDto } from './dto/reset-password.dto';
 import { ConfirmResetPasswordDto } from './dto/confirm-reset-password.dto';
-
-import { User } from '@/users/entities/user.entity';
 import { JwtTokenService } from './jwt/jwt.service';
 import { AppLogger } from '@/common/logger/logger.service';
 import { RegisterResponseDto } from './dto/response/register-response.dto';
@@ -26,6 +24,7 @@ import { RabbitmqService } from '@/rabbitmq/rabbitmq.service';
 import { randomInt } from 'crypto';
 import { prisma } from '@/lib/prisma';
 import { RoleType } from '@/users/enums/role-type.enum';
+import { UserLoginResponseDto } from './dto/response/user-login-response.dto';
 
 @Injectable()
 export class AuthService {
@@ -75,7 +74,7 @@ export class AuthService {
     }
 
     // Создаем Entity без пароля для ответа
-    const userEntity = User.fromUpdateUserDto(existUser, null);
+    // const userEntity = User.fromUpdateUserDto(existUser, null);
     // const userEntity: User = {
     //   id: existUser.id,
     //   email: existUser.email,
@@ -93,10 +92,15 @@ export class AuthService {
 
     this.logger.logAuth('login_success', existUser.id, email);
 
+    const userLogin: UserLoginResponseDto = {
+      id: existUser.id,
+      email: existUser.email,
+    };
+
     return new LoginResponseDto(
       tokens.accessToken,
       tokens.refreshToken,
-      userEntity,
+      userLogin,
     );
   }
 
@@ -267,20 +271,6 @@ export class AuthService {
       user: {
         id: newUser.id,
         email: newUser.email,
-        name: newUser.name,
-        accountNumber: newUser.accountNumber,
-        isVerified: true,
-        rating: 0,
-        reviewsCount: 0,
-        favorites: [],
-        favoritedBy: [],
-        userActivities: [],
-        locations: [],
-        receivedReviews: [],
-        profile: null,
-        createdAt: newUser.createdAt,
-        updatedAt: newUser.updatedAt,
-        workers: null,
       },
       tokens: {
         accessToken,

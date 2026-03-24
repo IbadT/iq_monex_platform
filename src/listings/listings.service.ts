@@ -37,6 +37,12 @@ import { DictionariesService } from '@/dictionaries/dictionaries.service';
 import { MapLocationsService } from '@/map_locations/map_locations.service';
 import { IListing } from './interfaces/listing.interface';
 import { PrismaClient } from 'prisma/generated/client';
+import { ListingResposeDto } from './dto/response/listing-response.dto';
+import { ListingMapper } from './mappers/listing.mapper';
+import { CreateListingResponseDto } from './dto/response/create-listing-response.dto';
+import { ChangeStatusResponseDto } from './dto/response/change-status-response.dto';
+import { BulkRestoreResponseDto } from './dto/response/bulk-restore-response.dto';
+import { CreateListingComplaintResponseDto } from './dto/response/create-listing-complaint-response.dto';
 
 @Injectable()
 export class ListingsService {
@@ -125,7 +131,10 @@ export class ListingsService {
     return processedListings;
   }
 
-  async makeComplaintToListing(userId: string, body: MakeComplaintToListing) {
+  async makeComplaintToListing(
+    userId: string,
+    body: MakeComplaintToListing,
+  ): Promise<CreateListingComplaintResponseDto> {
     const hasComplaint = await prisma.complaint.findFirst({
       where: {
         authorId: userId,
@@ -144,6 +153,9 @@ export class ListingsService {
         text: body.text,
         complaintType: ComplaintType.LISTING,
         authorId: userId,
+      },
+      select: {
+        id: true,
       },
     });
   }
@@ -424,12 +436,16 @@ export class ListingsService {
     };
   }
 
-  async changeListingStatus(userId: string, body: ChangeListingStatusDto) {
+  async changeListingStatus(
+    userId: string,
+    body: ChangeListingStatusDto,
+  ): Promise<ChangeStatusResponseDto> {
     const { listingId, status } = body;
 
     const checkIfListingExist = await prisma.listing.findFirst({
       where: {
         id: listingId,
+        userId, // Добавляем проверку владельца
       },
     });
 
@@ -438,6 +454,8 @@ export class ListingsService {
     }
 
     return await prisma.$transaction(async (tx: PrismaClient) => {
+      let updatedListing: any;
+
       // проверка активных объявлений для PUBLISHED
       if (status === ListingStatus.PUBLISHED) {
         const availableSlots =
@@ -450,69 +468,172 @@ export class ListingsService {
           );
         }
 
-        if (checkIfListingExist.status === ListingStatus.ARCHIVED) {
-          await tx.listing.create({
-            data: {
-              ...checkIfListingExist,
-              status: ListingStatus.PUBLISHED,
-            },
-          });
-        }
-
-        await tx.listing.update({
+        // Обновляем статус объявления
+        updatedListing = await tx.listing.update({
           where: { id: listingId },
           data: {
             status: status,
+            publishedAt: new Date(),
             autoDeleteAt: null,
+            archivedAt: null,
           },
         });
 
         // Создаем связь объявления со слотом
-        return await tx.listingSlot.create({
+        await tx.listingSlot.create({
           data: {
             listingId,
             userSlotId: availableSlots[0].id,
             assignedAt: new Date(),
           },
         });
+
+        return new ChangeStatusResponseDto(
+          updatedListing.id,
+          updatedListing.status,
+          updatedListing.publishedAt,
+          updatedListing.archivedAt,
+          updatedListing.autoDeleteAt,
+        );
       }
 
       // если статус НЕ PUBLISHED, то освобождаем слоты
       if (checkIfListingExist.status === ListingStatus.PUBLISHED) {
-        // await tx.listingSlot.deleteMany({
         await tx.listingSlot.delete({
           where: {
             listingId,
           },
         });
-
         this.logger.log(`Освобожден слот для объявления ${listingId}`);
       }
 
+      // Обработка ARCHIVED
       if (status === ListingStatus.ARCHIVED) {
-        await tx.listing.update({
-          where: {
-            id: listingId,
-          },
+        updatedListing = await tx.listing.update({
+          where: { id: listingId },
           data: {
             status,
             archivedAt: new Date(),
             autoDeleteAt: this.calculateAutoDeleteDate(),
+            publishedAt: null,
+          },
+        });
+      }
+      // Остальные статусы (DRAFT, TEMPLATE)
+      else {
+        updatedListing = await tx.listing.update({
+          where: { id: listingId },
+          data: {
+            status: status,
+            publishedAt: null,
+            archivedAt: null,
+            autoDeleteAt: null,
           },
         });
       }
 
-      // Остальные статусы (DRAFT, TEMPLATE)
-      return await tx.listing.update({
-        where: { id: listingId },
-        data: {
-          status: status,
-        },
-      });
+      return new ChangeStatusResponseDto(
+        updatedListing.id,
+        updatedListing.status,
+        updatedListing.publishedAt,
+        updatedListing.archivedAt,
+        updatedListing.autoDeleteAt,
+      );
     });
   }
 
-  async bulkRestore(userId: string) {
+  // async changeListingStatus(
+  //   userId: string,
+  //   body: ChangeListingStatusDto,
+  // ): Promise<ChangeStatusResponseDto> {
+  //   const { listingId, status } = body;
+
+  //   const checkIfListingExist = await prisma.listing.findFirst({
+  //     where: {
+  //       id: listingId,
+  //     },
+  //   });
+
+  //   if (!checkIfListingExist) {
+  //     throw new BadRequestException(`Объявление с id: ${listingId} не найдено`);
+  //   }
+
+  //   return await prisma.$transaction(async (tx: PrismaClient) => {
+  //     // проверка активных объявлений для PUBLISHED
+  //     if (status === ListingStatus.PUBLISHED) {
+  //       const availableSlots =
+  //         await this.subscriptionService.getUserAvailableSlots(userId);
+  //       this.logger.log(`Доступных слотов: ${availableSlots.length}`);
+
+  //       if (availableSlots.length === 0) {
+  //         throw new BadRequestException(
+  //           'Нет доступных слотов для создания объявления',
+  //         );
+  //       }
+
+  //       if (checkIfListingExist.status === ListingStatus.ARCHIVED) {
+  //         await tx.listing.create({
+  //           data: {
+  //             ...checkIfListingExist,
+  //             status: ListingStatus.PUBLISHED,
+  //           },
+  //         });
+  //       }
+
+  //       await tx.listing.update({
+  //         where: { id: listingId },
+  //         data: {
+  //           status: status,
+  //           autoDeleteAt: null,
+  //         },
+  //       });
+
+  //       // Создаем связь объявления со слотом
+  //       return await tx.listingSlot.create({
+  //         data: {
+  //           listingId,
+  //           userSlotId: availableSlots[0].id,
+  //           assignedAt: new Date(),
+  //         },
+  //       });
+  //     }
+
+  //     // если статус НЕ PUBLISHED, то освобождаем слоты
+  //     if (checkIfListingExist.status === ListingStatus.PUBLISHED) {
+  //       // await tx.listingSlot.deleteMany({
+  //       await tx.listingSlot.delete({
+  //         where: {
+  //           listingId,
+  //         },
+  //       });
+
+  //       this.logger.log(`Освобожден слот для объявления ${listingId}`);
+  //     }
+
+  //     if (status === ListingStatus.ARCHIVED) {
+  //       await tx.listing.update({
+  //         where: {
+  //           id: listingId,
+  //         },
+  //         data: {
+  //           status,
+  //           archivedAt: new Date(),
+  //           autoDeleteAt: this.calculateAutoDeleteDate(),
+  //         },
+  //       });
+  //     }
+
+  //     // Остальные статусы (DRAFT, TEMPLATE)
+  //     updatedListing = await tx.listing.update({
+  //       where: { id: listingId },
+  //       data: {
+  //         status: status,
+  //       },
+  //     });
+  //   });
+  // }
+
+  async bulkRestore(userId: string): Promise<BulkRestoreResponseDto> {
     const [archivedListings, availableSlots] = await Promise.all([
       // получаем все архивные объявления
       prisma.listing.findMany({
@@ -617,7 +738,10 @@ export class ListingsService {
     return !!listing;
   }
 
-  async listingById(id: string, status: StatusQueryDto) {
+  async listingById(
+    id: string,
+    status: StatusQueryDto,
+  ): Promise<ListingResposeDto> {
     // const cachedKey = `listings:${id}`;
     // const cachedListing = await this.cacheSevice.get(cachedKey);
     // if (cachedListing) return cachedListing;
@@ -641,18 +765,18 @@ export class ListingsService {
     });
 
     // Разделяем файлы на фотографии и документы
-    if (listing) {
-      const processedListing = {
-        ...listing,
-        photos: listing.files.filter(
-          (file: any) => file.kind === FileKind.PHOTO,
-        ),
-        files: listing.files.filter(
-          (file: any) => file.kind === FileKind.DOCUMENT,
-        ),
-      };
-      return processedListing;
-    }
+    // if (listing) {
+    //   const processedListing = {
+    //     ...listing,
+    //     photos: listing.files.filter(
+    //       (file: any) => file.kind === FileKind.PHOTO,
+    //     ),
+    //     files: listing.files.filter(
+    //       (file: any) => file.kind === FileKind.DOCUMENT,
+    //     ),
+    //   };
+    //   return processedListing;
+    // }
 
     // if (listing) {
     //   await this.cacheSevice.set({
@@ -662,13 +786,14 @@ export class ListingsService {
     //   });
     // }
 
-    return listing;
+    // return listing;
+    return ListingMapper.toResponse(listing);
   }
 
-  async listingsByUserId(userId: string) {
-    const cacheKey = `listings:userId:${userId}`;
-    const cachedListings = await this.cacheSevice.get(cacheKey);
-    if (cachedListings) return cachedListings;
+  async listingsByUserId(userId: string): Promise<ListingResposeDto[]> {
+    // const cacheKey = `listings:userId:${userId}`;
+    // const cachedListings = await this.cacheSevice.get<ListingResposeDto[]>(cacheKey);
+    // if (cachedListings) return cachedListings;
 
     this.logger.log(`User ID: ${userId}`);
 
@@ -690,26 +815,30 @@ export class ListingsService {
     });
 
     // Разделяем файлы на фотографии и документы
-    const processedListings = listings.map((listing: any) => ({
-      ...listing,
-      photos: listing.files.filter((file: any) => file.kind === FileKind.PHOTO),
-      files: listing.files.filter(
-        (file: any) => file.kind === FileKind.DOCUMENT,
-      ),
-    }));
+    // const processedListings = listings.map((listing: any) => ({
+    //   ...listing,
+    //   photos: listing.files.filter((file: any) => file.kind === FileKind.PHOTO),
+    //   files: listing.files.filter(
+    //     (file: any) => file.kind === FileKind.DOCUMENT,
+    //   ),
+    // }));
 
-    if (processedListings && processedListings.length > 0) {
-      await this.cacheSevice.set({
-        baseKey: cacheKey,
-        ttl: 900,
-        value: processedListings,
-      });
-    }
+    // if (processedListings && processedListings.length > 0) {
+    //   await this.cacheSevice.set({
+    //     baseKey: cacheKey,
+    //     ttl: 900,
+    //     value: processedListings,
+    //   });
+    // }
 
-    return processedListings;
+    // return processedListings;
+    return ListingMapper.toResponseList(listings);
   }
 
-  async createListing(userId: string, body: CreateListingDto) {
+  async createListing(
+    userId: string,
+    body: CreateListingDto,
+  ): Promise<CreateListingResponseDto> {
     // Проверка текста на запрещенные слова
     if (body.title) {
       this.validateText(body.title);

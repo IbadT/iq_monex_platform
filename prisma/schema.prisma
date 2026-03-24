@@ -39,13 +39,13 @@ model User {
   chatParticipants ChatParticipant[]
   listings         Listing[]
 
-  authoredReviews  Review[]          @relation("AuthoredReviews")
-  receivedReviews  Review[]          @relation("ReceivedReviews")
-  reviewLikes      ReviewLike[]
-  listingLikes     ListingLike[]
+  authoredReviews Review[]      @relation("AuthoredReviews")
+  receivedReviews Review[]      @relation("ReceivedReviews")
+  reviewLikes     ReviewLike[]
+  listingLikes    ListingLike[]
 
-  files   File[]
-  workers Worker[]
+  files     File[]
+  workers   Worker[]
   locations MapLocation[] @relation("UserLocations")
 
   subscriptions Subscription[]
@@ -77,11 +77,11 @@ model Profile {
   user   User   @relation(fields: [userId], references: [id], onDelete: Cascade)
 
   // Тип юридического лица
-  legalEntityTypeId Int @map("legal_entity_type_id")
+  legalEntityTypeId Int             @map("legal_entity_type_id")
   legalEntityType   LegalEntityType @relation(fields: [legalEntityTypeId], references: [id])
 
   // Валюта
-  currencyId Int @map("currency_id")
+  currencyId Int      @map("currency_id")
   currency   Currency @relation(fields: [currencyId], references: [id])
 
   // Дополнительные поля профиля
@@ -151,7 +151,7 @@ model Worker {
   phone String
   email String
 
-  isAcitve Boolean
+  isActive Boolean
 
   roleId String @map("role_id") @db.Uuid
   role   Role   @relation(fields: [roleId], references: [id])
@@ -213,7 +213,7 @@ model Currency {
   code   String @unique
   name   Json // {"ru": "Российский рубль", "en": "Russian Ruble", "kz": "..."}
 
-  listing Listing[]
+  listing  Listing[]
   profiles Profile[]
 
   @@map("currencies")
@@ -418,7 +418,7 @@ model Listing {
 
   // ===== RELATIONS =====
   files          File[]
-  locations      MapLocation[] @relation("ListingLocations")
+  locations      MapLocation[]          @relation("ListingLocations")
   specifications ListingSpecification[]
 
   listingSlot ListingSlot?
@@ -465,25 +465,25 @@ model ListingSpecification {
 // ================ LOCATIONS (отдельная таблица) ================
 
 model MapLocation {
-  id        String @id @default(uuid()) @db.Uuid
+  id String @id @default(uuid()) @db.Uuid
 
   // Owner может быть либо пользователем, либо объявлением
-  userId    String? @map("user_id") @db.Uuid
-  user      User?   @relation("UserLocations", fields: [userId], references: [id], onDelete: Cascade)
+  userId String? @map("user_id") @db.Uuid
+  user   User?   @relation("UserLocations", fields: [userId], references: [id], onDelete: Cascade)
 
-  listingId String? @map("listing_id") @db.Uuid
+  listingId String?  @map("listing_id") @db.Uuid
   listing   Listing? @relation("ListingLocations", fields: [listingId], references: [id], onDelete: Cascade)
 
   type MapLocationType
 
   // Адрес для отображения
-  address String?
+  address String
 
-  latitude   Decimal @db.Decimal(10, 8)
+  latitude  Decimal @db.Decimal(10, 8)
   longitude Decimal @db.Decimal(11, 8)
 
   // Гео-индекс для поиска "рядом со мной"
-  geoHash String? @map("geo_hash") // для быстрого поиска по радиусу
+  geoHash String @map("geo_hash") // для быстрого поиска по радиусу
 
   createdAt DateTime @default(now()) @map("created_at")
   updatedAt DateTime @updatedAt
@@ -949,7 +949,7 @@ model Activity {
 
 // ================ USER SUGGESTIONS ================
 model UserSuggestion {
-  id Int @id @default(autoincrement())
+  id   Int    @id @default(autoincrement())
   text String
 
   createdAt DateTime @default(now()) @map("created_at")

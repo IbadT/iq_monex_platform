@@ -1,11 +1,13 @@
-export class Currency {
+import { CurrenciesResponseDto } from '../dto/response/currencies-response.dto';
+
+export class CurrencyEntity {
   id: number;
   symbol: string;
   code: string;
   name: Record<string, string>;
 
-  static fromPrisma(currency: Currency): Currency {
-    return new Currency(
+  static fromPrisma(currency: CurrencyEntity): CurrencyEntity {
+    return new CurrencyEntity(
       currency.id,
       currency.symbol,
       currency.code,
@@ -15,7 +17,7 @@ export class Currency {
     );
   }
 
-  toResponse(lang: string = 'ru') {
+  toResponse(lang: string = 'ru'): CurrenciesResponseDto {
     return {
       id: this.id,
       symbol: this.symbol,

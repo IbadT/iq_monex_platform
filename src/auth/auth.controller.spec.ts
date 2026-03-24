@@ -84,6 +84,10 @@ describe('AuthController', () => {
         profile: null,
         workers: [],
         receivedReviews: [],
+        userActivities: [],
+        locations: [],
+        favorites: [],
+        favoritedBy: [],
         createdAt: new Date(),
         updatedAt: new Date(),
       };

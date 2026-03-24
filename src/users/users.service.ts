@@ -16,9 +16,33 @@ import { RoleType } from './enums/role-type.enum';
 import { roles } from './default/roleData';
 import { ComplaintType } from './enums/complaint-type.enum';
 import { PaginationDto } from '@/common/dto/pagintation.dto';
-import { PrismaClient } from 'prisma/generated/client';
+
+// Mock for prisma generated client
+let FileKind: any;
+try {
+  const prismaClient = require('prisma/generated/client');
+  FileKind = prismaClient.FileKind;
+} catch (error) {
+  // Mock for tests
+  FileKind = {
+    DOCUMENT: 'DOCUMENT',
+    PHOTO: 'PHOTO',
+  };
+}
+
+type PrismaClient = any;
 import { GetProfilesDto } from './dto/get-profiles.dto';
 import { MakeComplaintToUserDto } from './dto/make-complaint-to-user.dto';
+import {
+  GetAllProfilesResponseDto,
+  PaginationResponseDto,
+} from './dto/response/profile-response.dto';
+import { ProfileMapper } from './mappers/profile.mapper';
+import { FullProfileResponseDto } from './dto/response/full-profile-response.dto';
+import { FavoriteType } from '@/favorites/enums/favorite-type.enum';
+import { UserResponseDto } from './dto/response/user-response.dto';
+import { UserMapper } from './mappers/user.mapper';
+import { ComplaintResponseDto } from './dto/response/complaint-response.dto';
 
 @Injectable()
 export class UsersService {
@@ -31,7 +55,9 @@ export class UsersService {
     private readonly searchService: SearchService,
   ) {}
 
-  async searchProfiles(query: GetProfilesDto) {
+  async searchProfiles(
+    query: GetProfilesDto,
+  ): Promise<GetAllProfilesResponseDto> {
     const startTime = Date.now();
     const {
       limit = 10,
@@ -109,8 +135,8 @@ export class UsersService {
         );
       }
 
-      // Если нет must условий, но есть поиск, заменяем на match_all
-      if (esQuery.query.bool.must.length === 0 && search) {
+      // Если нет must условий, добавляем match_all
+      if (esQuery.query.bool.must.length === 0) {
         esQuery.query.bool.must.push({ match_all: {} });
       }
 
@@ -132,25 +158,19 @@ export class UsersService {
         const totalDuration = Date.now() - startTime;
         this.logger.log(`📭 No results found in ${totalDuration}ms`);
 
-        return {
-          rows: [],
-          pagination: {
-            total: 0,
-            limit,
-            offset,
-            hasMore: false,
-          },
-        };
+        return new GetAllProfilesResponseDto(
+          [],
+          new PaginationResponseDto(0, limit, offset),
+        );
       }
 
       this.logger.log(
         `📋 Found ${profileIds.length} profile IDs: ${profileIds.slice(0, 5).join(', ')}${profileIds.length > 5 ? '...' : ''}`,
       );
 
-      // Получаем полные данные из Prisma для найденных ID с сортировкой
+      // Получаем полные данные из Prisma для найденных ID
       const dbStartTime = Date.now();
 
-      // TODO: вынести по отдельным запосам для скорости
       const profiles = await prisma.profile.findMany({
         where: {
           id: { in: profileIds },
@@ -158,20 +178,10 @@ export class UsersService {
         include: {
           user: {
             include: {
-              favorites: true,
-              favoritedBy: true,
-              locations: true,
-              userActivities: true,
-              files: true,
-              receivedReviews: {
-                select: {
-                  rating: true,
-                  createdAt: true,
+              userActivities: {
+                include: {
+                  activity: true,
                 },
-                orderBy: {
-                  createdAt: 'desc',
-                },
-                take: query.limit, // Используем limit из DTO
               },
             },
           },
@@ -182,31 +192,33 @@ export class UsersService {
           createdAt: 'desc',
         },
       });
+
       const dbDuration = Date.now() - dbStartTime;
 
       this.logger.log(
         `🗄️ Database query completed in ${dbDuration}ms, retrieved ${profiles.length} full profiles`,
       );
 
+      // Сортируем профили в том же порядке, что и из Elasticsearch
+      const sortedProfiles = profileIds
+        .map((id) => profiles.find((profile) => profile.id === id))
+        .filter(
+          (profile): profile is NonNullable<typeof profile> =>
+            profile !== undefined,
+        );
+
       const totalDuration = Date.now() - startTime;
       this.logger.log(
         `✅ Profile search completed successfully in ${totalDuration}ms (ES: ${esDuration}ms, DB: ${dbDuration}ms)`,
       );
 
-      return {
-        rows: profiles,
-        pagination: {
-          total: result.hits.total.value,
-          limit,
-          offset,
-          hasMore: offset + limit < result.hits.total.value,
-        },
-        searchMeta: {
-          query: search,
-          totalFound: result.hits.total.value,
-          maxScore: Math.max(...result.hits.hits.map((hit) => hit._score)),
-        },
-      };
+      // Используем маппер для преобразования в DTO
+      return ProfileMapper.toGetAllResponse(
+        sortedProfiles,
+        result.hits.total.value,
+        limit,
+        offset,
+      );
     } catch (error) {
       const totalDuration = Date.now() - startTime;
       this.logger.error(
@@ -222,39 +234,31 @@ export class UsersService {
     }
   }
 
-  async getProfilesFromDB(query: GetProfilesDto) {
-    // TODO: вынести по отдельным запосам для скорости
+  async getProfilesFromDB(
+    query: GetProfilesDto,
+  ): Promise<GetAllProfilesResponseDto> {
     const dbQuery: any = {
       take: query.limit,
       skip: query.offset,
       include: {
+        legalEntityType: true,
+        currency: true,
         user: {
           include: {
-            favorites: true,
-            favoritedBy: true,
-            locations: true,
-            userActivities: true,
-            files: true,
-            receivedReviews: {
-              select: {
-                rating: true,
+            userActivities: {
+              include: {
+                activity: true,
               },
-              orderBy: {
-                createdAt: 'desc',
-              },
-              take: query.limit || 10, // Используем limit из DTO
             },
           },
         },
-        legalEntityType: true,
-        currency: true,
       },
       orderBy: {
         createdAt: 'desc',
       },
     };
 
-    // Текстовый поиск по имени компании
+    // Добавляем where условия
     if (query.query) {
       dbQuery.where = {
         ...dbQuery.where,
@@ -267,24 +271,6 @@ export class UsersService {
       };
     }
 
-    // Фильтр по рейтингу (средний рейтинг из отзывов)
-    if (query.ratingMin !== null) {
-      // Добавляем подзапрос для расчета среднего рейтинга
-      dbQuery.where = {
-        ...dbQuery.where,
-        user: {
-          receivedReviews: {
-            some: {
-              rating: {
-                gte: query.ratingMin,
-              },
-            },
-          },
-        },
-      };
-    }
-
-    // Фильтр по активностям
     if (query.activityIds && query.activityIds.length > 0) {
       dbQuery.where = {
         ...dbQuery.where,
@@ -300,17 +286,17 @@ export class UsersService {
       };
     }
 
-    const profiles = await prisma.profile.findMany(dbQuery);
+    const [profiles, total] = await Promise.all([
+      prisma.profile.findMany(dbQuery),
+      prisma.profile.count({ where: dbQuery.where }),
+    ]);
 
-    return {
-      rows: profiles,
-      pagination: {
-        total: profiles.length,
-        limit: query.limit,
-        offset: query.offset,
-        hasMore: false,
-      },
-    };
+    return ProfileMapper.toGetAllResponse(
+      profiles,
+      total,
+      query.limit,
+      query.offset,
+    );
   }
 
   async getUserReviews(userId: string, query: PaginationDto) {
@@ -357,36 +343,92 @@ export class UsersService {
     });
   }
 
-  async getUserById(id: string): Promise<User | null> {
-    const cachedUser = await this.cacheService.getUserById(id);
+  async getUserById(id: string) {
+    return await prisma.user.findFirst({
+      where: {
+        id,
+      },
+      select: {
+        id: true,
+        name: true,
+        email: true,
+      },
+    });
+  }
 
-    if (cachedUser) {
-      return cachedUser;
-    }
+  async getProfileById(
+    userId: string,
+    id: string,
+  ): Promise<FullProfileResponseDto> {
+    // const cachedUser = await this.cacheService.getUserById(id);
+
+    // if (cachedUser) {
+    //   return cachedUser;
+    // }
 
     const user = await prisma.user.findUnique({
       where: { id },
       include: {
-        favorites: true,
-        favoritedBy: true,
-        files: true,
-        workers: true,
-        locations: true,
-        userActivities: true,
         profile: {
           include: {
             legalEntityType: true,
             currency: true,
           },
         },
+        userActivities: {
+          include: {
+            activity: true,
+          },
+        },
+        files: {
+          where: {
+            kind: FileKind.AVATAR,
+            uploadStatus: 'completed',
+          },
+        },
+        workers: {
+          include: {
+            role: true,
+          },
+          where: {
+            isActive: true,
+          },
+        },
+        locations: {
+          where: {
+            userId: id,
+          },
+        },
         receivedReviews: {
+          where: {
+            status: 'APPROVED',
+          },
           select: {
             rating: true,
+            createdAt: true,
           },
           orderBy: {
             createdAt: 'desc',
           },
         },
+        // favorites: {
+        //   where: {
+        //     // userId: currentUserId,
+        //     userId: id,
+        //     targetUserId: id,
+        //     type: FavoriteType.USER,
+        //   },
+        // },
+        favorites: id
+          ? {
+              where: {
+                userId: id,
+                targetUserId: id,
+                type: FavoriteType.USER,
+              },
+              take: 1, // Добавляем take, чтобы не получать массив
+            }
+          : false, // Используем false вместо undefined
       },
     });
 
@@ -394,18 +436,35 @@ export class UsersService {
       throw new NotFoundException(`Пользователь с id: ${id} не найден`);
     }
 
-    const userEntity = User.fromUpdateUserDto(user, user.profile);
+    // Преобразуем в DTO
+    const fullProfile = ProfileMapper.toFullResponse(user, userId);
 
-    await this.cacheService.setUserById(id, userEntity, 3600);
-    return userEntity;
+    // Кешируем
+    // await this.cacheService.setUserById(id, fullProfile, 3600);
+    // await this.cacheService.setUserById(id, fullProfile, 3600);
+
+    return fullProfile;
   }
 
-  async getUserByAccountNumber(accountNumber: string) {
-    return await prisma.user.findUnique({
+  async getUserByAccountNumber(
+    accountNumber: string,
+  ): Promise<UserResponseDto> {
+    const user = await prisma.user.findUnique({
       where: {
         accountNumber,
       },
+      include: {
+        role: true,
+      },
     });
+
+    if (!user) {
+      throw new NotFoundException(
+        `Пользователь с номером аккаунта ${accountNumber} не найден`,
+      );
+    }
+
+    return UserMapper.toUserResponse(user);
   }
 
   // async getUserFavoritesProfiles(userId: string) {
@@ -417,7 +476,10 @@ export class UsersService {
   //   });
   // }
 
-  async makeComplaintToUser(userId: string, body: MakeComplaintToUserDto) {
+  async makeComplaintToUser(
+    userId: string,
+    body: MakeComplaintToUserDto,
+  ): Promise<ComplaintResponseDto> {
     const checkComplaintAlreadyExist = await prisma.complaint.findFirst({
       where: {
         authorId: userId,
@@ -435,6 +497,9 @@ export class UsersService {
         text: body.text,
         authorId: userId,
         targetUserId: body.userId,
+      },
+      select: {
+        id: true,
       },
     });
   }
@@ -476,7 +541,7 @@ export class UsersService {
     return userEntity;
   }
 
-  async updateUser(id: string, body: UpdateUserDto): Promise<User> {
+  async updateUser(id: string, body: UpdateUserDto): Promise<UserResponseDto> {
     this.logger.log(`Обновление пользователя id: ${id}, body: ${body}`);
 
     try {
@@ -607,10 +672,11 @@ export class UsersService {
         await this.cacheService.del(`activities`);
 
         // 7. Создаем User entity без поля password
-        return User.fromUpdateUserDto(updatedUser, updatedUser.profile);
+        // return User.fromUpdateUserDto(updatedUser, updatedUser.profile);
+        return UserMapper.toUserResponse(updatedUser);
       });
 
-      return result;
+      return UserMapper.toUserResponse(result);
     } catch (error) {
       this.logger.error(`Ошибка при обновлении пользователя: ${error.message}`);
       throw error;

@@ -1,6 +1,6 @@
 import { ApiProperty } from '@nestjs/swagger';
 import { IsString, IsEmail } from 'class-validator';
-import { User } from '@/users/entities/user.entity';
+import { UserLoginResponseDto } from './response/user-login-response.dto';
 
 export class VerifyCodeDto {
   @ApiProperty({
@@ -39,10 +39,10 @@ export class VerifyCodeResponseDto {
 
   @ApiProperty({
     description: 'Информация о пользователе',
-    type: User,
+    type: () => UserLoginResponseDto,
     required: false,
   })
-  user?: User;
+  user: UserLoginResponseDto;
 
   @ApiProperty({
     description: 'JWT токены',
@@ -62,14 +62,12 @@ export class VerifyCodeResponseDto {
   constructor(
     message: string,
     status: number,
-    user?: User,
+    user: UserLoginResponseDto,
     tokens?: { accessToken: string; refreshToken: string },
   ) {
     this.message = message;
     this.status = status;
-    if (user) {
-      this.user = user;
-    }
+    this.user = user;
     if (tokens) {
       this.tokens = tokens;
     }

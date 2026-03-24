@@ -7,6 +7,7 @@ import {
   ApiTags,
 } from '@nestjs/swagger';
 import { UpdateUserDto } from '../dto/update-user.dto';
+import { UserResponseDto } from '../dto/response/user-response.dto';
 
 /**
  * Декоратор для документации эндпоинта обновления профиля пользователя
@@ -126,59 +127,7 @@ export const ApiUpdateUserDocs = () =>
     ApiResponse({
       status: 200,
       description: 'Профиль пользователя успешно обновлен',
-      schema: {
-        type: 'object',
-        properties: {
-          success: {
-            type: 'boolean',
-            example: true,
-          },
-          data: {
-            type: 'object',
-            properties: {
-              id: {
-                type: 'string',
-                format: 'uuid',
-                example: '123e4567-e89b-12d3-a456-426614174000',
-                description: 'ID пользователя',
-              },
-              name: {
-                type: 'string',
-                example: 'Иванов Иван Иванович',
-                description: 'Имя пользователя',
-              },
-              email: {
-                type: 'string',
-                format: 'email',
-                example: 'user@example.com',
-                description: 'Email пользователя',
-              },
-              accountNumber: {
-                type: 'string',
-                example: 'ACC123456789',
-                description: 'Номер счета пользователя',
-              },
-              isVerified: {
-                type: 'boolean',
-                example: true,
-                description: 'Статус верификации пользователя',
-              },
-              createdAt: {
-                type: 'string',
-                format: 'date-time',
-                example: '2023-01-01T00:00:00.000Z',
-                description: 'Дата создания пользователя',
-              },
-              updatedAt: {
-                type: 'string',
-                format: 'date-time',
-                example: '2023-01-01T12:00:00.000Z',
-                description: 'Дата последнего обновления',
-              },
-            },
-          },
-        },
-      },
+      type: UserResponseDto,
     }),
     ApiResponse({
       status: 400,

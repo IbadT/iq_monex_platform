@@ -2,6 +2,7 @@ import { applyDecorators } from '@nestjs/common';
 import { ApiOperation, ApiBody, ApiResponse } from '@nestjs/swagger';
 import { HttpStatus } from '@nestjs/common';
 import { UpdateWorkerDto } from '../dto/update-worker.dto';
+import { UpdateWorkerResponseDto } from '../dto/response/update-worker.dto';
 
 export function ApiUpdateWorkersDocs() {
   return applyDecorators(
@@ -11,21 +12,13 @@ export function ApiUpdateWorkersDocs() {
     }),
     ApiBody({
       description: 'Данные для обновления сотрудников',
-      type: UpdateWorkerDto
+      type: UpdateWorkerDto,
     }),
     ApiResponse({
       status: HttpStatus.OK,
       description: 'Сотрудники успешно обновлены',
-      schema: {
-        type: 'object',
-        properties: {
-          count: {
-            type: 'integer',
-            description: 'Количество обновленных сотрудников',
-            example: 5
-          }
-        }
-      }
+      type: UpdateWorkerResponseDto,
+      isArray: true,
     }),
     ApiResponse({
       status: HttpStatus.BAD_REQUEST,
@@ -35,14 +28,14 @@ export function ApiUpdateWorkersDocs() {
         properties: {
           statusCode: {
             type: 'integer',
-            example: 400
+            example: 400,
           },
           message: {
             type: 'string',
-            example: 'Invalid update data'
-          }
-        }
-      }
+            example: 'Invalid update data',
+          },
+        },
+      },
     }),
     ApiResponse({
       status: HttpStatus.UNAUTHORIZED,
@@ -52,14 +45,14 @@ export function ApiUpdateWorkersDocs() {
         properties: {
           statusCode: {
             type: 'integer',
-            example: 401
+            example: 401,
           },
           message: {
             type: 'string',
-            example: 'Unauthorized'
-          }
-        }
-      }
+            example: 'Unauthorized',
+          },
+        },
+      },
     }),
     ApiResponse({
       status: HttpStatus.INTERNAL_SERVER_ERROR,
@@ -69,14 +62,14 @@ export function ApiUpdateWorkersDocs() {
         properties: {
           statusCode: {
             type: 'integer',
-            example: 500
+            example: 500,
           },
           message: {
             type: 'string',
-            example: 'Internal server error'
-          }
-        }
-      }
-    })
+            example: 'Internal server error',
+          },
+        },
+      },
+    }),
   );
 }

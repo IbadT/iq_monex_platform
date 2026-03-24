@@ -13,19 +13,21 @@ import {
   SubcategoryResponseDto,
   SubSubcategoryResponseDto,
 } from './dto/response/categories-response.dto';
-import { 
-  CategoriesApiDocs, 
-  ApiGetCategoryTreeDocs, 
-  ApiGetSubcategoriesDocs, 
-  ApiGetSubcategoryTreeDocs, 
-  ApiGetSubsubcategoriesDocs, 
-  ApiGetLegalEntityTypesDocs, 
-  ApiPostLegalEntitySeedDocs, 
-  ApiPostCategoriesSeedDocs 
+import {
+  CategoriesApiDocs,
+  ApiGetCategoryTreeDocs,
+  ApiGetSubcategoriesDocs,
+  ApiGetSubcategoryTreeDocs,
+  ApiGetSubsubcategoriesDocs,
+  ApiGetLegalEntityTypesDocs,
+  ApiPostLegalEntitySeedDocs,
+  ApiPostCategoriesSeedDocs,
 } from './decorators';
 import { ApiTags, ApiQuery } from '@nestjs/swagger';
 import { Language } from '@/dictionaries/dto/request/get-currency.dto';
 import { GetLegalEntityTypesDto } from './dto/request/get-legal-entity-types.dto';
+import { LegalEntityResponseDto } from './dto/response/legal-entity.response.dto';
+import { CategoryTreeResponseDto } from './dto/response/category-tree-response.dto';
 
 // TODO: добавить документацию в декораторы
 // TODO: добавить получение из redis
@@ -43,7 +45,9 @@ export class CategoriesController {
 
   @Get('categories/:id/tree')
   @ApiGetCategoryTreeDocs()
-  async getCategoryTreeById(@Param('id', ParseIntPipe) id: number) {
+  async getCategoryTreeById(
+    @Param('id', ParseIntPipe) id: number,
+  ): Promise<CategoryTreeResponseDto> {
     return await this.categoriesService.getCategoryTreeById(id);
   }
 
@@ -56,7 +60,9 @@ export class CategoriesController {
 
   @Get('subcategories/:id/tree')
   @ApiGetSubcategoryTreeDocs()
-  async getSubCategoriesTreeById(@Param('id', ParseIntPipe) id: number) {
+  async getSubCategoriesTreeById(
+    @Param('id', ParseIntPipe) id: number,
+  ): Promise<CategoryTreeResponseDto> {
     return await this.categoriesService.getCategoryTreeById(id);
   }
 
@@ -78,7 +84,9 @@ export class CategoriesController {
     example: Language.RU,
     default: Language.RU,
   })
-  async getLegalEntityTypes(@Query() query: GetLegalEntityTypesDto) {
+  async getLegalEntityTypes(
+    @Query() query: GetLegalEntityTypesDto,
+  ): Promise<LegalEntityResponseDto[]> {
     const lang = query.lang ?? Language.RU;
     return await this.categoriesService.getLegalEntityTypes(lang);
   }

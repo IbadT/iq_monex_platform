@@ -1,81 +1,26 @@
 import { applyDecorators } from '@nestjs/common';
 import { ApiOperation, ApiParam, ApiResponse } from '@nestjs/swagger';
 import { HttpStatus } from '@nestjs/common';
+import { UserActivityResponseDto } from '../dto/response/user-activity.response.dto';
 
 export function ApiGetUserActivitiesDocs() {
   return applyDecorators(
     ApiOperation({
       summary: 'Получить сферы деятельности пользователя',
-      description: 'Возвращает сферы деятельности, связанные с конкретным пользователем',
+      description:
+        'Возвращает сферы деятельности, связанные с конкретным пользователем',
     }),
     ApiParam({
       name: 'userId',
       description: 'UUID пользователя',
       required: true,
-      example: '123e4567-e89b-12d3-a456-426614174000'
+      example: '123e4567-e89b-12d3-a456-426614174000',
     }),
     ApiResponse({
       status: HttpStatus.OK,
       description: 'Сферы деятельности пользователя успешно получены',
-      schema: {
-        type: 'array',
-        items: {
-          type: 'object',
-          properties: {
-            id: {
-              type: 'string',
-              format: 'uuid',
-              description: 'Уникальный идентификатор связи пользователя с активностью',
-              example: '550e8400-e29b-41d4-a716-446655440000'
-            },
-            userId: {
-              type: 'string',
-              format: 'uuid',
-              description: 'UUID пользователя',
-              example: '123e4567-e89b-12d3-a456-426614174000'
-            },
-            activityId: {
-              type: 'integer',
-              description: 'ID сферы деятельности',
-              example: 1
-            },
-            createdAt: {
-              type: 'string',
-              format: 'date-time',
-              description: 'Дата создания связи',
-              example: '2024-01-01T00:00:00.000Z'
-            },
-            activity: {
-              type: 'object',
-              description: 'Информация о сфере деятельности',
-              properties: {
-                id: {
-                  type: 'integer',
-                  description: 'ID сферы деятельности',
-                  example: 1
-                },
-                name: {
-                  type: 'string',
-                  description: 'Название сферы деятельности',
-                  example: 'Программирование'
-                },
-                createdAt: {
-                  type: 'string',
-                  format: 'date-time',
-                  description: 'Дата создания сферы деятельности',
-                  example: '2024-01-01T00:00:00.000Z'
-                },
-                updatedAt: {
-                  type: 'string',
-                  format: 'date-time',
-                  description: 'Дата обновления сферы деятельности',
-                  example: '2024-01-01T00:00:00.000Z'
-                }
-              }
-            }
-          }
-        }
-      }
+      type: UserActivityResponseDto,
+      isArray: true,
     }),
     ApiResponse({
       status: HttpStatus.UNAUTHORIZED,
@@ -85,14 +30,14 @@ export function ApiGetUserActivitiesDocs() {
         properties: {
           statusCode: {
             type: 'integer',
-            example: 401
+            example: 401,
           },
           message: {
             type: 'string',
-            example: 'Unauthorized'
-          }
-        }
-      }
+            example: 'Unauthorized',
+          },
+        },
+      },
     }),
     ApiResponse({
       status: HttpStatus.NOT_FOUND,
@@ -102,14 +47,14 @@ export function ApiGetUserActivitiesDocs() {
         properties: {
           statusCode: {
             type: 'integer',
-            example: 404
+            example: 404,
           },
           message: {
             type: 'string',
-            example: 'User not found'
-          }
-        }
-      }
+            example: 'User not found',
+          },
+        },
+      },
     }),
     ApiResponse({
       status: HttpStatus.INTERNAL_SERVER_ERROR,
@@ -119,14 +64,14 @@ export function ApiGetUserActivitiesDocs() {
         properties: {
           statusCode: {
             type: 'integer',
-            example: 500
+            example: 500,
           },
           message: {
             type: 'string',
-            example: 'Internal server error'
-          }
-        }
-      }
-    })
+            example: 'Internal server error',
+          },
+        },
+      },
+    }),
   );
 }

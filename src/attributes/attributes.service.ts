@@ -5,6 +5,7 @@ import { Specification } from './entities/specification.entity';
 import { CacheService } from '@/cache/cacheService.service';
 import { AppLogger } from '@/common/logger/logger.service';
 import { specificationsData } from './default/specificaitonsData';
+import { SpecificationResponseDto } from './dto/response/specification.dto';
 
 @Injectable()
 export class AttributesService {
@@ -12,12 +13,12 @@ export class AttributesService {
     private readonly cacheService: CacheService,
     private readonly logger: AppLogger,
   ) {}
-  async list(lang: Language) {
+  async list(lang: Language): Promise<SpecificationResponseDto[]> {
     const cachekey = `specifications:${lang}`;
 
     // получаем из redis
     const cachedSpecifications =
-      await this.cacheService.get<Specification[]>(cachekey);
+      await this.cacheService.get<SpecificationResponseDto[]>(cachekey);
     if (cachedSpecifications) return cachedSpecifications;
 
     const specifications = await prisma.specification.findMany();

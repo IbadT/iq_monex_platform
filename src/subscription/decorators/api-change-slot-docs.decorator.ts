@@ -2,48 +2,23 @@ import { applyDecorators } from '@nestjs/common';
 import { ApiOperation, ApiBody, ApiResponse } from '@nestjs/swagger';
 import { HttpStatus } from '@nestjs/common';
 import { ChangeListingSlotDto } from '../dto/change-listing-slot.dto';
+import { ChangeSlotResponseDto } from '../dto/response/change-slot-response.dto';
 
 export function ApiChangeSlotDocs() {
   return applyDecorators(
     ApiOperation({
       summary: 'Переместить объявление в другой слот',
-      description: 'Перемещает объявление из текущего слота в указанный свободный слот',
+      description:
+        'Перемещает объявление из текущего слота в указанный свободный слот',
     }),
     ApiBody({
       description: 'Данные для перемещения объявления между слотами',
-      type: ChangeListingSlotDto
+      type: ChangeListingSlotDto,
     }),
     ApiResponse({
       status: HttpStatus.OK,
       description: 'Объявление успешно перемещено',
-      schema: {
-        type: 'object',
-        properties: {
-          message: {
-            type: 'string',
-            description: 'Статус операции',
-            example: 'Объявление успешно перемещено'
-          },
-          fromSlotId: {
-            type: 'string',
-            format: 'uuid',
-            description: 'ID исходного слота',
-            example: '456e7890-f12a-34b5-c678-532614174111'
-          },
-          toSlotId: {
-            type: 'string',
-            format: 'uuid',
-            description: 'ID целевого слота',
-            example: '789e0123-g45b-67c8-d901-642514174222'
-          },
-          listingId: {
-            type: 'string',
-            format: 'uuid',
-            description: 'ID перемещенного объявления',
-            example: '123e4567-e89b-12d3-a456-426614174000'
-          }
-        }
-      }
+      type: ChangeSlotResponseDto,
     }),
     ApiResponse({
       status: HttpStatus.NOT_FOUND,
@@ -53,14 +28,14 @@ export function ApiChangeSlotDocs() {
         properties: {
           statusCode: {
             type: 'integer',
-            example: 404
+            example: 404,
           },
           message: {
             type: 'string',
-            example: 'Объявление не найдено или не принадлежит пользователю'
-          }
-        }
-      }
+            example: 'Объявление не найдено или не принадлежит пользователю',
+          },
+        },
+      },
     }),
     ApiResponse({
       status: HttpStatus.UNAUTHORIZED,
@@ -70,14 +45,14 @@ export function ApiChangeSlotDocs() {
         properties: {
           statusCode: {
             type: 'integer',
-            example: 401
+            example: 401,
           },
           message: {
             type: 'string',
-            example: 'Unauthorized'
-          }
-        }
-      }
+            example: 'Unauthorized',
+          },
+        },
+      },
     }),
     ApiResponse({
       status: HttpStatus.INTERNAL_SERVER_ERROR,
@@ -87,14 +62,14 @@ export function ApiChangeSlotDocs() {
         properties: {
           statusCode: {
             type: 'integer',
-            example: 500
+            example: 500,
           },
           message: {
             type: 'string',
-            example: 'Internal server error'
-          }
-        }
-      }
-    })
+            example: 'Internal server error',
+          },
+        },
+      },
+    }),
   );
 }

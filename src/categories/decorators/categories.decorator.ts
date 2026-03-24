@@ -1,34 +1,20 @@
 import { applyDecorators } from '@nestjs/common';
 import { ApiOperation, ApiResponse } from '@nestjs/swagger';
 import { HttpStatus } from '@nestjs/common';
+import { CategoryResponseDto } from '../dto/response/categories-response.dto';
 
 export function CategoriesApiDocs() {
   return applyDecorators(
     ApiOperation({
       summary: 'Получить категории',
-      description: 'Возвращает список всех категорий (категорий первого уровня)',
+      description:
+        'Возвращает список всех категорий (категорий первого уровня)',
     }),
     ApiResponse({
       status: HttpStatus.OK,
       description: 'Список категорий успешно получен',
-      schema: {
-        type: 'array',
-        items: {
-          type: 'object',
-          properties: {
-            id: {
-              type: 'integer',
-              description: 'ID категории',
-              example: 1
-            },
-            name: {
-              type: 'string',
-              description: 'Название категории',
-              example: 'Электроника'
-            }
-          }
-        }
-      }
+      type: CategoryResponseDto,
+      isArray: true,
     }),
     ApiResponse({
       status: HttpStatus.INTERNAL_SERVER_ERROR,
@@ -38,14 +24,14 @@ export function CategoriesApiDocs() {
         properties: {
           statusCode: {
             type: 'integer',
-            example: 500
+            example: 500,
           },
           message: {
             type: 'string',
-            example: 'Internal server error'
-          }
-        }
-      }
-    })
+            example: 'Internal server error',
+          },
+        },
+      },
+    }),
   );
 }

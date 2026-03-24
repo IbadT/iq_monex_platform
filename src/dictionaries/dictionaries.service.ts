@@ -22,7 +22,11 @@ import {
   unitMeasurementsData,
 } from './default/dictionariesData';
 import { categoryNames } from './default/categoryNames';
-import { Currency } from './entities/currency.entity';
+import { CurrencyEntity } from './entities/currency.entity';
+import { MeasurementsGroupsResponseDto } from './dto/response/measurements-groups-response.dto';
+import { UnitMeasurementResponseDto } from './dto/response/user-measurement-response.dto';
+import { CurrenciesResponseDto } from './dto/response/currencies-response.dto';
+import { CurrencyRateResponseDto } from './dto/response/currency-rate-response.dto';
 
 // Интерфейсы для типов данных
 interface UnitMeasurementData {
@@ -74,15 +78,26 @@ export class DictionariesService {
     return !!hasUnitMeasurement;
   }
 
-  async getCategoryRates() {
+  async getCategoryRates(): Promise<CurrencyRateResponseDto[]> {
     const valuts: CurrencyRateEntity[] = await prisma.currencyRate.findMany();
     if (valuts.length === 0) {
       throw new NotFoundException('Нет данных о курсах валют');
     }
-    return valuts;
+    return valuts.map(
+      (valute) =>
+        new CurrencyRateResponseDto(
+          valute.id,
+          valute.code,
+          valute.nominal,
+          +valute.rate,
+          valute.date,
+        ),
+    );
   }
 
-  async convertValutFromAmount(body: GetConvertValueFromAmountDto) {
+  async convertValutFromAmount(
+    body: GetConvertValueFromAmountDto,
+  ): Promise<CurrencyRateResponseDto[]> {
     // 1. Получаем все курсы валют (они уже должны быть в БД)
     const allRates = await this.getCategoryRates();
 
@@ -111,7 +126,17 @@ export class DictionariesService {
       };
     });
 
-    return result;
+    // return result;
+    return allRates.map(
+      (valute) =>
+        new CurrencyRateResponseDto(
+          valute.id,
+          valute.code,
+          valute.nominal,
+          +valute.rate,
+          valute.date,
+        ),
+    );
 
     // return {
     // from: {
@@ -171,9 +196,12 @@ export class DictionariesService {
     return ratesToSave;
   }
 
-  async getMeasurementsGroups(lang: Language) {
+  async getMeasurementsGroups(
+    lang: Language,
+  ): Promise<MeasurementsGroupsResponseDto> {
     const cacheKey = `measurements/groups:${lang}`;
-    const cachedData = await this.cacheService.get(cacheKey);
+    const cachedData =
+      await this.cacheService.get<MeasurementsGroupsResponseDto>(cacheKey);
     if (cachedData) return cachedData;
 
     // Получаем все спецификации
@@ -293,17 +321,18 @@ export class DictionariesService {
     return result;
   }
 
-  async currenciesList(lang: Language) {
+  async currenciesList(lang: Language): Promise<CurrenciesResponseDto[]> {
     this.logger.log(`Currencies language: ${lang}`);
     const cacheKey = `currencies:${lang}`;
 
-    const cachedCurrencies = await this.cacheService.get(cacheKey);
+    const cachedCurrencies =
+      await this.cacheService.get<CurrenciesResponseDto[]>(cacheKey);
     if (cachedCurrencies) return cachedCurrencies;
 
     const currencies = await prisma.currency.findMany();
 
-    const result = currencies.map((currencies: Currency) =>
-      Currency.fromPrisma(currencies).toResponse(lang),
+    const result = currencies.map((currencies: CurrencyEntity) =>
+      CurrencyEntity.fromPrisma(currencies).toResponse(lang),
     );
 
     if (result) {
@@ -317,9 +346,12 @@ export class DictionariesService {
     return result;
   }
 
-  async unitMeasurements(lang: Language) {
+  async unitMeasurements(
+    lang: Language,
+  ): Promise<UnitMeasurementResponseDto[]> {
     const cacheKey = `unit-measurements:${lang}`;
-    const cacheData = await this.cacheService.get(cacheKey);
+    const cacheData =
+      await this.cacheService.get<UnitMeasurementResponseDto[]>(cacheKey);
     if (cacheData) return cacheData;
 
     const unitMeasurements = await prisma.unitMeasurement.findMany();

@@ -2,6 +2,7 @@ import { applyDecorators } from '@nestjs/common';
 import { ApiOperation, ApiBody, ApiResponse } from '@nestjs/swagger';
 import { HttpStatus } from '@nestjs/common';
 import { CreateReviewToUserDto } from '../dto/create-review.to-user.dto';
+import { CreateReviesResponseDto } from '../dto/response/create-reviews-response.dto';
 
 export function ApiCreateReviewToUserDocs() {
   return applyDecorators(
@@ -17,94 +18,7 @@ export function ApiCreateReviewToUserDocs() {
     ApiResponse({
       status: HttpStatus.CREATED,
       description: 'Отзыв пользователю успешно создан',
-      schema: {
-        type: 'object',
-        properties: {
-          id: {
-            type: 'string',
-            format: 'uuid',
-            description: 'ID созданного отзыва',
-            example: '550e8400-e29b-41d4-a716-446655440000',
-          },
-          listingId: {
-            type: 'string',
-            format: 'uuid',
-            description: 'ID объявления (null для отзыва пользователю)',
-            example: null,
-          },
-          title: {
-            type: 'string',
-            description: 'Заголовок объявления (null для отзыва пользователю)',
-            example: null,
-          },
-          status: {
-            type: 'string',
-            description: 'Статус объявления (null для отзыва пользователю)',
-            example: null,
-          },
-          likesCount: {
-            type: 'integer',
-            description: 'Количество лайков (null для отзыва пользователю)',
-            example: null,
-          },
-          reportsCount: {
-            type: 'integer',
-            description: 'Количество жалоб (null для отзыва пользователю)',
-            example: null,
-          },
-          replyContent: {
-            type: 'string',
-            description: 'Текст ответа на отзыв (null если нет ответа)',
-            example: null,
-          },
-          replyAt: {
-            type: 'string',
-            format: 'date-time',
-            description: 'Дата ответа на отзыв (null если нет ответа)',
-            example: null,
-          },
-          replyAuthorId: {
-            type: 'string',
-            format: 'uuid',
-            description: 'ID автора ответа (null если нет ответа)',
-            example: null,
-          },
-          targetUserId: {
-            type: 'string',
-            format: 'uuid',
-            description: 'ID пользователя, которому оставлен отзыв',
-            example: '123e4567-e89b-12d3-a456-426614174001',
-          },
-          targetType: {
-            type: 'string',
-            description: 'Тип объекта отзыва',
-            example: 'USER',
-            enum: ['USER', 'LISTING'],
-          },
-          authorId: {
-            type: 'string',
-            format: 'uuid',
-            description: 'ID автора отзыва',
-            example: '123e4567-e89b-12d3-a456-426614174000',
-          },
-          content: {
-            type: 'string',
-            description: 'Текст отзыва',
-            example: 'Отличный мастер, рекомендую!',
-          },
-          rating: {
-            type: 'integer',
-            description: 'Оценка от 1 до 5',
-            example: 5,
-          },
-          createdAt: {
-            type: 'string',
-            format: 'date-time',
-            description: 'Дата создания отзыва',
-            example: '2024-01-01T00:00:00.000Z',
-          },
-        },
-      },
+      type: CreateReviesResponseDto,
     }),
     ApiResponse({
       status: HttpStatus.BAD_REQUEST,

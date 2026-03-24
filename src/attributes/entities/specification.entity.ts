@@ -1,3 +1,5 @@
+import { SpecificationResponseDto } from '../dto/response/specification.dto';
+
 export class Specification {
   id: number;
   name: Record<string, string>;
@@ -6,11 +8,11 @@ export class Specification {
     return new Specification(specification.id, specification.name);
   }
 
-  toResponse(lang: string = 'ru') {
-    return {
-      id: this.id,
-      name: this.name[lang] || this.name['ru'],
-    };
+  toResponse(lang: string = 'ru'): SpecificationResponseDto {
+    return new SpecificationResponseDto(
+      this.id,
+      this.name[lang] || this.name['ru'],
+    );
   }
 
   constructor(id: number, name: Record<string, string>) {

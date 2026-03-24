@@ -3,10 +3,16 @@ import { Injectable, NotFoundException } from '@nestjs/common';
 import { ChangeListingSlotDto } from './dto/change-listing-slot.dto';
 import { PAYMENT_ITEM_TYPE } from '@/payments/enums/payment-status.enum';
 import { PrismaClient } from 'prisma/generated/client';
+import { ChangeSlotResponseDto } from './dto/response/change-slot-response.dto';
+import { GetAvailableSlotResponseDto } from './dto/response/get-available-slot-response.dto';
+import { SlotMapper } from './mappers/slots.mapper';
+import { SlotPackageResponseDto } from './dto/response/slot-package-response.dto';
 
 @Injectable()
 export class SubscriptionService {
-  async getUserAvailableSlots(userId: string) {
+  async getUserAvailableSlots(
+    userId: string,
+  ): Promise<GetAvailableSlotResponseDto[]> {
     // const cacheKey = "empty/slots"
     const availableSlots = await prisma.userSlot.findMany({
       where: {
@@ -20,6 +26,9 @@ export class SubscriptionService {
         },
         listingSlot: null,
       },
+      include: {
+        listingSlot: true,
+      },
       orderBy: {
         slotIndex: 'asc',
       },
@@ -31,10 +40,14 @@ export class SubscriptionService {
       );
     }
 
-    return availableSlots;
+    // return availableSlots;
+    return SlotMapper.availableSlotsListToResponse(availableSlots);
   }
 
-  async changeListingSlot(userId: string, body: ChangeListingSlotDto) {
+  async changeListingSlot(
+    userId: string,
+    body: ChangeListingSlotDto,
+  ): Promise<ChangeSlotResponseDto> {
     return await prisma.$transaction(async (tx: PrismaClient) => {
       // 1. Находим объявление и проверяем, что оно принадлежит пользователю
       const listing = await tx.listing.findFirst({
@@ -116,20 +129,27 @@ export class SubscriptionService {
     });
   }
 
-  async getUserSlots(userId: string) {
-    return await prisma.userSlot.findMany({
+  async getUserSlots(userId: string): Promise<GetAvailableSlotResponseDto[]> {
+    const slots = await prisma.userSlot.findMany({
       where: {
         userId,
       },
+      include: {
+        listingSlot: true,
+      },
     });
+
+    return SlotMapper.availableSlotsListToResponse(slots);
   }
 
-  async getUserPackages(userId: string) {
-    return await prisma.slotPackage.findMany({
+  async getUserPackages(userId: string): Promise<SlotPackageResponseDto[]> {
+    const packages = await prisma.slotPackage.findMany({
       where: {
         userId,
       },
     });
+
+    return SlotMapper.slotPackageListToResponse(packages);
   }
 
   async getUserSubscription(userId: string) {

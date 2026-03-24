@@ -1,6 +1,16 @@
-import { User } from '@/users/entities/user.entity';
 import { ApiProperty } from '@nestjs/swagger';
-import { MapLocationType } from '@/listings/dto/request/create-map-location.dto';
+import { Decimal } from '@prisma/client/runtime/index-browser';
+
+// Custom mock for MapLocationType
+const MapLocationType = {
+  OFFICE: 'OFFICE',
+  WAREHOUSE: 'WAREHOUSE',
+  PRODUCTION: 'PRODUCTION',
+  RETAIL: 'RETAIL',
+  OTHER: 'OTHER',
+} as const;
+
+type MapLocationType = typeof MapLocationType[keyof typeof MapLocationType];
 
 // map-location-response.dto.ts
 export class MapLocationResponseDto {
@@ -8,7 +18,8 @@ export class MapLocationResponseDto {
   id: string;
 
   @ApiProperty({ enum: MapLocationType, example: 'OFFICE' })
-  type: MapLocationType;
+  // type: MapLocationType;
+  type: string;
 
   @ApiProperty({ example: 'г. Москва, ул. Ленина, д. 1' })
   address: string;
@@ -19,22 +30,44 @@ export class MapLocationResponseDto {
   @ApiProperty({ example: 37.6173 })
   longitude: number;
 
-  @ApiProperty({ type: () => User })
-  user: User;
+  @ApiProperty({
+    description: '',
+    example: '',
+    type: 'string',
+  })
+  userId?: string | null;
+
+  @ApiProperty({
+    description: '',
+    example: '',
+    type: 'string',
+  })
+  listingId?: string | null;
+
+  // @ApiProperty({ type: () => User })
+  // user: User;
 
   constructor(
     id: string,
     type: MapLocationType,
     address: string,
-    latitude: number,
-    longitude: number,
-    user: User,
+    latitude: Decimal,
+    longitude: Decimal,
+    userId?: string | null,
+    listingId?: string | null,
+    // user: User,
   ) {
     this.id = id;
     this.type = type;
     this.address = address;
-    this.latitude = latitude;
-    this.longitude = longitude;
-    this.user = user;
+    this.latitude = +latitude;
+    this.longitude = +longitude;
+    if (userId !== undefined) {
+      this.userId = userId;
+    }
+    if (listingId !== undefined) {
+      this.listingId = listingId;
+    }
+    // this.user = user;
   }
 }

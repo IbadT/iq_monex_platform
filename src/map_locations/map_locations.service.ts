@@ -8,6 +8,7 @@ import { prisma } from '@/lib/prisma';
 import { Prisma } from 'prisma/generated/client';
 import { EnterpriceQueryDto } from './dto/request/enterprice-query.dto';
 import * as ngeohash from 'ngeohash';
+import { MapLocationResponseDto } from './dto/response/map-enterprice.response.dto';
 
 @Injectable()
 export class MapLocationsService {
@@ -41,7 +42,9 @@ export class MapLocationsService {
     });
   }
 
-  async enterprisesList(query: EnterpriceQueryDto) {
+  async enterprisesList(
+    query: EnterpriceQueryDto,
+  ): Promise<MapLocationResponseDto[]> {
     const { latitude, longitude, radius, filter, activityIds, rating } = query;
 
     // 1. Валидация входных данных
@@ -118,40 +121,41 @@ export class MapLocationsService {
         id: true,
         latitude: true,
         longitude: true,
+        address: true,
         type: true,
         userId: true,
-        user: {
-          select: {
-            id: true,
-            email: true,
-            name: true,
-            accountNumber: true,
-            isVerified: true,
-            rating: true,
-            reviewsCount: true,
-            roleId: true,
-            createdAt: true,
-            updatedAt: true,
-            profile: true,
-            userActivities: {
-              select: {
-                id: true,
-                userId: true,
-                createdAt: true,
-                updatedAt: true,
-                activityId: true,
-                activity: {
-                  select: {
-                    id: true,
-                    name: true,
-                    createdAt: true,
-                    updatedAt: true,
-                  },
-                },
-              },
-            },
-          },
-        },
+        // user: {
+        //   select: {
+        //     id: true,
+        //     email: true,
+        //     name: true,
+        //     accountNumber: true,
+        //     isVerified: true,
+        //     rating: true,
+        //     reviewsCount: true,
+        //     roleId: true,
+        //     createdAt: true,
+        //     updatedAt: true,
+        //     profile: true,
+        //     userActivities: {
+        //       select: {
+        //         id: true,
+        //         userId: true,
+        //         createdAt: true,
+        //         updatedAt: true,
+        //         activityId: true,
+        //         activity: {
+        //           select: {
+        //             id: true,
+        //             name: true,
+        //             createdAt: true,
+        //             updatedAt: true,
+        //           },
+        //         },
+        //       },
+        //     },
+        //   },
+        // },
       },
       take: 1000,
     });
@@ -195,7 +199,17 @@ export class MapLocationsService {
       .filter((location) => location.distance <= radius * 1000)
       .sort((a, b) => a.distance - b.distance);
 
-    return results;
+    // return results;
+    return results.map(
+      (i) =>
+        new MapLocationResponseDto(
+          i.id,
+          i.type,
+          i.address,
+          i.latitude,
+          i.longitude,
+        ),
+    );
   }
 
   /**

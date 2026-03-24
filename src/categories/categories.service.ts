@@ -15,6 +15,9 @@ import { categoriesData } from './default/categoriesData';
 import { legalEntityTypes } from './default/legalEntityTypes';
 import { LegalEntityType } from './entities/legal-entity-type.entity';
 import { Language } from '@/dictionaries/dto/request/get-currency.dto';
+import { LegalEntityResponseDto } from './dto/response/legal-entity.response.dto';
+import { CategoryTreeResponseDto } from './dto/response/category-tree-response.dto';
+import { CategoryTreeMapper } from './mappers/category-tree.mapper';
 
 @Injectable()
 export class CategoriesService {
@@ -23,22 +26,23 @@ export class CategoriesService {
     private logger: AppLogger,
   ) {}
 
-  async getLegalEntityTypes(lang: Language) {
+  async getLegalEntityTypes(lang: Language): Promise<LegalEntityResponseDto[]> {
     const cacheKey = `legal-entity-types/:${lang}`;
-    const cachedData = await this.cacheService.get(cacheKey);
+    const cachedData =
+      await this.cacheService.get<LegalEntityResponseDto[]>(cacheKey);
     if (cachedData) return cachedData;
 
     const legalEntityTypes = await prisma.legalEntityType.findMany();
-    const legalEntityTypesWithLang = legalEntityTypes.map((le) => {
+    const response = legalEntityTypes.map((le) => {
       return LegalEntityType.fromPromise(le).toResponse(lang);
     });
     await this.cacheService.set({
       baseKey: cacheKey,
       ttl: 3600,
-      value: legalEntityTypesWithLang,
+      value: response,
     });
 
-    return legalEntityTypesWithLang;
+    return response;
   }
 
   async checkCategoryById(id: number) {
@@ -92,10 +96,13 @@ export class CategoriesService {
     return categories;
   }
 
-  async getCategoryTreeById(id: number) {
+  async getCategoryTreeById(id: number): Promise<CategoryTreeResponseDto> {
     const cacheKey = `categories/tree/id:$${id}`;
-    const cachedData = await this.cacheService.get(cacheKey);
+
+    const cachedData =
+      await this.cacheService.get<CategoryTreeResponseDto>(cacheKey);
     if (cachedData) return cachedData;
+
     const categoryTree = await prisma.category.findUnique({
       where: { id },
       include: {
@@ -111,13 +118,15 @@ export class CategoriesService {
       throw new NotFoundException(`Категория с ID ${id} не найдена`);
     }
 
+    const result = CategoryTreeMapper.mapToCategoryTreeDto(categoryTree);
+
     await this.cacheService.set({
       baseKey: cacheKey,
       ttl: 900,
-      value: categoryTree,
+      value: result,
     });
 
-    return categoryTree;
+    return result;
   }
 
   async subcategoriesList(): Promise<SubcategoryResponseDto[]> {
