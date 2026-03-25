@@ -12,7 +12,7 @@ import { AppLogger } from '@/common/logger/logger.service';
 import { Protected } from '@/common/decorators';
 import { CurrentUser } from '@/common/decorators/current-user.decorator';
 import { JwtPayload } from '@/common/interfaces/jwt-payload.interface';
-import { 
+import {
   ApiGetFavoritesListDocs,
   ApiCreateFavoriteDocs,
   ApiAddFavoriteToUserDocs,
@@ -38,7 +38,9 @@ export class FavoriteController {
   @Get(':id')
   @Protected()
   @ApiGetFavoriteByIdDocs()
-  async getFavorites(@Param('id', ParseUUIDPipe) id: string): Promise<FavoriteByIdResponseDto | null> {
+  async getFavorites(
+    @Param('id', ParseUUIDPipe) id: string,
+  ): Promise<FavoriteByIdResponseDto | null> {
     this.logger.log(`Получение избранных объявлений по id: ${id}`);
     return await this.favoriteService.getById(id);
   }
@@ -46,7 +48,9 @@ export class FavoriteController {
   @Get('')
   @Protected()
   @ApiGetFavoritesListDocs()
-  async getList(@CurrentUser() user: JwtPayload): Promise<FavoriteByIdResponseDto[]> {
+  async getList(
+    @CurrentUser() user: JwtPayload,
+  ): Promise<FavoriteByIdResponseDto[]> {
     this.logger.log('Получить все объявления в избранном');
     return await this.favoriteService.getList(user.id);
   }
@@ -62,10 +66,12 @@ export class FavoriteController {
     return await this.favoriteService.create(user.id, body);
   }
 
-  @Get("users")
+  @Get('users')
   @Protected()
   @ApiGetUserFavoritesDocs()
-  async favoriteUsers(@CurrentUser() user: JwtPayload): Promise<FavoriteUserProfileResponseDto[]> {
+  async favoriteUsers(
+    @CurrentUser() user: JwtPayload,
+  ): Promise<FavoriteUserProfileResponseDto[]> {
     return await this.favoriteService.favoriteUsers(user.id);
   }
 

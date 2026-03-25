@@ -8,12 +8,12 @@ describe('WorkersService', () => {
   beforeEach(async () => {
     // Mock prisma methods
     const prisma = require('@/lib/prisma').prisma;
-    
+
     prisma.role = {
       findUnique: jest.fn(),
       findMany: jest.fn(),
     };
-    
+
     prisma.worker = {
       create: jest.fn(),
       createMany: jest.fn(),
@@ -60,9 +60,12 @@ describe('WorkersService', () => {
 
       // Mock prisma methods
       const prisma = require('@/lib/prisma').prisma;
-      prisma.role.findUnique.mockResolvedValue({ id: 'role-123', name: 'Worker' });
-      prisma.worker.create.mockResolvedValueOnce({ 
-        id: 'worker-1', 
+      prisma.role.findUnique.mockResolvedValue({
+        id: 'role-123',
+        name: 'Worker',
+      });
+      prisma.worker.create.mockResolvedValueOnce({
+        id: 'worker-1',
         name: 'Иванов Иван Иванович',
         email: 'ivanov@example.com',
         phone: '+79991112233',
@@ -71,10 +74,10 @@ describe('WorkersService', () => {
         isActive: true,
         createdAt: new Date(),
         updatedAt: new Date(),
-        role: { id: 'role-456', name: 'Worker' }
+        role: { id: 'role-456', name: 'Worker' },
       });
-      prisma.worker.create.mockResolvedValueOnce({ 
-        id: 'worker-2', 
+      prisma.worker.create.mockResolvedValueOnce({
+        id: 'worker-2',
         name: 'Петров Петр Петрович',
         email: 'petrov@example.com',
         phone: '+79998765432',
@@ -83,7 +86,7 @@ describe('WorkersService', () => {
         isActive: true,
         createdAt: new Date(),
         updatedAt: new Date(),
-        role: { id: 'role-456', name: 'Worker' }
+        role: { id: 'role-456', name: 'Worker' },
       });
 
       const result = await service.createWorker(userId, workers);
@@ -108,9 +111,12 @@ describe('WorkersService', () => {
 
       // Mock prisma methods
       const prisma = require('@/lib/prisma').prisma;
-      prisma.role.findUnique.mockResolvedValue({ id: 'role-789', name: 'Worker' });
-      prisma.worker.create.mockResolvedValue({ 
-        id: 'worker-1', 
+      prisma.role.findUnique.mockResolvedValue({
+        id: 'role-789',
+        name: 'Worker',
+      });
+      prisma.worker.create.mockResolvedValue({
+        id: 'worker-1',
         name: 'Тестовый Работник',
         email: 'worker@example.com',
         phone: '+79991112233',
@@ -119,7 +125,7 @@ describe('WorkersService', () => {
         isActive: true,
         createdAt: new Date(),
         updatedAt: new Date(),
-        role: { id: 'role-789', name: 'Worker' }
+        role: { id: 'role-789', name: 'Worker' },
       });
 
       const result = await service.createWorker(userId, workers);

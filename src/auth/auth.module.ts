@@ -22,11 +22,6 @@ import { LoggerModule } from '@/common/logger/logger.module';
     UsersModule,
   ],
   controllers: [AuthController],
-  providers: [
-    AuthService,
-    HashService,
-    CacheService,
-    ConfigService,
-  ],
+  providers: [AuthService, HashService, CacheService, ConfigService],
 })
 export class AuthModule {}

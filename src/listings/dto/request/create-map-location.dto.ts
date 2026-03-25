@@ -1,5 +1,13 @@
 import { ApiProperty, ApiPropertyOptional } from '@nestjs/swagger';
-import { IsEnum, IsOptional, IsNotEmpty, IsString, IsUUID, ValidateIf, IsNumber } from 'class-validator';
+import {
+  IsEnum,
+  IsOptional,
+  IsNotEmpty,
+  IsString,
+  IsUUID,
+  ValidateIf,
+  IsNumber,
+} from 'class-validator';
 
 export enum MapLocationType {
   OFFICE = 'OFFICE',
@@ -16,11 +24,16 @@ export enum LocationAction {
 
 export class CreateMapLocationDto {
   @ApiPropertyOptional({
-    description: 'ID локации (если указан, то обновляется или существующая локация уже есть в системе, если нет - создается новая)',
+    description:
+      'ID локации (если указан, то обновляется или существующая локация уже есть в системе, если нет - создается новая)',
     example: 123,
     required: false,
   })
-  @ValidateIf((object: CreateMapLocationDto) => object.action === LocationAction.UPDATE || object.action === LocationAction.DELETE)
+  @ValidateIf(
+    (object: CreateMapLocationDto) =>
+      object.action === LocationAction.UPDATE ||
+      object.action === LocationAction.DELETE,
+  )
   @IsOptional()
   @IsNotEmpty({ message: 'ID локации не должен быть пустым' })
   @IsUUID()
@@ -63,7 +76,8 @@ export class CreateMapLocationDto {
   address: string;
 
   @ApiPropertyOptional({
-    description: 'Действие с локацией (CREATE - создать новую, UPDATE - обновить существующую, IGNORE - не трогать)',
+    description:
+      'Действие с локацией (CREATE - создать новую, UPDATE - обновить существующую, IGNORE - не трогать)',
     enum: LocationAction,
     example: LocationAction.CREATE,
     required: true,

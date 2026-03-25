@@ -6,7 +6,8 @@ export function ApiSeedRolesDocs() {
   return applyDecorators(
     ApiOperation({
       summary: 'Создать роли пользователей',
-      description: 'Создает или обновляет роли пользователей на основе предустановленных данных',
+      description:
+        'Создает или обновляет роли пользователей на основе предустановленных данных',
     }),
     ApiResponse({
       status: HttpStatus.OK,
@@ -17,25 +18,25 @@ export function ApiSeedRolesDocs() {
           message: {
             type: 'string',
             description: 'Статус операции',
-            example: 'Роли успешно обработаны'
+            example: 'Роли успешно обработаны',
           },
           processed: {
             type: 'integer',
             description: 'Количество обработанных ролей',
-            example: 3
+            example: 3,
           },
           created: {
             type: 'integer',
             description: 'Количество созданных ролей',
-            example: 2
+            example: 2,
           },
           updated: {
             type: 'integer',
             description: 'Количество обновленных ролей',
-            example: 1
-          }
-        }
-      }
+            example: 1,
+          },
+        },
+      },
     }),
     ApiResponse({
       status: HttpStatus.INTERNAL_SERVER_ERROR,
@@ -45,14 +46,14 @@ export function ApiSeedRolesDocs() {
         properties: {
           statusCode: {
             type: 'integer',
-            example: 500
+            example: 500,
           },
           message: {
             type: 'string',
-            example: 'Internal server error'
-          }
-        }
-      }
-    })
+            example: 'Internal server error',
+          },
+        },
+      },
+    }),
   );
 }

@@ -33,7 +33,7 @@ export class TariffEntity {
     isActive: boolean,
     createdAt: Date,
     updatedAt: Date,
-    subscriptions?: SubscriptionEntity[] | undefined,
+    subscriptions?: SubscriptionEntity[],
   ) {
     this.id = id;
     this.code = code;

@@ -32,7 +32,7 @@ export class UpdateUserDto {
   avatar: string | null;
 
   @ApiProperty({
-    description: "ID типа юридического лица",
+    description: 'ID типа юридического лица',
     example: 1,
     required: true,
   })
@@ -48,7 +48,7 @@ export class UpdateUserDto {
   })
   @IsNotEmpty({ message: 'Имя обязательно для заполнения' })
   @IsString({ message: 'Имя должно быть строкой' })
-  @MaxLength(50, { message: "Имя не должно превышать 50 символов" })
+  @MaxLength(50, { message: 'Имя не должно превышать 50 символов' })
   name: string;
 
   @ApiProperty({
@@ -129,7 +129,7 @@ export class UpdateUserDto {
   @IsArray({ message: 'Фотографии должны быть массивом' })
   @IsString({ each: true })
   @ArrayMaxSize(4, { message: 'Максимум 4 фотографии' })
-  photos  : string[] | [];
+  photos: string[] | [];
 
   @ApiPropertyOptional({
     description: 'Файлы компании (Base64)',
@@ -184,10 +184,7 @@ export class UpdateUserDto {
   }
 }
 
-
-
 // name, activities, companyPhone, companyEmail, description, workers, maps, currencyId, legalEntityId
-
 
 // import { CreateMapLocationDto } from '@/listings/dto/request/create-map-location.dto';
 // import { CreateWorkerDto } from '@/workers/dto/create-worker.dto';
@@ -244,7 +241,7 @@ export class UpdateUserDto {
 
 //   constructor(
 //     avatar: string,
-//     name: string, 
+//     name: string,
 //     currencyId: string,
 //     activities: AddActivityToUserDto[],
 //     companyPhone: string,

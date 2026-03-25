@@ -18,9 +18,12 @@ export class FavoriteService {
     private readonly logger: AppLogger,
   ) {}
 
-    async favoriteUsers(userId: string): Promise<FavoriteUserProfileResponseDto[]> {
+  async favoriteUsers(
+    userId: string,
+  ): Promise<FavoriteUserProfileResponseDto[]> {
     const cacheKey = `favorites/users:${userId}`;
-    const cachedData = await this.cacheService.get<FavoriteUserProfileResponseDto[]>(cacheKey);
+    const cachedData =
+      await this.cacheService.get<FavoriteUserProfileResponseDto[]>(cacheKey);
     if (cachedData) return cachedData;
 
     const list = await prisma.favorite.findMany({
@@ -51,43 +54,47 @@ export class FavoriteService {
     return response;
   }
 
-  async addFavoriteToUser(userId: string, body: AddFavoriteToUserDto): Promise<CreateFavoriteResponseDto> {
-      const existFavorite = await prisma.favorite.findFirst({
+  async addFavoriteToUser(
+    userId: string,
+    body: AddFavoriteToUserDto,
+  ): Promise<CreateFavoriteResponseDto> {
+    const existFavorite = await prisma.favorite.findFirst({
+      where: {
+        userId,
+        targetUserId: body.userId,
+        type: FavoriteType.USER,
+      },
+    });
+
+    // проверка, что этот пользователь не добавляет самого себя
+    if (userId === existFavorite?.targetUserId) {
+      throw new BadRequestException(
+        'Пользователь не может добавить в избранное сам себя',
+      );
+    }
+
+    // если существует, то убрать из избранного
+    if (existFavorite) {
+      return await prisma.favorite.delete({
         where: {
+          id: existFavorite.id,
+        },
+      });
+    } else {
+      return await prisma.favorite.create({
+        data: {
           userId,
           targetUserId: body.userId,
           type: FavoriteType.USER,
         },
       });
-  
-      // проверка, что этот пользователь не добавляет самого себя
-      if (userId === existFavorite?.targetUserId) {
-        throw new BadRequestException(
-          'Пользователь не может добавить в избранное сам себя',
-        );
-      }
-  
-      // если существует, то убрать из избранного
-      if (existFavorite) {
-        return await prisma.favorite.delete({
-          where: {
-            id: existFavorite.id,
-          },
-        });
-      } else {
-        return await prisma.favorite.create({
-          data: {
-            userId,
-            targetUserId: body.userId,
-            type: FavoriteType.USER,
-          },
-        });
-      }
     }
+  }
 
   async getList(userId: string): Promise<FavoriteByIdResponseDto[]> {
     const cacheKey = `favorites/userId:${userId}`;
-    const cachedData = await this.cacheService.get<FavoriteByIdResponseDto[]>(cacheKey);
+    const cachedData =
+      await this.cacheService.get<FavoriteByIdResponseDto[]>(cacheKey);
     if (cachedData) return cachedData;
 
     const list = await prisma.favorite.findMany({
@@ -99,9 +106,11 @@ export class FavoriteService {
       },
     });
 
-    const response = list.map(favorite => {
-      const listingDto = favorite.listing ? ListingMapper.toResponse(favorite.listing) : null;
-      
+    const response = list.map((favorite) => {
+      const listingDto = favorite.listing
+        ? ListingMapper.toResponse(favorite.listing)
+        : null;
+
       return new FavoriteByIdResponseDto(
         favorite.id,
         favorite.userId,
@@ -127,7 +136,8 @@ export class FavoriteService {
 
   async getById(id: string): Promise<FavoriteByIdResponseDto | null> {
     const cacheKey = `favorites/id:${id}`;
-    const cachedData = await this.cacheService.get<FavoriteByIdResponseDto>(cacheKey);
+    const cachedData =
+      await this.cacheService.get<FavoriteByIdResponseDto>(cacheKey);
     if (cachedData) return cachedData;
 
     const favorite = await prisma.favorite.findFirst({
@@ -138,8 +148,10 @@ export class FavoriteService {
     });
 
     if (favorite) {
-      const listingDto = favorite.listing ? ListingMapper.toResponse(favorite.listing) : null;
-      
+      const listingDto = favorite.listing
+        ? ListingMapper.toResponse(favorite.listing)
+        : null;
+
       const response = new FavoriteByIdResponseDto(
         favorite.id,
         favorite.userId,
@@ -162,7 +174,10 @@ export class FavoriteService {
     return null;
   }
 
-  async create(userId: string, body: CreateFavoriteDto): Promise<CreateFavoriteResponseDto> {
+  async create(
+    userId: string,
+    body: CreateFavoriteDto,
+  ): Promise<CreateFavoriteResponseDto> {
     const cacheKey = `favorites/userId:${userId}`;
     const createdFavorite = await prisma.favorite.create({
       data: {

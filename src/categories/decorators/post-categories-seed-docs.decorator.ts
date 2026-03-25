@@ -6,7 +6,8 @@ export function ApiPostCategoriesSeedDocs() {
   return applyDecorators(
     ApiOperation({
       summary: 'Сидировать категории',
-      description: 'Добавляет базовые категории, подкатегории и подподкатегории в систему',
+      description:
+        'Добавляет базовые категории, подкатегории и подподкатегории в систему',
     }),
     ApiResponse({
       status: HttpStatus.CREATED,
@@ -16,14 +17,14 @@ export function ApiPostCategoriesSeedDocs() {
         properties: {
           statusCode: {
             type: 'integer',
-            example: 201
+            example: 201,
           },
           message: {
             type: 'string',
-            example: 'Categories seeded successfully'
-          }
-        }
-      }
+            example: 'Categories seeded successfully',
+          },
+        },
+      },
     }),
     ApiResponse({
       status: HttpStatus.INTERNAL_SERVER_ERROR,
@@ -33,14 +34,14 @@ export function ApiPostCategoriesSeedDocs() {
         properties: {
           statusCode: {
             type: 'integer',
-            example: 500
+            example: 500,
           },
           message: {
             type: 'string',
-            example: 'Internal server error'
-          }
-        }
-      }
-    })
+            example: 'Internal server error',
+          },
+        },
+      },
+    }),
   );
 }

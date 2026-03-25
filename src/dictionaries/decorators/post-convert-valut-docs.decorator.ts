@@ -7,11 +7,12 @@ export function ApiPostConvertValutDocs() {
   return applyDecorators(
     ApiOperation({
       summary: 'Конвертировать валюту',
-      description: 'Конвертирует указанную сумму из одной валюты во все доступные валюты',
+      description:
+        'Конвертирует указанную сумму из одной валюты во все доступные валюты',
     }),
     ApiBody({
       description: 'Данные для конвертации валюты',
-      type: GetConvertValueFromAmountDto
+      type: GetConvertValueFromAmountDto,
     }),
     ApiResponse({
       status: HttpStatus.OK,
@@ -20,11 +21,11 @@ export function ApiPostConvertValutDocs() {
         type: 'object',
         description: 'Объект с конвертированными значениями для всех валют',
         example: {
-          RUB: { value: 90.50, symbol: '₽' },
-          USD: { value: 100.00, symbol: '$' },
-          EUR: { value: 98.00, symbol: '€' }
-        }
-      }
+          RUB: { value: 90.5, symbol: '₽' },
+          USD: { value: 100.0, symbol: '$' },
+          EUR: { value: 98.0, symbol: '€' },
+        },
+      },
     }),
     ApiResponse({
       status: HttpStatus.BAD_REQUEST,
@@ -34,14 +35,14 @@ export function ApiPostConvertValutDocs() {
         properties: {
           statusCode: {
             type: 'integer',
-            example: 400
+            example: 400,
           },
           message: {
             type: 'string',
-            example: 'Валюта USD не найдена'
-          }
-        }
-      }
+            example: 'Валюта USD не найдена',
+          },
+        },
+      },
     }),
     ApiResponse({
       status: HttpStatus.INTERNAL_SERVER_ERROR,
@@ -51,14 +52,14 @@ export function ApiPostConvertValutDocs() {
         properties: {
           statusCode: {
             type: 'integer',
-            example: 500
+            example: 500,
           },
           message: {
             type: 'string',
-            example: 'Internal server error'
-          }
-        }
-      }
-    })
+            example: 'Internal server error',
+          },
+        },
+      },
+    }),
   );
 }

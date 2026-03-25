@@ -191,9 +191,9 @@ export class SearchService {
         avatarUrl: userWithProfile.profile?.avatarUrl || '',
         averageRating: userWithProfile.rating || 0,
         reviewsCount: userWithProfile.reviewsCount || 0,
-        activities: userActivities.map((ua: any) => ({ 
-          id: ua.activityId, 
-          name: ua.activity.name 
+        activities: userActivities.map((ua: any) => ({
+          id: ua.activityId,
+          name: ua.activity.name,
         })),
         createdAt: profile.createdAt,
         updatedAt: profile.updatedAt,
@@ -201,7 +201,7 @@ export class SearchService {
 
       // Индексируем в Elasticsearch
       await this.indexDocument('profiles', profile.id, profileDocument);
-      
+
       this.logger.log(`✅ Profile ${profile.id} indexed in Elasticsearch`);
     } catch (error) {
       this.logger.error(`❌ Failed to index profile ${profile.id}:`, error);

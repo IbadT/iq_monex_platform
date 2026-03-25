@@ -11,7 +11,7 @@ export function ApiCreateTariffDocs() {
     }),
     ApiBody({
       description: 'Данные для создания нового тарифа',
-      type: CreateTariffDto
+      type: CreateTariffDto,
     }),
     ApiResponse({
       status: HttpStatus.CREATED,
@@ -23,72 +23,72 @@ export function ApiCreateTariffDocs() {
             type: 'string',
             format: 'uuid',
             description: 'ID созданного тарифа',
-            example: '550e8400-e29b-41d4-a716-446655440000'
+            example: '550e8400-e29b-41d4-a716-446655440000',
           },
           code: {
             type: 'string',
             description: 'Код тарифа',
-            example: 'BASE'
+            example: 'BASE',
           },
           name: {
             type: 'string',
             description: 'Название тарифа',
-            example: 'Базовая подписка'
+            example: 'Базовая подписка',
           },
           description: {
             type: 'string',
             description: 'Описание тарифа',
-            example: 'Базовая подписка с 100 слотами'
+            example: 'Базовая подписка с 100 слотами',
           },
           baseSlots: {
             type: 'integer',
             description: 'Количество слотов при покупке',
-            example: 100
+            example: 100,
           },
           baseDays: {
             type: 'integer',
             description: 'Базовый срок действия (дней)',
-            example: 30
+            example: 30,
           },
           maxTotalDays: {
             type: 'integer',
             description: 'Максимальный срок (для продлений)',
-            example: 365
+            example: 365,
           },
           isExtendable: {
             type: 'boolean',
             description: 'Можно ли продлевать',
-            example: true
+            example: true,
           },
           price: {
             type: 'number',
             description: 'Цена (в базовой валюте)',
-            example: 500.0
+            example: 500.0,
           },
           currencyCode: {
             type: 'string',
             description: 'ISO код валюты',
-            example: 'RUB'
+            example: 'RUB',
           },
           isActive: {
             type: 'boolean',
             description: 'Активен ли тариф',
-            example: true
+            example: true,
           },
           createdAt: {
             type: 'string',
             format: 'date-time',
             description: 'Дата создания тарифа',
-            example: '2024-01-01T00:00:00.000Z'
+            example: '2024-01-01T00:00:00.000Z',
           },
           updatedAt: {
             type: 'string',
             format: 'date-time',
             description: 'Дата обновления тарифа',
-            example: '2024-01-01T00:00:00.000Z'
-          }
-        }
-      }
+            example: '2024-01-01T00:00:00.000Z',
+          },
+        },
+      },
     }),
     ApiResponse({
       status: HttpStatus.CONFLICT,
@@ -98,14 +98,14 @@ export function ApiCreateTariffDocs() {
         properties: {
           statusCode: {
             type: 'integer',
-            example: 409
+            example: 409,
           },
           message: {
             type: 'string',
-            example: 'Тариф с таким кодом уже существует'
-          }
-        }
-      }
+            example: 'Тариф с таким кодом уже существует',
+          },
+        },
+      },
     }),
     ApiResponse({
       status: HttpStatus.UNAUTHORIZED,
@@ -115,14 +115,14 @@ export function ApiCreateTariffDocs() {
         properties: {
           statusCode: {
             type: 'integer',
-            example: 401
+            example: 401,
           },
           message: {
             type: 'string',
-            example: 'Admin access required'
-          }
-        }
-      }
+            example: 'Admin access required',
+          },
+        },
+      },
     }),
     ApiResponse({
       status: HttpStatus.INTERNAL_SERVER_ERROR,
@@ -132,14 +132,14 @@ export function ApiCreateTariffDocs() {
         properties: {
           statusCode: {
             type: 'integer',
-            example: 500
+            example: 500,
           },
           message: {
             type: 'string',
-            example: 'Internal server error'
-          }
-        }
-      }
-    })
+            example: 'Internal server error',
+          },
+        },
+      },
+    }),
   );
 }

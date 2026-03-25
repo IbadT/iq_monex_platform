@@ -8,11 +8,12 @@ export function ApiAddFavoriteToUserDocs() {
   return applyDecorators(
     ApiOperation({
       summary: 'Добавить пользователя в избранное',
-      description: 'Добавляет указанного пользователя в список избранных для текущего пользователя',
+      description:
+        'Добавляет указанного пользователя в список избранных для текущего пользователя',
     }),
     ApiBody({
       description: 'Данные для добавления пользователя в избранное',
-      type: AddFavoriteToUserDto
+      type: AddFavoriteToUserDto,
     }),
     ApiResponse({
       status: HttpStatus.CREATED,
@@ -27,14 +28,14 @@ export function ApiAddFavoriteToUserDocs() {
         properties: {
           statusCode: {
             type: 'integer',
-            example: 400
+            example: 400,
           },
           message: {
             type: 'string',
-            example: 'Пользователь не может добавить в избранное сам себя'
-          }
-        }
-      }
+            example: 'Пользователь не может добавить в избранное сам себя',
+          },
+        },
+      },
     }),
     ApiResponse({
       status: HttpStatus.UNAUTHORIZED,
@@ -44,14 +45,14 @@ export function ApiAddFavoriteToUserDocs() {
         properties: {
           statusCode: {
             type: 'integer',
-            example: 401
+            example: 401,
           },
           message: {
             type: 'string',
-            example: 'Unauthorized'
-          }
-        }
-      }
+            example: 'Unauthorized',
+          },
+        },
+      },
     }),
     ApiResponse({
       status: HttpStatus.INTERNAL_SERVER_ERROR,
@@ -61,14 +62,14 @@ export function ApiAddFavoriteToUserDocs() {
         properties: {
           statusCode: {
             type: 'integer',
-            example: 500
+            example: 500,
           },
           message: {
             type: 'string',
-            example: 'Internal server error'
-          }
-        }
-      }
-    })
+            example: 'Internal server error',
+          },
+        },
+      },
+    }),
   );
 }

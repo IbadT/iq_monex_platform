@@ -1,5 +1,12 @@
 import { applyDecorators } from '@nestjs/common';
-import { ApiExtraModels, ApiResponse, ApiTags, ApiOperation, ApiParam, ApiQuery } from '@nestjs/swagger';
+import {
+  ApiExtraModels,
+  ApiResponse,
+  ApiTags,
+  ApiOperation,
+  ApiParam,
+  ApiQuery,
+} from '@nestjs/swagger';
 import { GetReviewsDto } from '../dto/response/get-reviews.dto';
 
 export const ApiGetUserReviewsDocs = () => {
@@ -34,7 +41,7 @@ export const ApiGetUserReviewsDocs = () => {
     }),
 
     ApiExtraModels(GetReviewsDto),
-    
+
     ApiResponse({
       status: 200,
       description: 'Список отзывов пользователя',

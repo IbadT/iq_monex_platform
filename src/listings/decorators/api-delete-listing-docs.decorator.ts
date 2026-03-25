@@ -13,11 +13,11 @@ export function ApiDeleteListingDocs() {
       description: 'Статус объявления для удаления',
       required: true,
       example: 'PUBLISHED',
-      enum: ['PUBLISHED', 'DRAFT', 'ARCHIVED', 'TEMPLATE']
+      enum: ['PUBLISHED', 'DRAFT', 'ARCHIVED', 'TEMPLATE'],
     }),
     ApiResponse({
       status: HttpStatus.NO_CONTENT,
-      description: 'Объявление успешно удалено'
+      description: 'Объявление успешно удалено',
     }),
     ApiResponse({
       status: HttpStatus.BAD_REQUEST,
@@ -27,14 +27,14 @@ export function ApiDeleteListingDocs() {
         properties: {
           statusCode: {
             type: 'integer',
-            example: 400
+            example: 400,
           },
           message: {
             type: 'string',
-            example: 'Invalid status parameter'
-          }
-        }
-      }
+            example: 'Invalid status parameter',
+          },
+        },
+      },
     }),
     ApiResponse({
       status: HttpStatus.UNAUTHORIZED,
@@ -44,14 +44,14 @@ export function ApiDeleteListingDocs() {
         properties: {
           statusCode: {
             type: 'integer',
-            example: 401
+            example: 401,
           },
           message: {
             type: 'string',
-            example: 'Unauthorized'
-          }
-        }
-      }
+            example: 'Unauthorized',
+          },
+        },
+      },
     }),
     ApiResponse({
       status: HttpStatus.NOT_FOUND,
@@ -61,14 +61,14 @@ export function ApiDeleteListingDocs() {
         properties: {
           statusCode: {
             type: 'integer',
-            example: 404
+            example: 404,
           },
           message: {
             type: 'string',
-            example: 'Объявление с id: {id} не найдено'
-          }
-        }
-      }
+            example: 'Объявление с id: {id} не найдено',
+          },
+        },
+      },
     }),
     ApiResponse({
       status: HttpStatus.INTERNAL_SERVER_ERROR,
@@ -78,14 +78,14 @@ export function ApiDeleteListingDocs() {
         properties: {
           statusCode: {
             type: 'integer',
-            example: 500
+            example: 500,
           },
           message: {
             type: 'string',
-            example: 'Internal server error'
-          }
-        }
-      }
-    })
+            example: 'Internal server error',
+          },
+        },
+      },
+    }),
   );
 }

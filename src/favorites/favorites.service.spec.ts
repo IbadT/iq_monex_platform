@@ -111,7 +111,7 @@ describe('FavoriteService', () => {
           listing: true,
         },
       });
-      
+
       // Expect DTO objects, not raw database objects
       expect(result).toHaveLength(1);
       expect(result[0]).toHaveProperty('id', 'fav-3');
@@ -121,7 +121,7 @@ describe('FavoriteService', () => {
       expect(result[0]).toHaveProperty('targetUserId', null);
       expect(result[0]).toHaveProperty('listing', null);
       expect(result[0]).toHaveProperty('createdAt');
-      
+
       // Check that cache was called with DTO objects
       expect(cacheService.set).toHaveBeenCalledWith({
         baseKey: cacheKey,

@@ -140,8 +140,20 @@ describe('AuthService', () => {
           description: null,
           createdAt: new Date(),
           updatedAt: new Date(),
-          legalEntityType: { id: 1, data: {}, createdAt: new Date(), updatedAt: new Date() },
-          currency: { id: 1, symbol: 'RUB', code: 'RUB', name: {}, createdAt: new Date(), updatedAt: new Date() },
+          legalEntityType: {
+            id: 1,
+            data: {},
+            createdAt: new Date(),
+            updatedAt: new Date(),
+          },
+          currency: {
+            id: 1,
+            symbol: 'RUB',
+            code: 'RUB',
+            name: {},
+            createdAt: new Date(),
+            updatedAt: new Date(),
+          },
         },
         workers: [],
         receivedReviews: [],
@@ -201,10 +213,7 @@ describe('AuthService', () => {
         new LoginResponseDto(
           mockTokens.accessToken,
           mockTokens.refreshToken,
-          new UserLoginResponseDto(
-            expectedUser.id,
-            expectedUser.email,
-          ),
+          new UserLoginResponseDto(expectedUser.id, expectedUser.email),
         ),
       );
     });

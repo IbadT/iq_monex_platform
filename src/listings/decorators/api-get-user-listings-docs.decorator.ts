@@ -12,7 +12,7 @@ export function ApiGetUserListingsDocs() {
       name: 'user_id',
       description: 'UUID пользователя',
       required: true,
-      example: '123e4567-e89b-12d3-a456-426614174000'
+      example: '123e4567-e89b-12d3-a456-426614174000',
     }),
     ApiResponse({
       status: HttpStatus.OK,
@@ -26,28 +26,28 @@ export function ApiGetUserListingsDocs() {
               type: 'string',
               format: 'uuid',
               description: 'ID объявления',
-              example: '123e4567-e89b-12d3-a456-426614174000'
+              example: '123e4567-e89b-12d3-a456-426614174000',
             },
             title: {
               type: 'string',
               description: 'Заголовок объявления',
-              example: 'Продам автомобиль'
+              example: 'Продам автомобиль',
             },
             description: {
               type: 'string',
               description: 'Описание объявления',
-              example: 'Отличное состояние, пробег 50000 км'
+              example: 'Отличное состояние, пробег 50000 км',
             },
             price: {
               type: 'number',
               description: 'Цена',
-              example: 2500000
+              example: 2500000,
             },
             status: {
               type: 'string',
               description: 'Статус объявления',
               example: 'PUBLISHED',
-              enum: ['PUBLISHED', 'DRAFT', 'ARCHIVED', 'TEMPLATE']
+              enum: ['PUBLISHED', 'DRAFT', 'ARCHIVED', 'TEMPLATE'],
             },
             category: {
               type: 'object',
@@ -55,14 +55,14 @@ export function ApiGetUserListingsDocs() {
                 id: {
                   type: 'integer',
                   description: 'ID категории',
-                  example: 1
+                  example: 1,
                 },
                 name: {
                   type: 'string',
                   description: 'Название категории',
-                  example: 'Транспорт'
-                }
-              }
+                  example: 'Транспорт',
+                },
+              },
             },
             currency: {
               type: 'object',
@@ -70,19 +70,19 @@ export function ApiGetUserListingsDocs() {
                 id: {
                   type: 'integer',
                   description: 'ID валюты',
-                  example: 1
+                  example: 1,
                 },
                 code: {
                   type: 'string',
                   description: 'Код валюты',
-                  example: 'KZT'
+                  example: 'KZT',
                 },
                 symbol: {
                   type: 'string',
                   description: 'Символ валюты',
-                  example: '₸'
-                }
-              }
+                  example: '₸',
+                },
+              },
             },
             priceUnit: {
               type: 'object',
@@ -90,14 +90,14 @@ export function ApiGetUserListingsDocs() {
                 id: {
                   type: 'integer',
                   description: 'ID единицы измерения',
-                  example: 1
+                  example: 1,
                 },
                 name: {
                   type: 'string',
                   description: 'Название единицы измерения',
-                  example: 'Штуки'
-                }
-              }
+                  example: 'Штуки',
+                },
+              },
             },
             photos: {
               type: 'array',
@@ -107,18 +107,18 @@ export function ApiGetUserListingsDocs() {
                 properties: {
                   id: {
                     type: 'string',
-                    description: 'ID файла'
+                    description: 'ID файла',
                   },
                   url: {
                     type: 'string',
-                    description: 'URL файла'
+                    description: 'URL файла',
                   },
                   sortOrder: {
                     type: 'integer',
-                    description: 'Порядок сортировки'
-                  }
-                }
-              }
+                    description: 'Порядок сортировки',
+                  },
+                },
+              },
             },
             files: {
               type: 'array',
@@ -128,18 +128,18 @@ export function ApiGetUserListingsDocs() {
                 properties: {
                   id: {
                     type: 'string',
-                    description: 'ID файла'
+                    description: 'ID файла',
                   },
                   url: {
                     type: 'string',
-                    description: 'URL файла'
+                    description: 'URL файла',
                   },
                   sortOrder: {
                     type: 'integer',
-                    description: 'Порядок сортировки'
-                  }
-                }
-              }
+                    description: 'Порядок сортировки',
+                  },
+                },
+              },
             },
             locations: {
               type: 'array',
@@ -149,25 +149,25 @@ export function ApiGetUserListingsDocs() {
                 properties: {
                   id: {
                     type: 'string',
-                    description: 'ID локации'
+                    description: 'ID локации',
                   },
                   latitude: {
                     type: 'number',
                     description: 'Широта',
-                    example: 43.2389
+                    example: 43.2389,
                   },
                   longitude: {
                     type: 'number',
                     description: 'Долгота',
-                    example: 76.9097
+                    example: 76.9097,
                   },
                   address: {
                     type: 'string',
                     description: 'Адрес',
-                    example: 'г. Алматы, ул. Абая 123'
-                  }
-                }
-              }
+                    example: 'г. Алматы, ул. Абая 123',
+                  },
+                },
+              },
             },
             specifications: {
               type: 'array',
@@ -177,36 +177,36 @@ export function ApiGetUserListingsDocs() {
                 properties: {
                   id: {
                     type: 'string',
-                    description: 'ID спецификации'
+                    description: 'ID спецификации',
                   },
                   name: {
                     type: 'string',
                     description: 'Название спецификации',
-                    example: 'Состояние'
+                    example: 'Состояние',
                   },
                   value: {
                     type: 'string',
                     description: 'Значение',
-                    example: 'Отличное'
-                  }
-                }
-              }
+                    example: 'Отличное',
+                  },
+                },
+              },
             },
             createdAt: {
               type: 'string',
               format: 'date-time',
               description: 'Дата создания',
-              example: '2024-01-01T00:00:00.000Z'
+              example: '2024-01-01T00:00:00.000Z',
             },
             updatedAt: {
               type: 'string',
               format: 'date-time',
               description: 'Дата обновления',
-              example: '2024-01-01T00:00:00.000Z'
-            }
-          }
-        }
-      }
+              example: '2024-01-01T00:00:00.000Z',
+            },
+          },
+        },
+      },
     }),
     ApiResponse({
       status: HttpStatus.INTERNAL_SERVER_ERROR,
@@ -216,14 +216,14 @@ export function ApiGetUserListingsDocs() {
         properties: {
           statusCode: {
             type: 'integer',
-            example: 500
+            example: 500,
           },
           message: {
             type: 'string',
-            example: 'Internal server error'
-          }
-        }
-      }
-    })
+            example: 'Internal server error',
+          },
+        },
+      },
+    }),
   );
 }
