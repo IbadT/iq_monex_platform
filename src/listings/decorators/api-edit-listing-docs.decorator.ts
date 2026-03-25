@@ -11,7 +11,7 @@ export function ApiEditListingDocs() {
     }),
     ApiBody({
       description: 'Данные для редактирования объявления',
-      type: UpdateListingDto
+      type: UpdateListingDto,
     }),
     ApiResponse({
       status: HttpStatus.OK,
@@ -22,26 +22,26 @@ export function ApiEditListingDocs() {
           id: {
             type: 'string',
             description: 'ID объявления',
-            example: '123e4567-e89b-12d3-a456-426614174000'
+            example: '123e4567-e89b-12d3-a456-426614174000',
           },
           user: {
             type: 'object',
             description: 'Данные пользователя',
             example: {
               id: '123e4567-e89b-12d3-a456-426614174000',
-              email: 'user@example.com'
-            }
+              email: 'user@example.com',
+            },
           },
           body: {
             type: 'object',
             description: 'Данные для обновления',
             example: {
               title: 'Обновленный заголовок',
-              description: 'Обновленное описание'
-            }
-          }
-        }
-      }
+              description: 'Обновленное описание',
+            },
+          },
+        },
+      },
     }),
     ApiResponse({
       status: HttpStatus.BAD_REQUEST,
@@ -51,14 +51,14 @@ export function ApiEditListingDocs() {
         properties: {
           statusCode: {
             type: 'integer',
-            example: 400
+            example: 400,
           },
           message: {
             type: 'string',
-            example: 'Invalid request data'
-          }
-        }
-      }
+            example: 'Invalid request data',
+          },
+        },
+      },
     }),
     ApiResponse({
       status: HttpStatus.UNAUTHORIZED,
@@ -68,14 +68,14 @@ export function ApiEditListingDocs() {
         properties: {
           statusCode: {
             type: 'integer',
-            example: 401
+            example: 401,
           },
           message: {
             type: 'string',
-            example: 'Unauthorized'
-          }
-        }
-      }
+            example: 'Unauthorized',
+          },
+        },
+      },
     }),
     ApiResponse({
       status: HttpStatus.NOT_FOUND,
@@ -85,14 +85,14 @@ export function ApiEditListingDocs() {
         properties: {
           statusCode: {
             type: 'integer',
-            example: 404
+            example: 404,
           },
           message: {
             type: 'string',
-            example: 'Listing not found'
-          }
-        }
-      }
+            example: 'Listing not found',
+          },
+        },
+      },
     }),
     ApiResponse({
       status: HttpStatus.INTERNAL_SERVER_ERROR,
@@ -102,14 +102,14 @@ export function ApiEditListingDocs() {
         properties: {
           statusCode: {
             type: 'integer',
-            example: 500
+            example: 500,
           },
           message: {
             type: 'string',
-            example: 'Internal server error'
-          }
-        }
-      }
-    })
+            example: 'Internal server error',
+          },
+        },
+      },
+    }),
   );
 }

@@ -82,9 +82,11 @@ describe('FavoriteService', () => {
         {
           id: 'fav-3',
           userId,
-          targetType: 'LISTING',
-          targetId: 'listing-789',
+          type: 'LISTING',
+          listingId: 'listing-789',
+          targetUserId: null,
           createdAt: new Date(),
+          listing: null,
         },
       ];
 
@@ -109,12 +111,23 @@ describe('FavoriteService', () => {
           listing: true,
         },
       });
+
+      // Expect DTO objects, not raw database objects
+      expect(result).toHaveLength(1);
+      expect(result[0]).toHaveProperty('id', 'fav-3');
+      expect(result[0]).toHaveProperty('userId', userId);
+      expect(result[0]).toHaveProperty('type', 'LISTING');
+      expect(result[0]).toHaveProperty('listingId', 'listing-789');
+      expect(result[0]).toHaveProperty('targetUserId', null);
+      expect(result[0]).toHaveProperty('listing', null);
+      expect(result[0]).toHaveProperty('createdAt');
+
+      // Check that cache was called with DTO objects
       expect(cacheService.set).toHaveBeenCalledWith({
         baseKey: cacheKey,
         ttl: 900,
-        value: mockFavorites,
+        value: result, // Use the actual DTO result
       });
-      expect(result).toEqual(mockFavorites);
     });
   });
 });

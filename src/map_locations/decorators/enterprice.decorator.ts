@@ -33,14 +33,14 @@ export const ApiFindEnterprisesOperation = () => {
     //   required: true,
     //   type: String,
     // }),
-        ApiQuery({
+    ApiQuery({
       name: 'latitude',
       description: 'Широта центральной точки для поиска по геохешу',
       example: 55.7558,
       required: true,
       type: Number,
     }),
-        ApiQuery({
+    ApiQuery({
       name: 'longitude',
       description: 'Долгота центральной точки для поиска по геохешу',
       example: 37.6173,

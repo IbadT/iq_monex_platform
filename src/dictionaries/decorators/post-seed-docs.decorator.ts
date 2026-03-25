@@ -6,7 +6,8 @@ export function ApiPostSeedDocs() {
   return applyDecorators(
     ApiOperation({
       summary: 'Сидировать справочники',
-      description: 'Добавляет базовые данные валют и единиц измерения в систему',
+      description:
+        'Добавляет базовые данные валют и единиц измерения в систему',
     }),
     ApiResponse({
       status: HttpStatus.OK,
@@ -16,14 +17,14 @@ export function ApiPostSeedDocs() {
         properties: {
           statusCode: {
             type: 'integer',
-            example: 200
+            example: 200,
           },
           message: {
             type: 'string',
-            example: 'OK'
-          }
-        }
-      }
+            example: 'OK',
+          },
+        },
+      },
     }),
     ApiResponse({
       status: HttpStatus.INTERNAL_SERVER_ERROR,
@@ -33,14 +34,14 @@ export function ApiPostSeedDocs() {
         properties: {
           statusCode: {
             type: 'integer',
-            example: 500
+            example: 500,
           },
           message: {
             type: 'string',
-            example: 'Internal server error'
-          }
-        }
-      }
-    })
+            example: 'Internal server error',
+          },
+        },
+      },
+    }),
   );
 }

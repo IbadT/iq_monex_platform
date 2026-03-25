@@ -11,7 +11,7 @@
 ☐ cron_tasks
 
 ✔ dictionaries @done(26-03-24 05:44)
-☐ favorites
+✔ favorites
 
 ✔ likes @done(26-03-24 04:32)
 
@@ -19,7 +19,7 @@
 ☐ listings - осталось два роута
 ✔ map_locations @done(26-03-24 04:48)
 ☐ payments
-✔ reviews - только на один роут @done(26-03-24 16:26)
+✔ reviews
 
 ✔ subscription @done(26-03-24 04:04)
 ✔ tariffs @done(26-03-24 02:44)
@@ -31,8 +31,6 @@
 
 
 ☐ ОПЕЧАТКА В isAcitve в Worker в бд
-
-
 
 
 

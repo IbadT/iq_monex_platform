@@ -1,10 +1,29 @@
-import { Controller, Get, Delete, Param, Post, UseInterceptors, UploadedFile, Query, Body } from '@nestjs/common';
+import {
+  Controller,
+  Get,
+  Delete,
+  Param,
+  Post,
+  UseInterceptors,
+  UploadedFile,
+  Query,
+  Body,
+} from '@nestjs/common';
 import { AppService } from './app.service';
-import { ApiTags, ApiOperation, ApiResponse, ApiConsumes, ApiBody } from '@nestjs/swagger';
+import {
+  ApiTags,
+  ApiOperation,
+  ApiResponse,
+  ApiConsumes,
+  ApiBody,
+} from '@nestjs/swagger';
 import { Admin } from './common/decorators';
 import { FileInterceptor } from '@nestjs/platform-express';
 import { PaginationDto } from './common/dto/pagintation.dto';
-import { UploadImageResponseDto, UploadImageErrorDto } from './common/dto/upload-image-response.dto';
+import {
+  UploadImageResponseDto,
+  UploadImageErrorDto,
+} from './common/dto/upload-image-response.dto';
 
 export interface MulterFile {
   fieldname: string;
@@ -18,7 +37,7 @@ export interface MulterFile {
   buffer: Buffer;
 }
 
-@ApiTags("System")
+@ApiTags('System')
 @Controller()
 export class AppController {
   constructor(private readonly appService: AppService) {}
@@ -37,21 +56,24 @@ export class AppController {
     throw new Error('My first Sentry error!');
   }
 
-  @Get("suggestions")
+  @Get('suggestions')
   @ApiOperation({ summary: 'Get user suggestions with pagination' })
   @ApiResponse({ status: 200, description: 'Returns paginated suggestions' })
   async userSuggestions(@Query() query: PaginationDto) {
     return await this.appService.userSuggestions(query.limit, query.offset);
   }
 
-  @Get("images")
+  @Get('images')
   @ApiOperation({ summary: 'Get all images from S3 storage' })
-  @ApiResponse({ status: 200, description: 'Returns list of images with keys and URLs' })
+  @ApiResponse({
+    status: 200,
+    description: 'Returns list of images with keys and URLs',
+  })
   async getImages() {
     return await this.appService.getImages();
   }
 
-  @Post("images")
+  @Post('images')
   @UseInterceptors(FileInterceptor('file'))
   @ApiOperation({ summary: 'Upload image to S3 storage' })
   @ApiConsumes('multipart/form-data')
@@ -63,21 +85,39 @@ export class AppController {
         file: {
           type: 'string',
           format: 'binary',
-          description: 'Image file to upload'
-        }
-      }
-    }
+          description: 'Image file to upload',
+        },
+      },
+    },
   })
-  @ApiResponse({ status: 200, type: UploadImageResponseDto, description: 'Image uploaded successfully' })
-  @ApiResponse({ status: 400, type: UploadImageErrorDto, description: 'No file provided' })
-  @ApiResponse({ status: 500, type: UploadImageErrorDto, description: 'Failed to upload image' })
-  async uploadImage(@UploadedFile() file: MulterFile): Promise<UploadImageResponseDto | UploadImageErrorDto> {
+  @ApiResponse({
+    status: 200,
+    type: UploadImageResponseDto,
+    description: 'Image uploaded successfully',
+  })
+  @ApiResponse({
+    status: 400,
+    type: UploadImageErrorDto,
+    description: 'No file provided',
+  })
+  @ApiResponse({
+    status: 500,
+    type: UploadImageErrorDto,
+    description: 'Failed to upload image',
+  })
+  async uploadImage(
+    @UploadedFile() file: MulterFile,
+  ): Promise<UploadImageResponseDto | UploadImageErrorDto> {
     if (!file) {
       return { success: false, message: 'No file provided' };
     }
 
-    const result = await this.appService.uploadImage(file.buffer, file.originalname, file.mimetype);
-    
+    const result = await this.appService.uploadImage(
+      file.buffer,
+      file.originalname,
+      file.mimetype,
+    );
+
     if (!result) {
       return { success: false, message: 'Failed to upload image' };
     }
@@ -85,11 +125,11 @@ export class AppController {
     return {
       success: true,
       message: 'Image uploaded successfully',
-      data: result
+      data: result,
     };
   }
 
-  @Post("suggestions")
+  @Post('suggestions')
   @ApiOperation({ summary: 'Create new user suggestion' })
   @ApiBody({
     schema: {
@@ -97,23 +137,23 @@ export class AppController {
       properties: {
         text: {
           type: 'string',
-          description: 'User suggestion text'
-        }
-      }
-    }
+          description: 'User suggestion text',
+        },
+      },
+    },
   })
   @ApiResponse({ status: 201, description: 'Suggestion created successfully' })
   async createUserSuggestion(@Body() body: { text: string }) {
     return await this.appService.createUserSuggestion(body.text);
   }
 
-  @Get("banners/:key")
+  @Get('banners/:key')
   @ApiOperation({ summary: 'Get banner by key from S3 storage' })
   @ApiResponse({ status: 200, description: 'Banner found successfully' })
   @ApiResponse({ status: 404, description: 'Banner not found' })
   async getBanner(@Param('key') key: string) {
     const result = await this.appService.getBannerByKey(key);
-    
+
     if (!result) {
       return { success: false, message: 'Banner not found' };
     }
@@ -121,29 +161,34 @@ export class AppController {
     return {
       success: true,
       message: 'Banner found successfully',
-      data: result
+      data: result,
     };
   }
 
-  @Delete("images/:key")
+  @Delete('images/:key')
   @ApiOperation({ summary: 'Delete specific image from S3 storage' })
   @ApiResponse({ status: 200, description: 'Image deleted successfully' })
   @ApiResponse({ status: 404, description: 'Image not found' })
   async deleteImage(@Param('key') key: string) {
     const success = await this.appService.deleteImage(key);
-    return { success, message: success ? 'Image deleted successfully' : 'Failed to delete image' };
+    return {
+      success,
+      message: success
+        ? 'Image deleted successfully'
+        : 'Failed to delete image',
+    };
   }
 
-  @Delete("images")
+  @Delete('images')
   @ApiOperation({ summary: 'Delete all images from S3 storage' })
   @ApiResponse({ status: 200, description: 'All images deleted successfully' })
   @ApiResponse({ status: 500, description: 'Failed to delete images' })
   async deleteAllImages() {
     const result = await this.appService.deleteAllImages();
-    return { 
-      success: true, 
+    return {
+      success: true,
       message: `Delete operation completed: ${result.success} deleted, ${result.failed} failed`,
-      details: result 
+      details: result,
     };
   }
 

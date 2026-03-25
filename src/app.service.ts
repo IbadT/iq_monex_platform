@@ -29,16 +29,18 @@ export class AppService {
 
   async createUserSuggestion(text: string) {
     return await prisma.userSuggestion.create({
-      data: { text }
-    })
+      data: { text },
+    });
   }
 
-  async getBannerByKey(key: string): Promise<{ key: string; url: string } | null> {
+  async getBannerByKey(
+    key: string,
+  ): Promise<{ key: string; url: string } | null> {
     try {
       // Проверяем существует ли такой файл в S3
       const imageKeys = await this.s3Service.listObjects();
       const exists = imageKeys.includes(key);
-      
+
       if (!exists) {
         this.logger.warn(`Banner not found: ${key}`);
         return null;
@@ -47,7 +49,7 @@ export class AppService {
       // Формируем URL для баннера
       const url = `${this.s3Service.customEndpoint}/${key}`;
       this.logger.log(`Found banner: ${key}`);
-      
+
       return { key, url };
     } catch (error) {
       this.logger.error(`Failed to get banner: ${key}`, error);
@@ -59,13 +61,13 @@ export class AppService {
     try {
       const imageKeys = await this.s3Service.listObjects();
       this.logger.log(`Found ${imageKeys.length} images in S3`);
-      
+
       // Формируем полные URL для изображений
-      const images = imageKeys.map(key => ({
+      const images = imageKeys.map((key) => ({
         key,
         url: `${this.s3Service.customEndpoint}/${key}`,
       }));
-      
+
       return images;
     } catch (error) {
       this.logger.error('Failed to get images from S3', error);
@@ -89,7 +91,9 @@ export class AppService {
   async deleteAllImages(): Promise<{ success: number; failed: number }> {
     try {
       const result = await this.s3Service.deleteAllObjects();
-      this.logger.log(`Delete all images completed: ${result.success} success, ${result.failed} failed`);
+      this.logger.log(
+        `Delete all images completed: ${result.success} success, ${result.failed} failed`,
+      );
       return result;
     } catch (error) {
       this.logger.error('Failed to delete all images', error);
@@ -97,7 +101,11 @@ export class AppService {
     }
   }
 
-  async uploadImage(file: Buffer, fileName: string, contentType: string): Promise<{ key: string; url: string } | null> {
+  async uploadImage(
+    file: Buffer,
+    fileName: string,
+    contentType: string,
+  ): Promise<{ key: string; url: string } | null> {
     try {
       // Генерируем уникальный ключ для файла
       const timestamp = Date.now();
@@ -106,12 +114,12 @@ export class AppService {
 
       // Загружаем в S3
       const url = await this.s3Service.upload(file, key, contentType);
-      
+
       if (url) {
         this.logger.log(`Successfully uploaded image: ${key}`);
         return { key, url };
       }
-      
+
       return null;
     } catch (error) {
       this.logger.error('Failed to upload image', error);
@@ -141,10 +149,19 @@ export class AppService {
       await this.seedTariffs(results);
 
       this.logger.log(' Seed дефолтных данных завершен успешно');
-      
-      const totalCreated = Object.values(results).reduce((sum, item) => sum + item.created, 0);
-      const totalUpdated = Object.values(results).reduce((sum, item) => sum + item.updated, 0);
-      const totalErrors = Object.values(results).reduce((sum, item) => sum + item.errors, 0);
+
+      const totalCreated = Object.values(results).reduce(
+        (sum, item) => sum + item.created,
+        0,
+      );
+      const totalUpdated = Object.values(results).reduce(
+        (sum, item) => sum + item.updated,
+        0,
+      );
+      const totalErrors = Object.values(results).reduce(
+        (sum, item) => sum + item.errors,
+        0,
+      );
 
       return {
         success: true,
@@ -173,20 +190,26 @@ export class AppService {
           update: { code: roleData.code, type: roleData.type },
           create: roleData,
         });
-        
-        const existing = await prisma.role.findUnique({ where: { role: roleData.role } });
+
+        const existing = await prisma.role.findUnique({
+          where: { role: roleData.role },
+        });
         if (existing) {
           results.roles.updated++;
         } else {
           results.roles.created++;
         }
       } catch (error) {
-        this.logger.warn(` Ошибка при создании роли ${roleData.code}: ${error.message}`);
+        this.logger.warn(
+          ` Ошибка при создании роли ${roleData.code}: ${error.message}`,
+        );
         results.roles.errors++;
       }
     }
 
-    this.logger.log(` Роли обработано: создано ${results.roles.created}, обновлено ${results.roles.updated}, ошибок ${results.roles.errors}`);
+    this.logger.log(
+      ` Роли обработано: создано ${results.roles.created}, обновлено ${results.roles.updated}, ошибок ${results.roles.errors}`,
+    );
   }
 
   private async seedCurrencies(results: any) {
@@ -199,20 +222,26 @@ export class AppService {
           update: currencyData,
           create: currencyData,
         });
-        
-        const existing = await prisma.currency.findUnique({ where: { code: currencyData.code } });
+
+        const existing = await prisma.currency.findUnique({
+          where: { code: currencyData.code },
+        });
         if (existing) {
           results.currencies.updated++;
         } else {
           results.currencies.created++;
         }
       } catch (error) {
-        this.logger.warn(` Ошибка при создании валюты ${currencyData.code}: ${error.message}`);
+        this.logger.warn(
+          ` Ошибка при создании валюты ${currencyData.code}: ${error.message}`,
+        );
         results.currencies.errors++;
       }
     }
 
-    this.logger.log(` Валюты обработано: создано ${results.currencies.created}, обновлено ${results.currencies.updated}, ошибок ${results.currencies.errors}`);
+    this.logger.log(
+      ` Валюты обработано: создано ${results.currencies.created}, обновлено ${results.currencies.updated}, ошибок ${results.currencies.errors}`,
+    );
   }
 
   private async seedUnitMeasurements(results: any) {
@@ -222,11 +251,11 @@ export class AppService {
       try {
         // Проверяем существует ли такая единица измерения по русскому имени
         const existing = await prisma.unitMeasurement.findFirst({
-          where: { 
+          where: {
             name: {
               path: ['ru'],
-              equals: unitData.name.ru
-            }
+              equals: unitData.name.ru,
+            },
           },
         });
 
@@ -245,12 +274,16 @@ export class AppService {
           results.unitMeasurements.created++;
         }
       } catch (error) {
-        this.logger.warn(` Ошибка при создании единицы измерения: ${error.message}`);
+        this.logger.warn(
+          ` Ошибка при создании единицы измерения: ${error.message}`,
+        );
         results.unitMeasurements.errors++;
       }
     }
 
-    this.logger.log(` Единицы измерения обработано: создано ${results.unitMeasurements.created}, обновлено ${results.unitMeasurements.updated}, ошибок ${results.unitMeasurements.errors}`);
+    this.logger.log(
+      ` Единицы измерения обработано: создано ${results.unitMeasurements.created}, обновлено ${results.unitMeasurements.updated}, ошибок ${results.unitMeasurements.errors}`,
+    );
   }
 
   private async seedCategories(results: any) {
@@ -283,9 +316,9 @@ export class AppService {
       try {
         // Проверяем существует ли основная категория
         const existingMain = await prisma.category.findFirst({
-          where: { 
+          where: {
             name: category.name,
-            parentId: null 
+            parentId: null,
           },
         });
 
@@ -314,9 +347,9 @@ export class AppService {
         // Создаем подкатегории
         for (const subcategory of category.subcategories) {
           const existingSub = await prisma.category.findFirst({
-            where: { 
+            where: {
               name: subcategory.name,
-              parentId: mainCategory.id 
+              parentId: mainCategory.id,
             },
           });
 
@@ -345,9 +378,9 @@ export class AppService {
           // Создаем под-подкатегории
           for (const subsubcategory of subcategory.subsubcategories) {
             const existingSubSub = await prisma.category.findFirst({
-              where: { 
+              where: {
                 name: subsubcategory.name,
-                parentId: subCategoryRecord.id 
+                parentId: subCategoryRecord.id,
               },
             });
 
@@ -374,12 +407,16 @@ export class AppService {
           }
         }
       } catch (error) {
-        this.logger.warn(`⚠️ Ошибка при создании категории ${category.name}: ${error.message}`);
+        this.logger.warn(
+          `⚠️ Ошибка при создании категории ${category.name}: ${error.message}`,
+        );
         results.categories.errors++;
       }
     }
 
-    this.logger.log(`✅ Категории обработано: создано ${results.categories.created}, обновлено ${results.categories.updated}, ошибок ${results.categories.errors}`);
+    this.logger.log(
+      `✅ Категории обработано: создано ${results.categories.created}, обновлено ${results.categories.updated}, ошибок ${results.categories.errors}`,
+    );
   }
 
   private async seedSpecifications(results: any) {
@@ -389,11 +426,11 @@ export class AppService {
       try {
         // Проверяем существует ли такая характеристика по русскому имени
         const existing = await prisma.specification.findFirst({
-          where: { 
+          where: {
             name: {
               path: ['ru'],
-              equals: specData.name.ru
-            }
+              equals: specData.name.ru,
+            },
           },
         });
 
@@ -412,12 +449,16 @@ export class AppService {
           results.specifications.created++;
         }
       } catch (error) {
-        this.logger.warn(` Ошибка при создании характеристики: ${error.message}`);
+        this.logger.warn(
+          ` Ошибка при создании характеристики: ${error.message}`,
+        );
         results.specifications.errors++;
       }
     }
 
-    this.logger.log(` Характеристики обработано: создано ${results.specifications.created}, обновлено ${results.specifications.updated}, ошибок ${results.specifications.errors}`);
+    this.logger.log(
+      ` Характеристики обработано: создано ${results.specifications.created}, обновлено ${results.specifications.updated}, ошибок ${results.specifications.errors}`,
+    );
   }
 
   private async seedTariffs(results: any) {
@@ -458,11 +499,15 @@ export class AppService {
           results.tariffs.created++;
         }
       } catch (error) {
-        this.logger.warn(` Ошибка при создании тарифа ${tariff.code}: ${error.message}`);
+        this.logger.warn(
+          ` Ошибка при создании тарифа ${tariff.code}: ${error.message}`,
+        );
         results.tariffs.errors++;
       }
     }
 
-    this.logger.log(` Тарифы обработано: создано ${results.tariffs.created}, обновлено ${results.tariffs.updated}, ошибок ${results.tariffs.errors}`);
+    this.logger.log(
+      ` Тарифы обработано: создано ${results.tariffs.created}, обновлено ${results.tariffs.updated}, ошибок ${results.tariffs.errors}`,
+    );
   }
 }

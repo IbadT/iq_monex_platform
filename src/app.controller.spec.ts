@@ -38,8 +38,10 @@ describe('AppController', () => {
       listObjects: jest.fn().mockResolvedValue([]),
       deleteObject: jest.fn().mockResolvedValue(true),
       deleteAllObjects: jest.fn().mockResolvedValue({ success: 5, failed: 0 }),
-      upload: jest.fn().mockResolvedValue('https://storage.clo.ru/images/test.jpg'),
-      customEndpoint: 'https://storage.clo.ru'
+      upload: jest
+        .fn()
+        .mockResolvedValue('https://storage.clo.ru/images/test.jpg'),
+      customEndpoint: 'https://storage.clo.ru',
     } as any;
 
     const app: TestingModule = await Test.createTestingModule({
@@ -71,7 +73,6 @@ describe('AppController', () => {
   });
 
   describe('images', () => {
-
     it('should get images', async () => {
       const result = await appController.getImages();
       expect(result).toEqual([]);
@@ -86,7 +87,7 @@ describe('AppController', () => {
         size: 1024,
         fieldname: 'file',
         encoding: '7bit',
-        filename: 'test.jpg'
+        filename: 'test.jpg',
       };
 
       const result = await appController.uploadImage(mockFile);
@@ -95,8 +96,8 @@ describe('AppController', () => {
         message: 'Image uploaded successfully',
         data: {
           key: expect.any(String),
-          url: 'https://storage.clo.ru/images/test.jpg'
-        }
+          url: 'https://storage.clo.ru/images/test.jpg',
+        },
       });
       expect(mockS3Service.upload).toHaveBeenCalled();
     });
@@ -112,15 +113,15 @@ describe('AppController', () => {
     it('should get banner by key', async () => {
       // Мокаем listObjects чтобы вернуть баннер
       mockS3Service.listObjects.mockResolvedValueOnce(['banner1.jpg']);
-      
+
       const result = await appController.getBanner('banner1.jpg');
       expect(result).toEqual({
         success: true,
         message: 'Banner found successfully',
         data: {
           key: 'banner1.jpg',
-          url: 'https://storage.clo.ru/banner1.jpg'
-        }
+          url: 'https://storage.clo.ru/banner1.jpg',
+        },
       });
       expect(mockS3Service.listObjects).toHaveBeenCalled();
     });
@@ -128,18 +129,21 @@ describe('AppController', () => {
     it('should return error when banner not found', async () => {
       // Мокаем listObjects чтобы вернуть пустой массив
       mockS3Service.listObjects.mockResolvedValueOnce([]);
-      
+
       const result = await appController.getBanner('nonexistent.jpg');
       expect(result).toEqual({
         success: false,
-        message: 'Banner not found'
+        message: 'Banner not found',
       });
       expect(mockS3Service.listObjects).toHaveBeenCalled();
     });
 
     it('should delete single image', async () => {
       const result = await appController.deleteImage('test-key.jpg');
-      expect(result).toEqual({ success: true, message: 'Image deleted successfully' });
+      expect(result).toEqual({
+        success: true,
+        message: 'Image deleted successfully',
+      });
       expect(mockS3Service.deleteObject).toHaveBeenCalledWith('test-key.jpg');
     });
 
@@ -148,7 +152,7 @@ describe('AppController', () => {
       expect(result).toEqual({
         success: true,
         message: 'Delete operation completed: 5 deleted, 0 failed',
-        details: { success: 5, failed: 0 }
+        details: { success: 5, failed: 0 },
       });
       expect(mockS3Service.deleteAllObjects).toHaveBeenCalled();
     });

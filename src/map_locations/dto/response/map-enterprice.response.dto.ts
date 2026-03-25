@@ -10,7 +10,7 @@ const MapLocationType = {
   OTHER: 'OTHER',
 } as const;
 
-type MapLocationType = typeof MapLocationType[keyof typeof MapLocationType];
+type MapLocationType = (typeof MapLocationType)[keyof typeof MapLocationType];
 
 // map-location-response.dto.ts
 export class MapLocationResponseDto {

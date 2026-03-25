@@ -22,6 +22,7 @@ import { ApiGetReviewByIdDocs } from './decorators/api-get-review-by-id-docs.dec
 import { ApiUpdateReviewDocs } from './decorators/api-update-review-docs.decorator';
 import { ApiDeleteReviewDocs } from './decorators/api-delete-review-docs.decorator';
 import { ApiCreateReviewToUserDocs } from './decorators/api-create-review-to-user-docs.decorator';
+import { ApiGetUserReviewsDocs } from './decorators/api-get-user-reviews-docs.decorator';
 // import { AppLogger } from '@/common/logger/logger.service';
 import { Admin, Protected } from '@/common/decorators';
 import { PaginationDto } from '@/common/dto/pagintation.dto';
@@ -41,6 +42,7 @@ export class ReviewsController {
 
   @Get('users/:id')
   @Protected()
+  @ApiGetUserReviewsDocs()
   async getUserReviews(
     @Param('id', ParseUUIDPipe) id: string,
     @Query() query: PaginationDto,

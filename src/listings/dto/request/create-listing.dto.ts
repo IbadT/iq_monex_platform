@@ -130,7 +130,13 @@ export class CreateListingDto {
   // Геолокация
   @ApiProperty({
     description: 'Массив геолокаций объявления',
-    example: [{ latitude: 55.7558, longitude: 37.6173, address: 'г. Алматы, ул. Абая 123' }],
+    example: [
+      {
+        latitude: 55.7558,
+        longitude: 37.6173,
+        address: 'г. Алматы, ул. Абая 123',
+      },
+    ],
     required: false,
     isArray: true,
     type: CreateMapLocationDto,

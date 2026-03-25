@@ -16,14 +16,14 @@ export function ApiPostLegalEntitySeedDocs() {
         properties: {
           statusCode: {
             type: 'integer',
-            example: 201
+            example: 201,
           },
           message: {
             type: 'string',
-            example: 'Legal entity types seeded successfully'
-          }
-        }
-      }
+            example: 'Legal entity types seeded successfully',
+          },
+        },
+      },
     }),
     ApiResponse({
       status: HttpStatus.INTERNAL_SERVER_ERROR,
@@ -33,14 +33,14 @@ export function ApiPostLegalEntitySeedDocs() {
         properties: {
           statusCode: {
             type: 'integer',
-            example: 500
+            example: 500,
           },
           message: {
             type: 'string',
-            example: 'Internal server error'
-          }
-        }
-      }
-    })
+            example: 'Internal server error',
+          },
+        },
+      },
+    }),
   );
 }

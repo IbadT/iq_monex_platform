@@ -100,7 +100,6 @@ export class User {
   })
   receivedReviews: Review[] | null;
 
-
   @ApiProperty({
     description: 'User favorites',
   })
@@ -160,22 +159,24 @@ export class User {
   }
 
   static fromUpdateUserDto(user: any, profileData: Profile | null): User {
-    const profile = profileData ? {
-      id: user.profile.id,
-      userId: user.profile.userId,
-      legalEntityTypeId: profileData.legalEntityTypeId,
-      currencyId: profileData.currencyId,
-      avatarUrl: profileData.avatarUrl,
-      phone: profileData.phone,
-      email: profileData.email,
-      telegram: profileData.telegram,
-      siteUrl: profileData.siteUrl,
-      description: profileData.description,
-      createdAt: user.profile.createdAt,
-      updatedAt: user.profile.updatedAt,
-      legalEntityType: user.profile.legalEntityType,
-      currency: user.profile.currency,
-    } : null;
+    const profile = profileData
+      ? {
+          id: user.profile.id,
+          userId: user.profile.userId,
+          legalEntityTypeId: profileData.legalEntityTypeId,
+          currencyId: profileData.currencyId,
+          avatarUrl: profileData.avatarUrl,
+          phone: profileData.phone,
+          email: profileData.email,
+          telegram: profileData.telegram,
+          siteUrl: profileData.siteUrl,
+          description: profileData.description,
+          createdAt: user.profile.createdAt,
+          updatedAt: user.profile.updatedAt,
+          legalEntityType: user.profile.legalEntityType,
+          currency: user.profile.currency,
+        }
+      : null;
 
     return new User(
       user.id,

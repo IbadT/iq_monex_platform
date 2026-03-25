@@ -1,24 +1,24 @@
 import { ApiProperty } from '@nestjs/swagger';
 
 export class UploadImageResponseDto {
-  @ApiProperty({ 
+  @ApiProperty({
     description: 'Success status of the upload operation',
-    example: true 
+    example: true,
   })
   success!: boolean;
 
-  @ApiProperty({ 
+  @ApiProperty({
     description: 'Message describing the result',
-    example: 'Image uploaded successfully' 
+    example: 'Image uploaded successfully',
   })
   message!: string;
 
-  @ApiProperty({ 
+  @ApiProperty({
     description: 'Uploaded file information',
     example: {
       key: 'images/1647890123456.jpg',
-      url: 'https://storage.clo.ru/images/1647890123456.jpg'
-    }
+      url: 'https://storage.clo.ru/images/1647890123456.jpg',
+    },
   })
   data!: {
     key: string;
@@ -27,15 +27,15 @@ export class UploadImageResponseDto {
 }
 
 export class UploadImageErrorDto {
-  @ApiProperty({ 
+  @ApiProperty({
     description: 'Success status of the upload operation',
-    example: false 
+    example: false,
   })
   success!: boolean;
 
-  @ApiProperty({ 
+  @ApiProperty({
     description: 'Error message',
-    example: 'No file provided' 
+    example: 'No file provided',
   })
   message!: string;
 }

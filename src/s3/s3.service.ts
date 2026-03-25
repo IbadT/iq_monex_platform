@@ -1,5 +1,10 @@
 import { Injectable, Logger } from '@nestjs/common';
-import { PutObjectCommand, S3Client, ListObjectsV2Command, DeleteObjectCommand } from '@aws-sdk/client-s3';
+import {
+  PutObjectCommand,
+  S3Client,
+  ListObjectsV2Command,
+  DeleteObjectCommand,
+} from '@aws-sdk/client-s3';
 import { ConfigService } from '@nestjs/config';
 
 @Injectable()
@@ -15,7 +20,9 @@ export class S3Service {
       'AWS_SECRET_ACCESS_KEY',
     );
     const bucketName = this.configService.get<string>('S3_BUCKET_NAME');
-    this.customEndpoint = this.configService.get<string>('S3_PATH_STYLE') || 'https://storage.clo.ru';
+    this.customEndpoint =
+      this.configService.get<string>('S3_PATH_STYLE') ||
+      'https://storage.clo.ru';
 
     if (!accessKeyId || !secretAccessKey || !bucketName) {
       this.logger.warn(
@@ -32,7 +39,8 @@ export class S3Service {
       },
       // Указываем endpoint для Selectel
       endpoint:
-        this.customEndpoint?.replace(/\/[^\/]*$/, '') || 'https://storage.clo.ru', // Убираем /adverts
+        this.customEndpoint?.replace(/\/[^\/]*$/, '') ||
+        'https://storage.clo.ru', // Убираем /adverts
       region: 'us-east-1', // Selectel требует указания региона
       forcePathStyle: true, // Для S3-совместимых API
     });
@@ -152,13 +160,13 @@ export class S3Service {
       });
 
       const response = await this.s3Client.send(command);
-      
+
       if (response.Contents) {
-        const objectKeys = response.Contents.map(obj => obj.Key || '');
+        const objectKeys = response.Contents.map((obj) => obj.Key || '');
         this.logger.log(`Found ${objectKeys.length} objects in S3 bucket`);
         return objectKeys;
       }
-      
+
       return [];
     } catch (error) {
       this.logger.error('Failed to list S3 objects', error);
@@ -202,7 +210,7 @@ export class S3Service {
       });
 
       const response = await this.s3Client.send(listCommand);
-      
+
       if (!response.Contents || response.Contents.length === 0) {
         this.logger.log('No objects found to delete');
         return { success: 0, failed: 0 };
@@ -230,7 +238,9 @@ export class S3Service {
         }
       }
 
-      this.logger.log(`Delete all completed: ${successCount} success, ${failedCount} failed`);
+      this.logger.log(
+        `Delete all completed: ${successCount} success, ${failedCount} failed`,
+      );
       return { success: successCount, failed: failedCount };
     } catch (error) {
       this.logger.error('Failed to delete all S3 objects', error);

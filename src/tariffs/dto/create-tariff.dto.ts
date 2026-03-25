@@ -67,8 +67,17 @@ export class CreateTariffDto {
   @IsString()
   currencyCode: string;
 
-
-  constructor(code: TariffCode, name: string, description: string, baseSlots: number, baseDays: number, maxTotalDays: number, isExtendable: boolean, price: number, currencyCode: string) {
+  constructor(
+    code: TariffCode,
+    name: string,
+    description: string,
+    baseSlots: number,
+    baseDays: number,
+    maxTotalDays: number,
+    isExtendable: boolean,
+    price: number,
+    currencyCode: string,
+  ) {
     this.code = code;
     this.name = name;
     this.description = description;
