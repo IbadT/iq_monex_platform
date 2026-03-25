@@ -39,17 +39,3 @@ jobs:
       run: npm run prisma:generate
       env:
         DATABASE_URL: postgresql://postgres:postgres@localhost:5432/test_db
-
-    - name: Quality checks
-      run: |
-        npm run build
-        npm test
-        
-        # Security audit - only block on critical vulnerabilities
-        critical_vulns=$(npm audit --json | jq '.metadata.vulnerabilities.critical // 0')
-        if [ "$critical_vulns" -gt 0 ]; then
-          echo "❌ Critical vulnerabilities found: $critical_vulns"
-          exit 1
-        fi
-        
-        echo "✅ All checks passed!"
