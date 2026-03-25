@@ -66,6 +66,7 @@ describe('FavoritesController', () => {
         listingId: '123-e456-7890-abcd-ef1234567890',
         targetUserId: null,
         createdAt: new Date(),
+        listing: null,
       };
 
       favoritesService.getById.mockResolvedValue(result);

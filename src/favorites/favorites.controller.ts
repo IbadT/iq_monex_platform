@@ -21,8 +21,11 @@ import {
   ApiGetUserFavoritesDocs,
 } from './decorators';
 import { CreateFavoriteDto } from './dto/create-favorite.dto';
+import { FavoriteByIdResponseDto } from './dto/response/favorite-by-id-response.dto';
+import { FavoriteUserProfileResponseDto } from './dto/response/favorite-user-profile-response.dto';
 import { ApiTags } from '@nestjs/swagger';
 import { AddFavoriteToUserDto } from './dto/add-favorite-to-user.dto';
+import { CreateFavoriteResponseDto } from './dto/response/create-favorite-response.dto';
 
 @ApiTags('Favorites')
 @Controller('favorites')
@@ -35,7 +38,7 @@ export class FavoriteController {
   @Get(':id')
   @Protected()
   @ApiGetFavoriteByIdDocs()
-  async getFavorites(@Param('id', ParseUUIDPipe) id: string) {
+  async getFavorites(@Param('id', ParseUUIDPipe) id: string): Promise<FavoriteByIdResponseDto | null> {
     this.logger.log(`Получение избранных объявлений по id: ${id}`);
     return await this.favoriteService.getById(id);
   }
@@ -43,7 +46,7 @@ export class FavoriteController {
   @Get('')
   @Protected()
   @ApiGetFavoritesListDocs()
-  async getList(@CurrentUser() user: JwtPayload) {
+  async getList(@CurrentUser() user: JwtPayload): Promise<FavoriteByIdResponseDto[]> {
     this.logger.log('Получить все объявления в избранном');
     return await this.favoriteService.getList(user.id);
   }
@@ -54,7 +57,7 @@ export class FavoriteController {
   async createFavorite(
     @CurrentUser() user: JwtPayload,
     @Body() body: CreateFavoriteDto,
-  ) {
+  ): Promise<CreateFavoriteResponseDto> {
     this.logger.log('Добавить объявление в избранное');
     return await this.favoriteService.create(user.id, body);
   }
@@ -62,7 +65,7 @@ export class FavoriteController {
   @Get("users")
   @Protected()
   @ApiGetUserFavoritesDocs()
-  async favoriteUsers(@CurrentUser() user: JwtPayload) {
+  async favoriteUsers(@CurrentUser() user: JwtPayload): Promise<FavoriteUserProfileResponseDto[]> {
     return await this.favoriteService.favoriteUsers(user.id);
   }
 
@@ -72,7 +75,7 @@ export class FavoriteController {
   async addFavoriteToUser(
     @CurrentUser() user: JwtPayload,
     @Body() body: AddFavoriteToUserDto,
-  ) {
+  ): Promise<CreateFavoriteResponseDto> {
     return await this.favoriteService.addFavoriteToUser(user.id, body);
   }
 

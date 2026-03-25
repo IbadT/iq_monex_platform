@@ -1,5 +1,6 @@
 import { ApiOperation, ApiResponse, ApiTags } from '@nestjs/swagger';
 import { applyDecorators } from '@nestjs/common';
+import { FavoriteByIdResponseDto } from '../dto/response/favorite-by-id-response.dto';
 
 export const ApiGetFavoritesListDocs = () => {
   return applyDecorators(
@@ -12,71 +13,8 @@ export const ApiGetFavoritesListDocs = () => {
     ApiResponse({
       status: 200,
       description: 'Список избранных объявлений успешно получен',
-      schema: {
-        type: 'array',
-        items: {
-          type: 'object',
-          properties: {
-            id: {
-              type: 'string',
-              example: '123e4567-e89b-12d3-a456-426614174000',
-              description: 'UUID записи в избранном',
-            },
-            userId: {
-              type: 'string',
-              example: '123e4567-e89b-12d3-a456-426614174000',
-              description: 'ID пользователя',
-            },
-            listingId: {
-              type: 'string',
-              example: '123e4567-e89b-12d3-a456-426614174000',
-              description: 'ID объявления',
-            },
-            createdAt: {
-              type: 'string',
-              example: '2024-01-15T10:30:00Z',
-              description: 'Дата добавления в избранное',
-            },
-            listing: {
-              type: 'object',
-              properties: {
-                id: {
-                  type: 'string',
-                  example: '123e4567-e89b-12d3-a456-426614174000',
-                  description: 'UUID объявления',
-                },
-                title: {
-                  type: 'string',
-                  example: 'Продам iPhone 15 Pro',
-                  description: 'Заголовок объявления',
-                },
-                description: {
-                  type: 'string',
-                  example: 'Отличное состояние, использовался 3 месяца',
-                  description: 'Описание объявления',
-                },
-                price: {
-                  type: 'number',
-                  example: 85000,
-                  description: 'Цена объявления',
-                },
-                status: {
-                  type: 'string',
-                  enum: ['DRAFT', 'PUBLISHED', 'ARCHIVED', 'TEMPLATE'],
-                  example: 'PUBLISHED',
-                  description: 'Статус объявления',
-                },
-                createdAt: {
-                  type: 'string',
-                  example: '2024-01-10T15:20:00Z',
-                  description: 'Дата создания объявления',
-                },
-              },
-              description: 'Информация об объявлении',
-            },
-          },
-        },
-      },
+      type: FavoriteByIdResponseDto,
+      isArray: true,
     }),
     ApiResponse({
       status: 401,
