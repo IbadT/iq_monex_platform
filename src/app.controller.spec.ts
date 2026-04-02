@@ -93,7 +93,7 @@ describe('AppController', () => {
       const result = await appController.uploadImage(mockFile);
       expect(result).toEqual({
         success: true,
-        message: 'Image uploaded successfully',
+        message: 'Изображение успешно загружено',
         data: {
           key: expect.any(String),
           url: 'https://storage.clo.ru/images/test.jpg',
@@ -117,7 +117,7 @@ describe('AppController', () => {
       const result = await appController.getBanner('banner1.jpg');
       expect(result).toEqual({
         success: true,
-        message: 'Banner found successfully',
+        message: 'Баннер успешно найден',
         data: {
           key: 'banner1.jpg',
           url: 'https://storage.clo.ru/banner1.jpg',
@@ -133,7 +133,7 @@ describe('AppController', () => {
       const result = await appController.getBanner('nonexistent.jpg');
       expect(result).toEqual({
         success: false,
-        message: 'Banner not found',
+        message: 'Баннер не найден',
       });
       expect(mockS3Service.listObjects).toHaveBeenCalled();
     });
@@ -142,7 +142,7 @@ describe('AppController', () => {
       const result = await appController.deleteImage('test-key.jpg');
       expect(result).toEqual({
         success: true,
-        message: 'Image deleted successfully',
+        message: 'Изображение успешно удалено',
       });
       expect(mockS3Service.deleteObject).toHaveBeenCalledWith('test-key.jpg');
     });
@@ -151,7 +151,7 @@ describe('AppController', () => {
       const result = await appController.deleteAllImages();
       expect(result).toEqual({
         success: true,
-        message: 'Delete operation completed: 5 deleted, 0 failed',
+        message: 'Операция удаления завершена: 5 удалено, 0 не удалось',
         details: { success: 5, failed: 0 },
       });
       expect(mockS3Service.deleteAllObjects).toHaveBeenCalled();

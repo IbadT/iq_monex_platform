@@ -5,7 +5,7 @@ export interface ListingDocument {
   price: number | null;
   status: string;
   userId: string;
-  categoryId: number;
+  subcategoryId: number;
   currencyId: number | null;
   priceUnitId: number | null;
   condition: string | null;

@@ -27,6 +27,7 @@ try {
   FileKind = {
     DOCUMENT: 'DOCUMENT',
     PHOTO: 'PHOTO',
+    AVATAR: 'AVATAR',
   };
 }
 
@@ -43,6 +44,12 @@ import { FavoriteType } from '@/favorites/enums/favorite-type.enum';
 import { UserResponseDto } from './dto/response/user-response.dto';
 import { UserMapper } from './mappers/user.mapper';
 import { ComplaintResponseDto } from './dto/response/complaint-response.dto';
+import { S3Service } from '@/s3/s3.service';
+import { RabbitmqService } from '@/rabbitmq/rabbitmq.service';
+import { FileOwnerType } from '../../prisma/generated/enums';
+import { UserCoreService } from './user-core.service';
+import { ProfileService } from './profile.service';
+import { FileService } from '@/s3/file.service';
 
 @Injectable()
 export class UsersService {
@@ -53,6 +60,11 @@ export class UsersService {
     private readonly mapLocationsService: MapLocationsService,
     private readonly activitiesService: ActivitiesService,
     private readonly searchService: SearchService,
+    private readonly s3Service: S3Service,
+    private readonly rabbitmqService: RabbitmqService,
+    private readonly userCoreService: UserCoreService,
+    private readonly profileService: ProfileService,
+    private readonly fileService: FileService,
   ) {}
 
   async searchProfiles(
@@ -356,16 +368,101 @@ export class UsersService {
     });
   }
 
+  // async getProfileById(
+  //   userId: string,
+  //   id: string,
+  // ): Promise<FullProfileResponseDto> {
+  //   // const cachedUser = await this.cacheService.getUserById(id);
+
+  //   // if (cachedUser) {
+  //   //   return cachedUser;
+  //   // }
+
+  //   const user = await prisma.user.findUnique({
+  //     where: { id },
+  //     include: {
+  //       profile: {
+  //         include: {
+  //           user: true,
+  //           legalEntityType: true,
+  //           currency: true,
+  //         },
+  //       },
+  //       userActivities: {
+  //         include: {
+  //           activity: true,
+  //         },
+  //       },
+  //       files: {
+  //         where: {
+  //           uploadStatus: 'completed',
+  //           ownerType: "USER",
+  //         },
+  //       },
+  //       workers: {
+  //         include: {
+  //           role: true,
+  //         },
+  //         where: {
+  //           isActive: true,
+  //         },
+  //       },
+  //       locations: {
+  //         where: {
+  //           userId: id,
+  //         },
+  //       },
+  //       receivedReviews: {
+  //         where: {
+  //           status: 'APPROVED',
+  //         },
+  //         select: {
+  //           rating: true,
+  //           createdAt: true,
+  //         },
+  //         orderBy: {
+  //           createdAt: 'desc',
+  //         },
+  //       },
+  //       // favorites: {
+  //       //   where: {
+  //       //     // userId: currentUserId,
+  //       //     userId: id,
+  //       //     targetUserId: id,
+  //       //     type: FavoriteType.USER,
+  //       //   },
+  //       // },
+  //       favorites: id
+  //         ? {
+  //             where: {
+  //               userId: id,
+  //               targetUserId: id,
+  //               type: FavoriteType.USER,
+  //             },
+  //             take: 1, // Добавляем take, чтобы не получать массив
+  //           }
+  //         : false, // Используем false вместо undefined
+  //     },
+  //   });
+
+  //   if (!user) {
+  //     throw new NotFoundException(`Пользователь с id: ${id} не найден`);
+  //   }
+
+  //   // Преобразуем в DTO
+  //   const fullProfile = ProfileMapper.toFullResponse(user, userId);
+
+  //   // Кешируем
+  //   // await this.cacheService.setUserById(id, fullProfile, 3600);
+  //   // await this.cacheService.setUserById(id, fullProfile, 3600);
+
+  //   return fullProfile;
+  // }
+
   async getProfileById(
-    userId: string,
+    currentUserId: string,
     id: string,
   ): Promise<FullProfileResponseDto> {
-    // const cachedUser = await this.cacheService.getUserById(id);
-
-    // if (cachedUser) {
-    //   return cachedUser;
-    // }
-
     const user = await prisma.user.findUnique({
       where: { id },
       include: {
@@ -375,60 +472,46 @@ export class UsersService {
             currency: true,
           },
         },
+
         userActivities: {
           include: {
             activity: true,
           },
         },
+
         files: {
           where: {
-            kind: FileKind.AVATAR,
+            ownerType: 'USER',
             uploadStatus: 'completed',
           },
-        },
-        workers: {
-          include: {
-            role: true,
-          },
-          where: {
-            isActive: true,
-          },
-        },
-        locations: {
-          where: {
-            userId: id,
-          },
-        },
-        receivedReviews: {
-          where: {
-            status: 'APPROVED',
-          },
-          select: {
-            rating: true,
-            createdAt: true,
-          },
           orderBy: {
-            createdAt: 'desc',
+            sortOrder: 'asc',
           },
         },
-        // favorites: {
-        //   where: {
-        //     // userId: currentUserId,
-        //     userId: id,
-        //     targetUserId: id,
-        //     type: FavoriteType.USER,
-        //   },
-        // },
-        favorites: id
+
+        workers: {
+          where: { isActive: true },
+          include: { role: true },
+        },
+
+        locations: true,
+
+        receivedReviews: {
+          where: { status: 'APPROVED' },
+          select: { rating: true, createdAt: true },
+          orderBy: { createdAt: 'desc' },
+        },
+
+        favorites: currentUserId
           ? {
               where: {
-                userId: id,
+                userId: currentUserId,
                 targetUserId: id,
                 type: FavoriteType.USER,
               },
-              take: 1, // Добавляем take, чтобы не получать массив
+              take: 1,
             }
-          : false, // Используем false вместо undefined
+          : false,
       },
     });
 
@@ -436,14 +519,22 @@ export class UsersService {
       throw new NotFoundException(`Пользователь с id: ${id} не найден`);
     }
 
-    // Преобразуем в DTO
-    const fullProfile = ProfileMapper.toFullResponse(user, userId);
+    // Если профиль отсутствует — создаём "пустой" объект,
+    // чтобы маппер не упал
+    if (!user.profile) {
+      user.profile = {
+        id: null,
+        phone: null,
+        email: null,
+        telegram: null,
+        siteUrl: null,
+        description: null,
+        legalEntityType: null,
+        currency: null,
+      } as any;
+    }
 
-    // Кешируем
-    // await this.cacheService.setUserById(id, fullProfile, 3600);
-    // await this.cacheService.setUserById(id, fullProfile, 3600);
-
-    return fullProfile;
+    return ProfileMapper.toFullResponse(user, currentUserId);
   }
 
   async getUserByAccountNumber(
@@ -467,15 +558,6 @@ export class UsersService {
     return UserMapper.toUserResponse(user);
   }
 
-  // async getUserFavoritesProfiles(userId: string) {
-  //   return await prisma.favorite.findMany({
-  //     where: {
-  //       userId,
-  //       type: FavoriteType.USER,
-  //     },
-  //   });
-  // }
-
   async makeComplaintToUser(
     userId: string,
     body: MakeComplaintToUserDto,
@@ -490,7 +572,8 @@ export class UsersService {
       throw new ConflictException('Вы уже подали жалобу на этот профиль');
     }
 
-    return await prisma.complaint.create({
+    // Создаем жалобу
+    const complaint = await prisma.complaint.create({
       data: {
         complaintType: ComplaintType.USER,
         type: body.type,
@@ -502,6 +585,62 @@ export class UsersService {
         id: true,
       },
     });
+
+    // Обрабатываем изображения если они есть
+    if (body.images && body.images.length > 0) {
+      // Создаем записи в БД для файлов
+      const fileRecords = body.images.map((imageData, index) => {
+        const fileName = this.s3Service.generateFileNameFromBase64(
+          imageData,
+          index,
+          'photo',
+        );
+        const s3Key = this.s3Service.generateComplaintPhotoKey(
+          complaint.id,
+          index,
+        );
+        const contentType = this.s3Service.getContentTypeFromBase64(imageData);
+        const fileSize = this.s3Service.getFileSizeFromBase64(imageData);
+
+        return {
+          ownerType: FileOwnerType.COMPLAINT,
+          complaintId: complaint.id,
+          url: imageData, // Пока храним base64
+          fileType: contentType,
+          fileName,
+          fileSize,
+          kind: FileKind.PHOTO,
+          sortOrder: index,
+          s3Key,
+          s3Bucket: '', // Будет заполнено после загрузки в S3
+          uploadStatus: 'pending', // Статус ожидания загрузки
+        };
+      });
+
+      // Сохраняем файлы в БД
+      await prisma.file.createMany({
+        data: fileRecords,
+      });
+
+      // Отправляем задачи в RabbitMQ для асинхронной загрузки в S3
+      await Promise.all(
+        body.images.map(async (imageData, index) => {
+          const fileRecord = fileRecords[index];
+          return this.rabbitmqService.sendFileUpload({
+            complaintId: complaint.id, // Передаем complaintId
+            fileType: 'photo',
+            fileIndex: index,
+            fileData: imageData,
+            fileName: fileRecord.fileName,
+            contentType: fileRecord.fileType,
+            fileSize: fileRecord.fileSize,
+            s3Key: fileRecord.s3Key,
+          });
+        }),
+      );
+    }
+
+    return complaint;
   }
 
   async createUser(data: {
@@ -547,7 +686,15 @@ export class UsersService {
     try {
       // Начинаем транзакцию для атомарности операций
       const result = await prisma.$transaction(async (tx: PrismaClient) => {
-        // TODO: вынести по отдельным запосам для скорости
+        // Проверяем существование пользователя
+        const existingUser = await tx.user.findUnique({
+          where: { id },
+        });
+
+        if (!existingUser) {
+          throw new NotFoundException(`Пользователь с id: ${id} не найден`);
+        }
+
         // 1. Обновляем основные данные пользователя
         const updatedUser = await tx.user.update({
           where: { id },
@@ -646,19 +793,125 @@ export class UsersService {
           await this.searchService.indexProfile(newProfile, tx);
         }
 
-        // 3. Обрабатываем активности
+        // 3. Обрабатываем аватар
+        if (body.avatar !== undefined && body.avatar !== null) {
+          // Проверяем, есть ли уже аватар у пользователя
+          const existingAvatar = await tx.file.findFirst({
+            where: {
+              userId: id,
+              kind: 'AVATAR',
+            },
+          });
+
+          if (existingAvatar) {
+            // Обновляем существующий аватар
+            const fileName = this.s3Service.generateFileNameFromBase64(
+              body.avatar,
+              0,
+              'avatar',
+            );
+            const s3Key = this.s3Service.generateAvatarKey(id);
+            const contentType = this.s3Service.getContentTypeFromBase64(
+              body.avatar,
+            );
+            const fileSize = this.s3Service.getFileSizeFromBase64(body.avatar);
+
+            // Обновляем запись в БД
+            await tx.file.update({
+              where: { id: existingAvatar.id },
+              data: {
+                url: body.avatar, // Пока храним base64
+                fileType: contentType,
+                fileName,
+                fileSize,
+                s3Key,
+                s3Bucket: '', // Будет заполнено после загрузки в S3
+                uploadStatus: 'pending', // Статус ожидания загрузки
+              },
+            });
+
+            // Отправляем задачу в RabbitMQ для асинхронной загрузки в S3
+            await this.rabbitmqService.sendFileUpload({
+              userId: id, // Используем userId для аватаров
+              fileType: 'avatar',
+              fileIndex: 0,
+              fileData: body.avatar,
+              fileName,
+              contentType,
+              fileSize,
+              s3Key,
+            });
+          } else {
+            // Создаем новый аватар
+            const fileName = this.s3Service.generateFileNameFromBase64(
+              body.avatar,
+              0,
+              'avatar',
+            );
+            const s3Key = this.s3Service.generateAvatarKey(id);
+            const contentType = this.s3Service.getContentTypeFromBase64(
+              body.avatar,
+            );
+            const fileSize = this.s3Service.getFileSizeFromBase64(body.avatar);
+
+            // Создаем запись в БД
+            await tx.file.create({
+              data: {
+                ownerType: FileOwnerType.USER,
+                userId: id,
+                url: body.avatar, // Пока храним base64
+                fileType: contentType,
+                fileName,
+                fileSize,
+                kind: 'AVATAR',
+                sortOrder: 0,
+                s3Key,
+                s3Bucket: '', // Будет заполнено после загрузки в S3
+                uploadStatus: 'pending', // Статус ожидания загрузки
+              },
+            });
+
+            // Отправляем задачу в RabbitMQ для асинхронной загрузки в S3
+            await this.rabbitmqService.sendFileUpload({
+              userId: id, // Используем userId для аватаров
+              fileType: 'avatar',
+              fileIndex: 0,
+              fileData: body.avatar,
+              fileName,
+              contentType,
+              fileSize,
+              s3Key,
+            });
+          }
+        } else if (body.avatar === null) {
+          // Если avatar === null, удаляем существующий аватар
+          const existingAvatar = await tx.file.findFirst({
+            where: {
+              userId: id,
+              kind: 'AVATAR',
+            },
+          });
+
+          if (existingAvatar) {
+            await tx.file.delete({
+              where: { id: existingAvatar.id },
+            });
+          }
+        }
+
+        // 4. Обрабатываем активности
         await this.activitiesService.processActivities({
           userId: id,
           activities: body.activities,
           tx: tx,
         });
 
-        // 4. Обрабатываем сотрудников (workers)
+        // 5. Обрабатываем сотрудников (workers)
         if (body.workers && body.workers.length > 0) {
           await this.workersService.processWorkers(id, body.workers, tx);
         }
 
-        // 5. Обрабатываем локации (maps)
+        // 6. Обрабатываем локации (maps)
         if (body.maps && body.maps.length > 0) {
           await this.mapLocationsService.processMapLocations({
             userId: id,
@@ -667,11 +920,11 @@ export class UsersService {
           });
         }
 
-        // 6. Очищаем кэш
+        // 7. Очищаем кэш
         await this.cacheService.del(`activities/users:${id}`);
         await this.cacheService.del(`activities`);
 
-        // 7. Создаем User entity без поля password
+        // 8. Создаем User entity без поля password
         // return User.fromUpdateUserDto(updatedUser, updatedUser.profile);
         return UserMapper.toUserResponse(updatedUser);
       });
@@ -681,6 +934,185 @@ export class UsersService {
       this.logger.error(`Ошибка при обновлении пользователя: ${error.message}`);
       throw error;
     }
+  }
+
+  async updateUserV2(
+    id: string,
+    body: UpdateUserDto,
+  ): Promise<UserResponseDto> {
+    this.logger.debug(
+      `Updating user ${id}: ${JSON.stringify({
+        ...body,
+        avatar: body.avatar?.slice(0, 10),
+        photos: body.photos?.map((i) => i.slice(0, 10)),
+        files: body.files?.map((i) => i.slice(0, 10)),
+      })}`,
+    );
+
+    this.logger.log(`[Transaction] STARTING transaction...`);
+    const result = await prisma.$transaction(async (tx: PrismaClient) => {
+      try {
+        this.logger.debug(`[Transaction] Step 1: updateUserCore`);
+        const user = await this.userCoreService.updateUserCore(id, body, tx);
+        this.logger.debug(`[Transaction] Step 1 ✓ completed`);
+
+        this.logger.debug(`[Transaction] Step 2: upsertProfile`);
+        const profile = await this.profileService.upsertProfile(id, body, tx);
+        this.logger.debug(`[Transaction] Step 2 ✓ completed`);
+
+        this.logger.debug(`[Transaction] Step 3: processUserAvatar`);
+        const avatar = await this.fileService.processUserAvatar(
+          id,
+          body.avatar,
+          tx,
+        );
+        this.logger.debug(
+          `[Transaction] Step 3 ✓ completed, avatar=${avatar?.id}`,
+        );
+        const filtersAfterAvatar = await tx.file.count({
+          where: { userId: id, ownerType: 'USER' },
+        });
+        this.logger.debug(
+          `[Transaction] Files count after avatar creation: ${filtersAfterAvatar}`,
+        );
+
+        this.logger.debug(`[Transaction] Step 4: replaceUserFilesArray PHOTO`);
+        const photos = await this.fileService.replaceUserFilesArray(
+          id,
+          body.photos,
+          FileKind.PHOTO,
+          tx,
+        );
+        this.logger.debug(
+          `[Transaction] Step 4 ✓ completed, photos count=${photos?.length}`,
+        );
+        const filesAfterPhotos = await tx.file.count({
+          where: { userId: id, ownerType: 'USER' },
+        });
+        this.logger.debug(
+          `[Transaction] Files count after photos creation: ${filesAfterPhotos}`,
+        );
+
+        this.logger.debug(
+          `[Transaction] Step 5: replaceUserFilesArray DOCUMENT`,
+        );
+        const files = await this.fileService.replaceUserFilesArray(
+          id,
+          body.files,
+          FileKind.DOCUMENT,
+          tx,
+        );
+        this.logger.debug(
+          `[Transaction] Step 5 ✓ completed, files count=${files?.length}`,
+        );
+
+        this.logger.debug(`[Transaction] Step 6: processActivities`);
+        await this.activitiesService.processActivities({
+          userId: id,
+          activities: body.activities,
+          tx,
+        });
+        this.logger.debug(`[Transaction] Step 6 ✓ completed`);
+        const filesAfterActivities = await tx.file.count({
+          where: { userId: id, ownerType: 'USER' },
+        });
+        this.logger.debug(
+          `[Transaction] Files count after activities: ${filesAfterActivities}`,
+        );
+
+        this.logger.debug(`[Transaction] Step 7: processWorkers`);
+        await this.workersService.processWorkers(id, body.workers, tx);
+        this.logger.debug(`[Transaction] Step 7 ✓ completed`);
+        const filesAfterWorkers = await tx.file.count({
+          where: { userId: id, ownerType: 'USER' },
+        });
+        this.logger.debug(
+          `[Transaction] Files count after workers: ${filesAfterWorkers}`,
+        );
+
+        this.logger.debug(`[Transaction] Step 8: processMapLocations`);
+        await this.mapLocationsService.processMapLocations({
+          userId: id,
+          maps: body.maps,
+          tx,
+        });
+        this.logger.debug(`[Transaction] Step 8 ✓ completed`);
+        const filesBeforeReturn = await tx.file.count({
+          where: { userId: id, ownerType: 'USER' },
+        });
+        this.logger.debug(
+          `[Transaction] Files count before return: ${filesBeforeReturn}`,
+        );
+
+        return { user, profile, avatar, photos, files };
+      } catch (error) {
+        this.logger.error(
+          `[Transaction] CRITICAL ERROR: ${error.message}`,
+          error.stack,
+        );
+        throw error;
+      }
+    });
+
+    this.logger.log(`✅ [Transaction] COMPLETED and COMMITTED successfully`);
+    this.logger.log('============');
+    this.logger.log(
+      `Result type check: avatar type=${typeof result.avatar}, isObject=${typeof result.avatar === 'object'}, avatar=${JSON.stringify(result.avatar?.id ? { id: result.avatar.id, url: result.avatar.url?.slice(0, 20) } : result.avatar)}`,
+    );
+    this.logger.log('============');
+
+    // Verify files actually exist in database IMMEDIATELY after transaction
+    this.logger.log(`[After Transaction] Verifying files exist in DB...`);
+    try {
+      const avatarCount = await prisma.file.count({
+        where: {
+          ownerType: 'USER',
+          userId: id,
+          kind: 'AVATAR',
+        },
+      });
+      this.logger.log(`[DB Verification] Avatar files count: ${avatarCount}`);
+
+      const photoCount = await prisma.file.count({
+        where: {
+          ownerType: 'USER',
+          userId: id,
+          kind: 'PHOTO',
+        },
+      });
+      this.logger.log(`[DB Verification] Photo files count: ${photoCount}`);
+    } catch (verifyError) {
+      this.logger.error(
+        `[DB Verification] Error: ${verifyError.message}`,
+        verifyError.stack,
+      );
+    }
+    // this.logger.log(
+    //   `Result: ${JSON.stringify({
+    //     ...result,
+    //     avatar: result.avatar?.url?.slice(0, 10),
+    //     photos: result.photos?.map((i) => i.url?.slice(0, 10)),
+    //     files: result.files?.map((i) => i.url?.slice(0, 10)),
+    //   })}`,
+    // );
+    this.logger.log('============');
+
+    // ВНЕ транзакции — внешние системы
+    await this.searchService.indexProfileWithoutTx(result.profile);
+
+    // await this.fileService.enqueueAvatarUploadIfNeeded(result.avatar);
+    // await this.fileService.enqueueFilesUpload(result.photos);
+    // await this.fileService.enqueueFilesUpload(result.files);
+
+    await Promise.all([
+      this.fileService.enqueueAvatarUploadIfNeeded(result.avatar),
+      this.fileService.enqueueFilesUpload(result.photos),
+      this.fileService.enqueueFilesUpload(result.files),
+    ]);
+
+    await this.cacheService.invalidateUser(id);
+
+    return UserMapper.toUserResponse(result.user);
   }
 
   async seedRoles() {

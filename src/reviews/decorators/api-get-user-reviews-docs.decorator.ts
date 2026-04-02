@@ -2,7 +2,6 @@ import { applyDecorators } from '@nestjs/common';
 import {
   ApiExtraModels,
   ApiResponse,
-  ApiTags,
   ApiOperation,
   ApiParam,
   ApiQuery,
@@ -11,7 +10,6 @@ import { GetReviewsDto } from '../dto/response/get-reviews.dto';
 
 export const ApiGetUserReviewsDocs = () => {
   return applyDecorators(
-    ApiTags('Reviews'),
     ApiOperation({
       summary: 'Получить отзывы пользователя',
       description: 'Возвращает список отзывов пользователя с пагинацией',

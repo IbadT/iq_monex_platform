@@ -56,7 +56,7 @@ export class ListingsSearchService {
   async search(params: ISearchListingsParams): Promise<IListingSearchResponse> {
     const {
       text,
-      categoryId,
+      subcategoryId,
       authorId,
       status = 'active',
       minPrice,
@@ -86,8 +86,8 @@ export class ListingsSearchService {
     // Фильтры
     filter.push({ term: { status } });
 
-    if (categoryId) {
-      filter.push({ term: { categoryId } });
+    if (subcategoryId) {
+      filter.push({ term: { subcategoryId } });
     }
 
     if (authorId) {

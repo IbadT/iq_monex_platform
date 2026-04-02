@@ -1,10 +1,10 @@
-// listing.mapper.ts
-// import { ListingResposeDto } from './dto/response/listing-response.dto';
 import { CategoryResponseDto } from '@/categories/dto/response/categories-response.dto';
 import { CurrenciesResponseDto } from '@/dictionaries/dto/response/currencies-response.dto';
 import { MapLocationResponseDto } from '@/map_locations/dto/response/map-enterprice.response.dto';
 import { SpecificationResponseDto } from '@/attributes/dto/response/specification.dto';
 import { ListingResposeDto } from '../dto/response/listing-response.dto';
+import { ListingFileResponseDto } from '../dto/response/listing-file-response.dto';
+import { UserListingResponseDto } from '../dto/response/user-listing-response.dto';
 
 export class ListingMapper {
   static toResponse(listing: any): ListingResposeDto {
@@ -31,12 +31,12 @@ export class ListingMapper {
         (loc: any) =>
           new MapLocationResponseDto(
             loc.id,
-            loc.userId,
-            loc.listingId,
+            loc.type,
             loc.address,
             loc.latitude,
             loc.longitude,
-            loc.type,
+            loc.userId,
+            loc.listingId,
           ),
       ) || [];
 
@@ -48,31 +48,65 @@ export class ListingMapper {
       ) || [];
 
     // Разделяем файлы
-    const photos = listing.files?.filter((f: any) => f.kind === 'PHOTO') || [];
-    const files =
-      listing.files?.filter((f: any) => f.kind === 'DOCUMENT') || [];
+    // const photos = listing.files?.filter((f: any) => f.kind === 'PHOTO') || [];
+    // const files =
+    //   listing.files?.filter((f: any) => f.kind === 'DOCUMENT') || [];
+
+    const images: ListingFileResponseDto[] =
+      listing.files
+        ?.filter((f: any) => f.kind === 'PHOTO')
+        .map(
+          (f: any) =>
+            new ListingFileResponseDto(
+              f.id,
+              f.url,
+              f.fileType,
+              f.isPrimary || false,
+            ),
+        ) || [];
+
+    const files: ListingFileResponseDto[] =
+      listing.files
+        ?.filter((f: any) => f.kind === 'DOCUMENT')
+        .map(
+          (f: any) =>
+            new ListingFileResponseDto(f.id, f.url, f.fileType, false),
+        ) || [];
+
+    const user = ListingMapper.userListingToResponse(listing.user);
 
     return new ListingResposeDto(
       listing.id,
-      listing.categoryId,
+      listing.subcategoryId,
       listing.title,
       listing.description,
       listing.price,
       listing.condition,
       listing.status,
+      listing.rating,
+      listing.commentsCount || 0,
       listing.viewsCount,
       listing.favoritesCount,
       category,
-      currency, // Может быть null
+      currency,
       listing.priceUnit,
-      photos,
-      files, // Или как нужно в DTO
+      files,
+      images,
       locations,
       specifications,
+      user,
     );
   }
 
   static toResponseList(listings: any[]): ListingResposeDto[] {
     return listings.map((l) => this.toResponse(l));
+  }
+
+  static userListingToResponse(user: any): UserListingResponseDto {
+    return {
+      id: user.id,
+      name: user.name,
+      avatar: user.files && user.files.length > 0 ? user.files[0].url : null,
+    };
   }
 }

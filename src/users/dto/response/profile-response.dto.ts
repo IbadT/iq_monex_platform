@@ -73,6 +73,20 @@ export class ProfileResponseDto {
   })
   activities: ActivityResponseDto[];
 
+  @ApiProperty({
+    description: 'Рейтинг профиля',
+    example: 3,
+    type: 'integer',
+  })
+  rating: number;
+
+  @ApiProperty({
+    description: 'Количество коментариев у профиля',
+    example: 23,
+    type: 'integer',
+  })
+  commentsCount: number;
+
   constructor(
     id: string,
     avatarUrl: string | null,
@@ -84,6 +98,8 @@ export class ProfileResponseDto {
     legalEntityType: LegalEntityResponseDto,
     currency: CurrenciesResponseDto,
     activities: ActivityResponseDto[],
+    rating: number,
+    commentsCount: number,
   ) {
     this.id = id;
     this.avatarUrl = avatarUrl;
@@ -95,6 +111,8 @@ export class ProfileResponseDto {
     this.legalEntityType = legalEntityType;
     this.currency = currency;
     this.activities = activities;
+    this.rating = rating;
+    this.commentsCount = commentsCount;
   }
 }
 

@@ -30,6 +30,7 @@ import { CreateReviewToUserDto } from '@/reviews/dto/create-review.to-user.dto';
 import { GetReviewsDto } from './dto/response/get-reviews.dto';
 import { CreateReviesResponseDto } from './dto/response/create-reviews-response.dto';
 import { ReviewResponseDto } from './dto/response/review-by-id-response.dto';
+import { ListingReviewsQueryDto } from './dto/request/listing-reviews-query.dto';
 
 // TODO: добавить логику для выставления лайков коментариям
 // TODO: добавить логику удаления коментария
@@ -74,10 +75,10 @@ export class ReviewsController {
 
   // получить все коментарии к объявлению
   // TODO: limit, offset, has_photo, new_first, positive_rate_first
-  @Get('listings/:listing_id')
+  @Get('listings')
   @ApiGetAllReviewsDocs()
-  findAll(@Param('listing_id', ParseUUIDPipe) listing_id: string) {
-    return this.reviewsService.findAll(listing_id);
+  findAll(@Query() query: ListingReviewsQueryDto): Promise<GetReviewsDto[]> {
+    return this.reviewsService.findAll(query);
   }
 
   @Get('listings/:id')

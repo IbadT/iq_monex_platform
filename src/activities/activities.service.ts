@@ -13,10 +13,14 @@ import { CacheService } from '@/cache/cacheService.service';
 import { PrismaClient } from 'prisma/generated/client';
 import { ActivityResponseDto } from './dto/response/activity-response.dto';
 import { UserActivityResponseDto } from './dto/response/user-activity.response.dto';
+import { AppLogger } from '@/common/logger/logger.service';
 
 @Injectable()
 export class ActivitiesService {
-  constructor(private readonly cacheService: CacheService) {}
+  constructor(
+    private readonly cacheService: CacheService,
+    private readonly logger: AppLogger,
+  ) {}
 
   async addUserActivity(userId: string, body: AddActivityToUserDto) {
     try {
@@ -58,6 +62,10 @@ export class ActivitiesService {
       );
     }
 
+    this.logger.debug(
+      `[handleCreateActivity] Creating activity: ${body.activity} for user ${userId}`,
+    );
+
     // Сначала проверим, существует ли активность с таким именем
     let activity = await tx.activity.findFirst({
       where: { name: body.activity },
@@ -70,23 +78,52 @@ export class ActivitiesService {
           name: body.activity,
         },
       });
+      this.logger.debug(
+        `[handleCreateActivity] Created new activity: ${activity.id}`,
+      );
+    } else {
+      this.logger.debug(
+        `[handleCreateActivity] Found existing activity: ${activity.id}`,
+      );
     }
+
+    // Проверяем сколько файлов есть перед созданием userActivity
+    const filesBeforeActivity = await tx.file.count({
+      where: { userId },
+    });
+    this.logger.log(
+      `[handleCreateActivity] Files before userActivity creation: ${filesBeforeActivity}`,
+    );
 
     // Очищаем кэш
     await this.cacheService.del(`activities/users:${userId}`);
     await this.cacheService.del(`activities`);
 
     try {
-      return await tx.userActivity.create({
+      const result = await tx.userActivity.create({
         data: {
           userId,
           activityId: activity.id,
         },
       });
+
+      // Проверяем сколько файлов осталось после создания userActivity
+      const filesAfterActivity = await tx.file.count({
+        where: { userId },
+      });
+      this.logger.log(
+        `[handleCreateActivity] Files after userActivity creation: ${filesAfterActivity}`,
+      );
+
+      return result;
     } catch (error) {
       if (error.code === 'P2002') {
         throw new ConflictException('User already has this activity');
       }
+      this.logger.error(
+        `[handleCreateActivity] ERROR: ${error.message}`,
+        error.stack,
+      );
       throw error;
     }
   }
@@ -217,8 +254,16 @@ export class ActivitiesService {
       return;
     }
 
-    for (const activity of activities) {
-      await this.processActivityAction(activity, userId, tx);
+    try {
+      for (const activity of activities) {
+        await this.processActivityAction(activity, userId, tx);
+      }
+    } catch (error) {
+      this.logger.error(
+        `[Activities] ERROR in processActivities: ${error.message}`,
+        error.stack,
+      );
+      throw error;
     }
   }
 

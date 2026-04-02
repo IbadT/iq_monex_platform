@@ -46,11 +46,11 @@ export class ListingsController {
   @ApiListingQueryDocs()
   async listingList(@Query() query: ListingQueryDto) {
     // Если есть поисковый запрос, используем Elasticsearch
-    if (query.search) {
-      return await this.listingsService.searchListings(query);
-    }
-    // Иначе используем обычный поиск из БД
-    return await this.listingsService.listingList(query);
+    return await this.listingsService.searchListings(query);
+    // if (query.search) {
+    // }
+    // // Иначе используем обычный поиск из БД
+    // return await this.listingsService.listingList(query);
   }
 
   @Get(':id')

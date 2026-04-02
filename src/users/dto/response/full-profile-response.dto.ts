@@ -5,6 +5,7 @@ import { ActivityResponseDto } from '@/activities/dto/response/activity-response
 import { LegalEntityResponseDto } from '@/categories/dto/response/legal-entity.response.dto';
 import { CurrenciesResponseDto } from '@/dictionaries/dto/response/currencies-response.dto';
 import { ApiProperty } from '@nestjs/swagger';
+import { ListingFileResponseDto } from '@/listings/dto/response/listing-file-response.dto';
 
 export class FullProfileResponseDto extends ProfileResponseDto {
   @ApiProperty({
@@ -17,16 +18,18 @@ export class FullProfileResponseDto extends ProfileResponseDto {
   @ApiProperty({
     description: 'Файлы профиля',
     example: '',
-    type: 'string',
+    type: () => [ListingFileResponseDto],
+    isArray: true,
   })
-  files: any[];
+  files: ListingFileResponseDto[];
 
   @ApiProperty({
     description: 'Картинки профиля',
     example: '',
-    type: 'string',
+    type: () => [ListingFileResponseDto],
+    isArray: true,
   })
-  images: any[];
+  images: ListingFileResponseDto[];
 
   @ApiProperty({
     description:
@@ -34,7 +37,7 @@ export class FullProfileResponseDto extends ProfileResponseDto {
     example: false,
     type: 'string',
   })
-  favorite: boolean;
+  isFavorite: boolean;
 
   @ApiProperty({
     description: 'Рейтинг профиля',
@@ -75,9 +78,9 @@ export class FullProfileResponseDto extends ProfileResponseDto {
     legalEntityType: LegalEntityResponseDto,
     currency: CurrenciesResponseDto,
     activities: ActivityResponseDto[],
-    files: any[],
-    images: any[],
-    favorite: boolean,
+    files: ListingFileResponseDto[],
+    images: ListingFileResponseDto[],
+    isFavorite: boolean,
     rating: number,
     commentsCount: number,
     workers: UserWorkerResponseDto[],
@@ -94,11 +97,13 @@ export class FullProfileResponseDto extends ProfileResponseDto {
       legalEntityType,
       currency,
       activities,
+      rating,
+      commentsCount,
     );
     this.activities = activities;
     this.files = files;
     this.images = images;
-    this.favorite = favorite;
+    this.isFavorite = isFavorite;
     this.rating = rating;
     this.commentsCount = commentsCount;
     this.workers = workers;

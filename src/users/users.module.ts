@@ -11,6 +11,11 @@ import { ActivitiesModule } from '@/activities/activities.module';
 import { MapLocationsModule } from '@/map_locations/map_locations.module';
 import { JwtAuthModule } from '@/auth/jwt/jwt.module';
 import { SearchModule } from '@/search/search.module';
+import { S3Module } from '@/s3/s3.module';
+import { RabbitmqModule } from '@/rabbitmq/rabbitmq.module';
+import { UserCoreService } from './user-core.service';
+import { ProfileService } from './profile.service';
+import { FileService } from '@/s3/file.service';
 
 @Module({
   imports: [
@@ -20,6 +25,8 @@ import { SearchModule } from '@/search/search.module';
     ActivitiesModule,
     MapLocationsModule,
     SearchModule,
+    S3Module,
+    RabbitmqModule,
   ],
   controllers: [UsersController],
   providers: [
@@ -28,6 +35,9 @@ import { SearchModule } from '@/search/search.module';
     WorkersService,
     ActivitiesService,
     MapLocationsService,
+    UserCoreService,
+    ProfileService,
+    FileService,
   ],
   exports: [
     UsersService,

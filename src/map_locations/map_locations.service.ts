@@ -29,8 +29,22 @@ export class MapLocationsService {
       return;
     }
 
+    if (!listingId) {
+      throw new BadRequestException(
+        'listingId is required for listing map locations',
+      );
+    }
+
+    const createMaps = maps.filter(
+      (map) => !map.action || map.action === LocationAction.CREATE,
+    );
+
+    if (createMaps.length === 0) {
+      return;
+    }
+
     await tx.mapLocation.createMany({
-      data: maps.map((map) => ({
+      data: createMaps.map((map) => ({
         type: map.type,
         latitude: map.latitude,
         longitude: map.longitude,

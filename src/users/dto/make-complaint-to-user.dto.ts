@@ -1,5 +1,11 @@
 import { ApiProperty } from '@nestjs/swagger';
-import { IsNotEmpty, IsString, IsUUID, IsEnum } from 'class-validator';
+import {
+  IsNotEmpty,
+  IsString,
+  IsUUID,
+  IsEnum,
+  ArrayMaxSize,
+} from 'class-validator';
 import { ComplaintReasonType } from '../enums/complaint-reason-type.enum';
 
 export class MakeComplaintToUserDto {
@@ -31,9 +37,19 @@ export class MakeComplaintToUserDto {
   @IsUUID()
   userId: string;
 
-  constructor(type: string, text: string, userId: string) {
+  @ApiProperty({
+    description: 'Картинки для жалобы формата Base64',
+    example: '',
+    type: [String],
+    isArray: true,
+  })
+  @ArrayMaxSize(3, { message: 'Максимум 3 фотографии' })
+  images: string[];
+
+  constructor(type: string, text: string, userId: string, images: string[]) {
     this.type = type;
     this.text = text;
     this.userId = userId;
+    this.images = images;
   }
 }

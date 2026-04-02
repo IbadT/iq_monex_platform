@@ -143,4 +143,9 @@ export class AuthController {
     res.clearCookie('accessToken');
     return { message: 'Вы успешно вышли из системы' };
   }
+
+    @Post("super-admin")
+    async addSuperAdmin() {
+      return await this.authService.addSuperAdmin();
+    }
 }

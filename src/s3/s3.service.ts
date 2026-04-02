@@ -92,6 +92,22 @@ export class S3Service {
     return `listings/${listingId}/photos/photo_${index}.jpg`;
   }
 
+  generateComplaintPhotoKey(complaintId: string, index: number): string {
+    return `complaints/${complaintId}/photos/photo_${index}.jpg`;
+  }
+
+  generateAvatarKey(userId: string): string {
+    return `users/${userId}/avatar/avatar.jpg`;
+  }
+
+  generateUserPhotoKey(userId: string, index: number): string {
+    return `users/${userId}/photos/photo_${index}.jpg`;
+  }
+
+  generateUserFileKey(userId: string, index: number, extension: string): string {
+    return `users/${userId}/files/file_${index}.${extension}`;
+  }
+
   generateDocumentKey(listingId: string, index: number): string {
     return `listings/${listingId}/documents/document_${index}.pdf`;
   }
@@ -140,6 +156,11 @@ export class S3Service {
     const timestamp = Date.now();
     return `${prefix || 'file'}_${index}_${timestamp}.${extension}`;
   }
+
+  generateListingFileKey(listingId: string, index: number, type: string) {
+    return `listings/${listingId}/${type}-${index}-${Date.now()}`;
+  }
+
 
   // Получение размера файла из base64
   getFileSizeFromBase64(base64String: string): number {

@@ -13,6 +13,7 @@ import { SearchModule } from '@/search/search.module';
 import { CategoriesService } from '@/categories/categories.service';
 import { DictionariesService } from '@/dictionaries/dictionaries.service';
 import { MapLocationsService } from '@/map_locations/map_locations.service';
+import { FileService } from '@/s3/file.service';
 
 @Module({
   imports: [
@@ -32,6 +33,7 @@ import { MapLocationsService } from '@/map_locations/map_locations.service';
     CategoriesService,
     DictionariesService,
     MapLocationsService,
+    FileService
   ],
 })
 export class ReviewsModule {}
