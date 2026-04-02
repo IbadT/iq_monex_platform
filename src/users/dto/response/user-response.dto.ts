@@ -25,6 +25,14 @@ export class UserResponseDto {
   name: string;
 
   @ApiProperty({
+    description: 'URL аватара пользователя',
+    example: 'https://storage.clo.ru/adverts/users/550e8400-e29b-41d4-a716-446655440000/avatar/avatar.jpg',
+    type: 'string',
+    nullable: true,
+  })
+  avatar: string | null;
+
+  @ApiProperty({
     description: 'Номер аккаунта пользователя',
     example: '1234567890',
     type: 'string',
@@ -43,11 +51,13 @@ export class UserResponseDto {
     name: string,
     accountNumber: string,
     role: Omit<RoleResponseDto, 'type'>,
+    avatar: string | null,
   ) {
     this.id = id;
     this.email = email;
     this.name = name;
     this.accountNumber = accountNumber;
     this.role = role;
+    this.avatar = avatar;
   }
 }

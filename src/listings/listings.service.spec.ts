@@ -11,6 +11,7 @@ import { AppLogger } from '@/common/logger/logger.service';
 import { CategoriesService } from '@/categories/categories.service';
 import { DictionariesService } from '@/dictionaries/dictionaries.service';
 import { MapLocationsService } from '@/map_locations/map_locations.service';
+import { FileService } from '@/s3/file.service';
 
 describe('ListingsService', () => {
   let service: ListingsService;
@@ -106,6 +107,16 @@ describe('ListingsService', () => {
           provide: MapLocationsService,
           useValue: mockMapLocationsService,
         },
+        {
+          provide: FileService,
+          useValue: {
+            processUserAvatar: jest.fn(),
+            replaceUserFilesArray: jest.fn(),
+            enqueueFilesUpload: jest.fn(),
+            enqueueAvatarUploadIfNeeded: jest.fn(),
+            replaceListingFilesArray: jest.fn(),
+          },
+        },
       ],
     }).compile();
 
@@ -197,6 +208,20 @@ describe('ListingsService', () => {
           listingSlot: {
             include: {
               userSlot: true,
+            },
+          },
+          user: {
+            select: {
+              id: true,
+              name: true,
+              files: {
+                select: {
+                  url: true,
+                },
+                where: {
+                  kind: 'AVATAR',
+                },
+              },
             },
           },
         },

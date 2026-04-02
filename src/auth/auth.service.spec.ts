@@ -6,6 +6,7 @@ import { JwtTokenService } from './jwt/jwt.service';
 import { AppLogger } from '@/common/logger/logger.service';
 import { CacheService } from '@/cache/cacheService.service';
 import { RabbitmqService } from '@/rabbitmq/rabbitmq.service';
+import { ConfigService } from '@nestjs/config';
 import { LoginUserDto } from './dto/request/login-user.dto';
 import { NotFoundException, UnauthorizedException } from '@nestjs/common';
 import { User } from '@/users/entities/user.entity';
@@ -87,6 +88,13 @@ describe('AuthService', () => {
         {
           provide: AppLogger,
           useValue: mockLogger,
+        },
+        {
+          provide: ConfigService,
+          useValue: {
+            get: jest.fn(),
+            getOrThrow: jest.fn(),
+          },
         },
       ],
     }).compile();

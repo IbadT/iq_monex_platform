@@ -1,5 +1,5 @@
 import { ApiProperty } from '@nestjs/swagger';
-import { IsNotEmpty, IsString, IsUUID } from 'class-validator';
+import { ArrayMaxSize, IsNotEmpty, IsString, IsUUID } from 'class-validator';
 
 export class MakeComplaintToListing {
   @ApiProperty({
@@ -31,23 +31,19 @@ export class MakeComplaintToListing {
   listingId: string;
 
   @ApiProperty({
-    description: '',
+    description: 'Массив картинок формата base64',
     example: '',
     required: true,
+    type: [String],
+    isArray: true,
   })
-  photos?: string[] = [];
+  @ArrayMaxSize(3, { message: 'Максимум 3 фотографии' })
+  photos: string[] = [];
 
-  constructor(
-    type: string,
-    text: string,
-    listingId: string,
-    photos?: string[],
-  ) {
+  constructor(type: string, text: string, listingId: string, photos: string[]) {
     this.type = type;
     this.text = text;
     this.listingId = listingId;
-    if (photos) {
-      this.photos = photos;
-    }
+    this.photos = photos;
   }
 }

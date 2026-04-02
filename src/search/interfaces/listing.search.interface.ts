@@ -8,7 +8,7 @@ export interface IListingSearchBody {
   createdAt?: Date;
   updatedAt?: Date;
   price?: number;
-  categoryId?: string;
+  subcategoryId?: string;
   location?: {
     lat: number;
     lon: number;
@@ -39,8 +39,8 @@ export interface IListingSearchResponse {
 
 export interface ISearchListingsParams {
   text?: string;
-  categoryId?: string;
-  authorId?: string;
+  subcategoryId?: string;
+  authorId: string;
   status?: IListingSearchBody['status'];
   minPrice?: number;
   maxPrice?: number;

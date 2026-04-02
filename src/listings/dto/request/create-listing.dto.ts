@@ -17,13 +17,13 @@ import { ConditionalRequired } from '../../decorators/conditional-required.decor
 
 export class CreateListingDto {
   @ApiProperty({
-    description: 'ID категории объявления',
+    description: 'ID подкатегории объявления',
     example: 1,
     required: false,
   })
   @IsOptional()
   @IsNumber()
-  categoryId?: number;
+  subcategoryId?: number;
 
   @ApiProperty({
     description: 'Заголовок объявления',
@@ -146,7 +146,7 @@ export class CreateListingDto {
 
   constructor(
     status: ListingStatus,
-    categoryId?: number,
+    subcategoryId?: number,
     title?: string,
     description?: string,
     price?: number,
@@ -159,8 +159,8 @@ export class CreateListingDto {
   ) {
     this.status = status; // ← Обязательное поле
 
-    if (categoryId !== undefined) {
-      this.categoryId = categoryId;
+    if (subcategoryId !== undefined) {
+      this.subcategoryId = subcategoryId;
     }
     if (title !== undefined) {
       this.title = title;

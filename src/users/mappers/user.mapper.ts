@@ -8,6 +8,7 @@ export class UserMapper {
       user.name,
       user.accountNumber,
       user.role,
+      user.avatar || null,
     );
   }
 }

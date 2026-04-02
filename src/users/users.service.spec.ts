@@ -6,6 +6,11 @@ import { WorkersService } from '@/workers/workers.service';
 import { MapLocationsService } from '@/map_locations/map_locations.service';
 import { ActivitiesService } from '@/activities/activities.service';
 import { SearchService } from '@/search/search.service';
+import { S3Service } from '@/s3/s3.service';
+import { RabbitmqService } from '@/rabbitmq/rabbitmq.service';
+import { UserCoreService } from './user-core.service';
+import { ProfileService } from './profile.service';
+import { FileService } from '@/s3/file.service';
 import { UpdateUserDto } from './dto/update-user.dto';
 import { UserResponseDto } from './dto/response/user-response.dto';
 const prisma = require('@/lib/prisma').prisma;
@@ -27,6 +32,12 @@ describe('UsersService', () => {
     prisma.profile = {
       findUnique: jest.fn(),
       update: jest.fn(),
+      create: jest.fn(),
+    };
+
+    prisma.file = {
+      findFirst: jest.fn(),
+      delete: jest.fn(),
       create: jest.fn(),
     };
 
@@ -94,6 +105,46 @@ describe('UsersService', () => {
         {
           provide: SearchService,
           useValue: mockSearchService,
+        },
+        {
+          provide: S3Service,
+          useValue: {
+            upload: jest.fn(),
+            deleteObject: jest.fn(),
+            deleteAllObjects: jest.fn(),
+            listObjects: jest.fn(),
+            generateFileName: jest.fn(),
+          },
+        },
+        {
+          provide: RabbitmqService,
+          useValue: {
+            sendFileUpload: jest.fn(),
+            sendReviewFileUpload: jest.fn(),
+          },
+        },
+        {
+          provide: UserCoreService,
+          useValue: {
+            updateUserCore: jest.fn(),
+          },
+        },
+        {
+          provide: ProfileService,
+          useValue: {
+            create: jest.fn(),
+            update: jest.fn(),
+            findById: jest.fn(),
+          },
+        },
+        {
+          provide: FileService,
+          useValue: {
+            processUserAvatar: jest.fn(),
+            replaceUserFilesArray: jest.fn(),
+            enqueueFilesUpload: jest.fn(),
+            enqueueAvatarUploadIfNeeded: jest.fn(),
+          },
         },
       ],
     }).compile();
@@ -182,10 +233,12 @@ describe('UsersService', () => {
         role: { id: 'role-123', name: 'User', code: 'USER', role: 'User' },
         createdAt: new Date(),
         updatedAt: new Date(),
+        avatar: null,
       };
 
       // Mock prisma methods
       const prisma = require('@/lib/prisma').prisma;
+      prisma.user.findUnique.mockResolvedValue(mockUpdatedUser);
       prisma.user.update.mockResolvedValue(mockUpdatedUser);
       prisma.profile.findUnique.mockResolvedValue(null);
 
@@ -213,6 +266,7 @@ describe('UsersService', () => {
           mockUpdatedUser.name,
           mockUpdatedUser.accountNumber,
           mockUpdatedUser.role,
+          mockUpdatedUser.avatar,
         ),
       );
     });
@@ -242,9 +296,11 @@ describe('UsersService', () => {
         role: { id: 'role-123', name: 'User', code: 'USER', role: 'User' },
         createdAt: new Date(),
         updatedAt: new Date(),
+        avatar: null,
       };
 
       // Mock prisma.user.update
+      prisma.user.findUnique = jest.fn().mockResolvedValue(mockUpdatedUser);
       prisma.user.update = jest.fn().mockResolvedValue(mockUpdatedUser);
 
       const result = await service.updateUser(userId, updateData);
@@ -271,6 +327,7 @@ describe('UsersService', () => {
           mockUpdatedUser.name,
           mockUpdatedUser.accountNumber,
           mockUpdatedUser.role,
+          mockUpdatedUser.avatar,
         ),
       );
     });

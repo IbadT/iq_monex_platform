@@ -1,3 +1,4 @@
+import { ListingFileResponseDto } from '@/listings/dto/response/listing-file-response.dto';
 import { ApiProperty } from '@nestjs/swagger';
 
 export class GetReviewsDto {
@@ -14,6 +15,20 @@ export class GetReviewsDto {
     type: 'string',
   })
   authorId: string;
+
+  @ApiProperty({
+    description: 'Url аватара пользователя',
+    example: '',
+    type: 'string',
+  })
+  avatarUrl: string;
+
+  @ApiProperty({
+    description: 'Данные картинок',
+    type: () => ListingFileResponseDto,
+    isArray: true,
+  })
+  images: ListingFileResponseDto[];
 
   @ApiProperty({
     description:
@@ -117,6 +132,8 @@ export class GetReviewsDto {
 
   constructor(
     id: string,
+    avatarUrl: string,
+    images: ListingFileResponseDto[],
     authorId: string,
     targetType: string,
     listingId: string | null,
@@ -134,6 +151,8 @@ export class GetReviewsDto {
     updatedAt: Date,
   ) {
     this.id = id;
+    this.avatarUrl = avatarUrl;
+    this.images = images;
     this.authorId = authorId;
     this.targetType = targetType;
     this.listingId = listingId;

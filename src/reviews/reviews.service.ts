@@ -10,7 +10,7 @@ import { prisma } from '@/lib/prisma';
 import { TransactionClient } from 'prisma/generated/internal/prismaNamespace';
 import { ReviewTargetType } from './enums/review-target-type.enum';
 import { CacheService } from '@/cache/cacheService.service';
-import { ListingStatus } from '@/listings/enums/listing-status.enum';
+import { FILE_KIND, ListingStatus } from '@/listings/enums/listing-status.enum';
 import { PaginationDto } from '@/common/dto/pagintation.dto';
 import { CreateReviewToUserDto } from './dto/create-review.to-user.dto';
 import { S3Service } from '@/s3/s3.service';
@@ -20,6 +20,7 @@ import { GetReviewsDto } from './dto/response/get-reviews.dto';
 import { CreateReviesResponseDto } from './dto/response/create-reviews-response.dto';
 import { ReviewResponseDto } from './dto/response/review-by-id-response.dto';
 import { ReviewMapper } from './mappers/review.mapper';
+import { ListingReviewsQueryDto } from './dto/request/listing-reviews-query.dto';
 
 @Injectable()
 export class ReviewsService {
@@ -34,14 +35,32 @@ export class ReviewsService {
     userId: string,
     query: PaginationDto,
   ): Promise<GetReviewsDto[]> {
-    return await prisma.review.findMany({
+    const reviews = await prisma.review.findMany({
       where: {
         targetUserId: userId,
         targetType: ReviewTargetType.USER,
       },
+      include: {
+        files: true,
+        author: {
+          include: {
+            files: {
+              where: {
+                kind: FILE_KIND.AVATAR,
+              },
+              select: {
+                url: true,
+              },
+              take: 1,
+            },
+          },
+        },
+      },
       take: query.limit,
       skip: query.offset,
     });
+
+    return ReviewMapper.toGetReviewsDtoList(reviews);
   }
 
   async createReviewToUser(
@@ -207,19 +226,51 @@ export class ReviewsService {
 
         this.logger.log(`LISTING ID: ${reviewListing.id}`);
         if (photos && photos.length > 0) {
-          const reviewsPhotos = photos.map((fileData, index) => ({
-            reviewId: reviewListing.id,
-            s3Key: '',
-            s3Bucket: '3',
-            url: fileData,
-            fileType: 'image/jpeg',
-            fileName: `photo_${index}.jpg`,
-            fileSize: 0,
-          }));
+          // Сначала создаем записи в БД с base64 данными
+          const photoRecords = photos.map((photoData, index) => {
+            const fileName = this.s3Service.generateFileNameFromBase64(
+              photoData,
+              index,
+              'photo',
+            );
+            const s3Key = this.s3Service.generatePhotoKey(reviewListing.id, index);
+            const contentType =
+              this.s3Service.getContentTypeFromBase64(photoData);
+            const fileSize = this.s3Service.getFileSizeFromBase64(photoData);
 
-          await tx.reviewFile.createMany({
-            data: reviewsPhotos,
+            return {
+              reviewId: reviewListing.id,
+              url: photoData, // Пока храним base64
+              fileType: contentType,
+              fileName,
+              fileSize,
+              sortOrder: index,
+              s3Key,
+              s3Bucket: '', // Будет заполнено после загрузки в S3
+            };
           });
+
+          // Сохраняем фото в БД
+          await tx.reviewFile.createMany({
+            data: photoRecords,
+          });
+
+          // Отправляем задачи в RabbitMQ для асинхронной загрузки в S3
+          await Promise.all(
+            photos.map(async (photoData, index) => {
+              const photoRecord = photoRecords[index];
+              return this.rabbitmqService.sendReviewFileUpload({
+                reviewId: reviewListing.id,
+                fileType: 'photo',
+                fileIndex: index,
+                fileData: photoData,
+                fileName: photoRecord.fileName,
+                contentType: photoRecord.fileType,
+                fileSize: photoRecord.fileSize,
+                s3Key: photoRecord.s3Key,
+              });
+            }),
+          );
         }
 
         // Вычисляем новый средний рейтинг
@@ -245,30 +296,77 @@ export class ReviewsService {
     }
   }
 
-  async findAll(listingId: string) {
-    const cackeKey = 'reviews';
-
-    const cachedData = await this.cacheService.get(cackeKey);
+  async findAll(query: ListingReviewsQueryDto): Promise<GetReviewsDto[]> {
+    const { listing_id, limit = 20, offset = 0, has_photo, new_first, positive_rate_first } = query;
+    
+    const cacheKey = `reviews:${listing_id}:${JSON.stringify({ limit, offset, has_photo, new_first, positive_rate_first })}`;
+    const cachedData = await this.cacheService.get<GetReviewsDto[]>(cacheKey);
     if (cachedData) return cachedData;
 
+    // Создаем условия фильтрации
+    const where: any = {
+      listingId: listing_id,
+    };
+
+    // Фильтр по наличию фото
+    if (has_photo !== undefined) {
+      where.files = has_photo ? {
+        some: {} // Есть хотя бы один файл
+      } : {
+        none: {} // Нет файлов
+      };
+    }
+
+    // Создаем условия сортировки
+    const orderBy: any[] = [];
+    
+    if (new_first !== undefined) {
+      orderBy.push({ createdAt: new_first ? 'desc' : 'asc' });
+    }
+    
+    if (positive_rate_first !== undefined) {
+      orderBy.push({ rating: positive_rate_first ? 'desc' : 'asc' });
+    }
+
+    // Если нет сортировки, используем по умолчанию
+    if (orderBy.length === 0) {
+      orderBy.push({ createdAt: 'desc' });
+    }
+
     const reviews = await prisma.review.findMany({
-      where: {
-        listingId,
-      },
+      where,
       include: {
         likes: true,
+        files: true,
+        author: {
+          include: {
+            files: {
+              where: {
+                kind: FILE_KIND.AVATAR,
+              },
+              select: {
+                url: true,
+              },
+            },
+          },
+        },
       },
+      orderBy,
+      take: limit,
+      skip: offset,
     });
+
+    const response = ReviewMapper.toGetReviewsDtoList(reviews);
 
     if (reviews && reviews.length > 0) {
       await this.cacheService.set({
-        baseKey: cackeKey,
+        baseKey: cacheKey,
         ttl: 900,
-        value: reviews,
+        value: response,
       });
     }
 
-    return reviews;
+    return response;
   }
 
   async findOne(id: string): Promise<ReviewResponseDto> {
@@ -281,9 +379,15 @@ export class ReviewsService {
       include: {
         likes: true,
         author: {
-          select: {
-            id: true,
-            name: true,
+          include: {
+            files: {
+              where: {
+                kind: FILE_KIND.AVATAR,
+              },
+              select: {
+                url: true,
+              },
+            },
           },
         },
         files: true,

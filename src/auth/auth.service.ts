@@ -25,6 +25,7 @@ import { randomInt } from 'crypto';
 import { prisma } from '@/lib/prisma';
 import { RoleType } from '@/users/enums/role-type.enum';
 import { UserLoginResponseDto } from './dto/response/user-login-response.dto';
+import { ConfigService } from '@nestjs/config';
 
 @Injectable()
 export class AuthService {
@@ -35,6 +36,7 @@ export class AuthService {
     private readonly jwtTokenService: JwtTokenService,
     private readonly cacheService: CacheService,
     private readonly rabbitmqService: RabbitmqService,
+    private readonly configService: ConfigService,
     // private readonly emailService: EmailService,
     private readonly logger: AppLogger,
   ) {}
@@ -123,30 +125,30 @@ export class AuthService {
     const hashedPassword = await this.hashService.hash(password);
 
     // TODO: убалить на проде
-    if (email === 'admin@admin.com') {
-      const role = await prisma.role.findFirst({
-        where: {
-          code: RoleType.SUPER_ADMIN,
-        },
-      });
-      if (role) {
-        const res = await prisma.user.create({
-          data: {
-            email,
-            password: hashedPassword,
-            accountNumber,
-            isVerified: true,
-            name: 'Admin',
-            roleId: role.id,
-          },
-        });
-        return {
-          ...res,
-          status: 200,
-        };
-      }
-      throw new BadRequestException(`Такая роль не найдена: ${role}`);
-    }
+    // if (email === 'admin@admin.com') {
+    //   const role = await prisma.role.findFirst({
+    //     where: {
+    //       code: RoleType.SUPER_ADMIN,
+    //     },
+    //   });
+    //   if (role) {
+    //     const res = await prisma.user.create({
+    //       data: {
+    //         email,
+    //         password: hashedPassword,
+    //         accountNumber,
+    //         isVerified: true,
+    //         name: 'Admin',
+    //         roleId: role.id,
+    //       },
+    //     });
+    //     return {
+    //       ...res,
+    //       status: 200,
+    //     };
+    //   }
+    //   throw new BadRequestException(`Такая роль не найдена: ${role}`);
+    // }
 
     // 3. Записываем все в Redis
     const registrationData = {
@@ -475,6 +477,44 @@ export class AuthService {
       status: 200,
     };
   }
+
+    async addSuperAdmin() {
+      const superAdminRole = await prisma.role.findFirst({
+        where: {
+          code: RoleType.SUPER_ADMIN,
+        },
+      });
+      
+      if (!superAdminRole) {
+        throw new NotFoundException('Super admin role not found');
+      }
+      const superAdminEmail = this.configService.getOrThrow("SMTP_SUPPORT_USER")
+      
+      // проверяем, есть ли уже super admin
+      const hasSuperAdmin = await prisma.user.findUnique({
+        where: {
+          email: superAdminEmail
+        }
+      })
+
+      if (hasSuperAdmin) {
+        throw new ConflictException('Super admin уже существует');
+      }
+      
+      const hashedPassword = await this.hashService.hash(await this.configService.getOrThrow("SUPER_ADMIN_PASSWORD"))
+
+      const createdSuperAdmin = await prisma.user.create({
+        data: {
+          email: superAdminEmail,
+          name: "IVAN",
+          accountNumber: "00000000",
+          password: hashedPassword,
+          roleId: superAdminRole.id,
+        }
+      })
+
+      return createdSuperAdmin.id;
+    }
 
   private async generateUniqueAccountNumber(): Promise<string> {
     const accountNumber = randomInt(10_000_000, 100_000_000).toString();

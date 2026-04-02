@@ -4,6 +4,8 @@ import { CurrenciesResponseDto } from '@/dictionaries/dto/response/currencies-re
 import { MapLocationResponseDto } from '@/map_locations/dto/response/map-enterprice.response.dto';
 import { ApiProperty } from '@nestjs/swagger';
 import { Decimal } from '@prisma/client/runtime/index-browser';
+import { UserListingResponseDto } from './user-listing-response.dto';
+import { ListingFileResponseDto } from './listing-file-response.dto';
 
 export class ListingResposeDto {
   @ApiProperty({
@@ -15,11 +17,11 @@ export class ListingResposeDto {
   id: string;
 
   @ApiProperty({
-    description: 'ID категории',
+    description: 'ID подкатегории',
     example: 1,
     type: 'integer',
   })
-  categoryId: number;
+  subcategoryId: number;
 
   @ApiProperty({
     description: 'Заголовок объявления',
@@ -66,6 +68,22 @@ export class ListingResposeDto {
   viewsCount: number;
 
   @ApiProperty({
+    description: 'Рейтинг объявления',
+    example: 5,
+    minimum: 0,
+    maximum: 5,
+    type: 'integer',
+  })
+  rating: number;
+
+  @ApiProperty({
+    description: 'Количество комментариев',
+    example: 12,
+    type: 'integer',
+  })
+  commentsCount: number;
+
+  @ApiProperty({
     description: 'Количество добавлений в избранное',
     example: 25,
     type: 'integer',
@@ -92,18 +110,18 @@ export class ListingResposeDto {
   priceUnit: any;
 
   @ApiProperty({
-    description: '',
-    example: '',
-    type: 'string',
+    description: 'Файлы для объявления',
+    type: () => ListingFileResponseDto,
+    isArray: true,
   })
-  files: any[];
+  files: ListingFileResponseDto[];
 
   @ApiProperty({
-    description: '',
-    example: '',
-    type: 'string',
+    description: 'Картинки объявления',
+    type: () => ListingFileResponseDto,
+    isArray: true,
   })
-  images: any[];
+  images: ListingFileResponseDto[];
 
   @ApiProperty({
     description: 'Описание локаций',
@@ -117,31 +135,42 @@ export class ListingResposeDto {
   })
   specifications: SpecificationResponseDto[];
 
+  @ApiProperty({
+    description: 'Данные пользователя',
+    type: () => UserListingResponseDto,
+  })
+  user: UserListingResponseDto;
+
   constructor(
     id: string,
-    categoryId: number,
+    subcategoryId: number,
     title: string | null,
     description: string | null,
     price: Decimal | null,
     condition: string | null,
     status: string,
+    rating: number,
+    commentsCount: number,
     viewsCount: number,
     favoritesCount: number,
     category: CategoryResponseDto,
     currency: CurrenciesResponseDto | null,
     priceUnit: any,
-    files: any[],
-    images: any[],
+    files: ListingFileResponseDto[],
+    images: ListingFileResponseDto[],
     locations: MapLocationResponseDto[],
     specifications: SpecificationResponseDto[],
+    user: UserListingResponseDto,
   ) {
     this.id = id;
-    this.categoryId = categoryId;
+    this.subcategoryId = subcategoryId;
     this.title = title;
     this.description = description;
     this.price = price;
     this.condition = condition;
     this.status = status;
+    this.rating = rating;
+    this.commentsCount = commentsCount;
     this.viewsCount = viewsCount;
     this.favoritesCount = favoritesCount;
     this.category = category;
@@ -151,5 +180,6 @@ export class ListingResposeDto {
       (this.images = images));
     this.locations = locations;
     this.specifications = specifications;
+    this.user = user;
   }
 }

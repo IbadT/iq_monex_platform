@@ -20,6 +20,7 @@ describe('UsersController', () => {
       makeComplaintToUser: jest.fn(),
       seedRoles: jest.fn(),
       updateUser: jest.fn(),
+      updateUserV2: jest.fn(),
     };
 
     const mockJwtTokenService = {
@@ -95,13 +96,14 @@ describe('UsersController', () => {
         workers: [],
         receivedReviews: [],
         role: { id: 'role-123', name: 'User', code: 'USER', role: 'User' },
+        avatar: null,
       };
 
-      usersService.updateUser.mockResolvedValue(mockUpdatedUser);
+      usersService.updateUserV2.mockResolvedValue(mockUpdatedUser);
 
       const result = await controller.updateProfile(user, updateUserDto);
 
-      expect(usersService.updateUser).toHaveBeenCalledWith(
+      expect(usersService.updateUserV2).toHaveBeenCalledWith(
         user.id,
         updateUserDto,
       );

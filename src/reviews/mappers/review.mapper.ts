@@ -4,6 +4,8 @@ import {
   ReviewAuthorDto,
   ReviewFileDto,
 } from '../dto/response/review-by-id-response.dto';
+import { GetReviewsDto } from '../dto/response/get-reviews.dto';
+import { ListingFileResponseDto } from '@/listings/dto/response/listing-file-response.dto';
 
 export class ReviewMapper {
   static toResponse(review: any): ReviewResponseDto {
@@ -14,7 +16,13 @@ export class ReviewMapper {
       ) || [];
 
     // Преобразуем автора
-    const author = new ReviewAuthorDto(review.author.id, review.author.name);
+    const author = new ReviewAuthorDto(
+      review.author.id,
+      review.author.name,
+      review.author?.files && review.author.files.length > 0
+        ? review.author.files[0]?.url || ''
+        : '',
+    );
 
     // Преобразуем файлы
     const files =
@@ -48,5 +56,45 @@ export class ReviewMapper {
 
   static toResponseList(reviews: any[]): ReviewResponseDto[] {
     return reviews.map((review) => this.toResponse(review));
+  }
+
+  static toGetReviewsDto(review: any): GetReviewsDto {
+    // Получаем аватар автора из его файлов
+    const avatarUrl =
+      review.author?.files && review.author.files.length > 0
+        ? review.author.files[0]?.url || ''
+        : '';
+
+    // Получаем картинки отзыва из ReviewFile
+    const images =
+      review.files?.map(
+        (file: any) =>
+          new ListingFileResponseDto(file.id, file.url, file.fileType, false),
+      ) || [];
+
+    return new GetReviewsDto(
+      review.id,
+      avatarUrl,
+      images,
+      review.authorId,
+      review.targetType,
+      review.listingId,
+      review.targetUserId,
+      review.rating,
+      review.title,
+      review.content,
+      review.status,
+      review.likesCount || 0,
+      review.reportsCount || 0,
+      review.replyContent || null,
+      review.replyAt || null,
+      review.replyAuthorId || null,
+      review.createdAt,
+      review.updatedAt,
+    );
+  }
+
+  static toGetReviewsDtoList(reviews: any[]): GetReviewsDto[] {
+    return reviews.map((review) => this.toGetReviewsDto(review));
   }
 }

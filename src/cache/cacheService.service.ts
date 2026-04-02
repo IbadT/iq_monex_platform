@@ -247,6 +247,11 @@ export class CacheService {
     ]);
   }
 
+  async invalidateUser(userId: string) {
+    await this.del(`activities/users:${userId}`);
+    await this.del(`activities`);
+  }
+
   /**
    * Методы для работы с токенами
    */

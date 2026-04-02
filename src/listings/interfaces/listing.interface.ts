@@ -1,7 +1,7 @@
 import { ListingCondition, ListingStatus } from '../enums/listing-status.enum';
 
 export interface IListing {
-  categoryId?: number;
+  subcategoryId?: number;
   title?: string;
   description?: string;
   price?: number;

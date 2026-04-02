@@ -13,11 +13,11 @@ export function CreateListingApiDocs() {
 **Статусы и требования к полям:**
 
 📝 **DRAFT** - Черновик
-- Все поля опциональны кроме categoryId
+- Все поля опциональны кроме subcategoryId
 - Можно сохранить и продолжить редактирование позже
 
 📋 **TEMPLATE** - Шаблон  
-- Все поля опциональны кроме categoryId
+- Все поля опциональны кроме subcategoryId
 - Используется как шаблон для быстрых публикаций
 
 🚀 **PUBLISHED** - Публикация
@@ -42,9 +42,9 @@ export function CreateListingApiDocs() {
         draft: {
           summary: 'Создание черновика',
           description:
-            'Все поля опциональны кроме categoryId. Можно заполнить частично или полностью.',
+            'Все поля опциональны кроме subcategoryId. Можно заполнить частично или полностью.',
           value: {
-            categoryId: 123,
+            subcategoryId: 123,
             status: 'DRAFT',
             title: 'iPhone 13',
             description: 'Отличное состояние, использовался 6 месяцев',
@@ -69,9 +69,9 @@ export function CreateListingApiDocs() {
         },
         draftMinimal: {
           summary: 'Минимальный черновик',
-          description: 'Только обязательное поле categoryId',
+          description: 'Только обязательное поле subcategoryId',
           value: {
-            categoryId: 123,
+            subcategoryId: 123,
             status: 'DRAFT',
           },
         },
@@ -79,7 +79,7 @@ export function CreateListingApiDocs() {
           summary: 'Создание шаблона',
           description: 'Шаблон для быстрых публикаций. Все поля опциональны.',
           value: {
-            categoryId: 123,
+            subcategoryId: 123,
             status: 'TEMPLATE',
             title: 'Шаблон электроники',
             description: 'Шаблон для продажи электроники',
@@ -95,7 +95,7 @@ export function CreateListingApiDocs() {
           summary: 'Публикация объявления',
           description: 'Все поля обязательны для публикации',
           value: {
-            categoryId: 123,
+            subcategoryId: 123,
             status: 'PUBLISHED',
             title: 'iPhone 13 Pro Max',
             description: 'Отличное состояние, использовался 6 месяцев',

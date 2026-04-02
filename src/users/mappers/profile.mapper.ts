@@ -10,19 +10,7 @@ import {
 import { FullProfileResponseDto } from '../dto/response/full-profile-response.dto';
 import { UserWorkerResponseDto } from '@/workers/dto/response/worker-response.dto';
 import { RoleResponseDto } from '@/workers/dto/response/role-response.dto';
-
-// Mock for FileKind
-let FileKind: any;
-try {
-  const enums = require('prisma/generated/enums');
-  FileKind = enums.FileKind;
-} catch (error) {
-  // Mock for tests
-  FileKind = {
-    DOCUMENT: 'DOCUMENT',
-    PHOTO: 'PHOTO',
-  };
-}
+import { ListingFileResponseDto } from '@/listings/dto/response/listing-file-response.dto';
 import { MapLocationResponseDto } from '@/map_locations/dto/response/map-enterprice.response.dto';
 
 interface UserActivityWithActivity {
@@ -56,6 +44,9 @@ export class ProfileMapper {
       profile.currency.code,
     );
 
+    const rating = profile.user.rating;
+    const commentsCount = profile.user.reviewsCount;
+
     return new ProfileResponseDto(
       profile.id,
       profile.avatarUrl,
@@ -67,6 +58,8 @@ export class ProfileMapper {
       legalEntityType,
       currency,
       activities,
+      rating,
+      commentsCount,
     );
   }
 
@@ -112,11 +105,33 @@ export class ProfileMapper {
     );
 
     // Файлы и изображения
-    const avatar = user.files?.find((f: any) => f.kind === FileKind.AVATAR);
-    const images =
-      user.files?.filter((f: any) => f.kind === FileKind.PHOTO) || [];
-    const files =
-      user.files?.filter((f: any) => f.kind === FileKind.DOCUMENT) || [];
+    const avatar = user.files?.find((f: any) => f.kind === 'AVATAR' && f.ownerType === 'USER');
+
+    const images: ListingFileResponseDto[] =
+      user.files
+        ?.filter((f: any) => f.kind === 'PHOTO' && f.ownerType === 'USER')
+        .map(
+          (f: any) =>
+            new ListingFileResponseDto(
+              f.id,
+              f.url,
+              f.fileType,
+              f.isPrimary || false,
+            ),
+        ) || [];
+
+    const files: ListingFileResponseDto[] =
+      user.files
+        ?.filter((f: any) => f.kind === 'DOCUMENT' && f.ownerType === 'USER')
+        .map(
+          (f: any) =>
+            new ListingFileResponseDto(
+              f.id,
+              f.url,
+              f.fileType,
+              f.isPrimary || false,
+            ),
+        ) || [];
 
     // Рейтинг
     const ratings = user.receivedReviews?.map((r: any) => r.rating) || [];

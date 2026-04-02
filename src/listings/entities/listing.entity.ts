@@ -9,7 +9,7 @@ import { FileEntity } from './file.entity';
 export interface PrismaListing {
   id: string;
   userId: string;
-  categoryId: number;
+  subcategoryId: number;
   rating: number | null; // Float в Prisma
   reviewsCount: number;
   title: string | null;
@@ -38,7 +38,7 @@ export interface ListingWhereCondition {
     not: string;
   };
   status?: ListingStatus;
-  categoryId?: number;
+  subcategoryId?: number;
   price?: {
     gte: number;
     lte: number;
@@ -49,7 +49,7 @@ export class ListingEntity {
   id: string;
 
   userId: string;
-  categoryId: number;
+  subcategoryId: number;
 
   rating: number;
   reviewsCount: number;
@@ -83,7 +83,7 @@ export class ListingEntity {
   constructor(
     id: string,
     userId: string,
-    categoryId: number,
+    subcategoryId: number,
     rating: number,
     reviewsCount: number,
     title?: string | null,
@@ -106,7 +106,7 @@ export class ListingEntity {
   ) {
     this.id = id;
     this.userId = userId;
-    this.categoryId = categoryId;
+    this.subcategoryId = subcategoryId;
     this.rating = rating;
     this.reviewsCount = reviewsCount;
     this.title = title ?? null;
@@ -137,7 +137,7 @@ export class ListingEntityWithFiles extends ListingEntity {
     const entity = new ListingEntity(
       listing.id,
       listing.userId,
-      listing.categoryId,
+      listing.subcategoryId,
       listing.rating ?? 0,
       listing.reviewsCount ?? 0,
       listing.title,
@@ -177,7 +177,7 @@ export class ListingEntityWithFiles extends ListingEntity {
     super(
       data.id,
       data.userId,
-      data.categoryId,
+      data.subcategoryId,
       data.rating,
       data.reviewsCount,
       data.title,

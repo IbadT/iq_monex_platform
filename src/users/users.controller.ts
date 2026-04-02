@@ -66,7 +66,7 @@ export class UsersController {
     return await this.usersService.getUserByAccountNumber(account_number);
   }
 
-  @Post('users/:id/complaint')
+  @Post(':id/complaint')
   @Protected()
   @ApiMakeComplaintToUserDocs()
   async makeComplaintToUser(
@@ -91,7 +91,8 @@ export class UsersController {
     @CurrentUser() user: JwtPayload,
     @Body() body: UpdateUserDto,
   ): Promise<UserResponseDto> {
-    return await this.usersService.updateUser(user.id, body);
+    // return await this.usersService.updateUser(user.id, body);
+    return await this.usersService.updateUserV2(user.id, body);
   }
 
   // получить все сферы деятельности
