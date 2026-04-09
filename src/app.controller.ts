@@ -17,7 +17,7 @@ import {
   ApiConsumes,
   ApiBody,
 } from '@nestjs/swagger';
-import { Admin } from './common/decorators';
+// import { Admin } from './common/decorators';
 import { FileInterceptor } from '@nestjs/platform-express';
 import { PaginationDto } from './common/dto/pagintation.dto';
 import {
@@ -193,7 +193,7 @@ export class AppController {
   }
 
   @Get('seed')
-  @Admin()
+  // @Admin()
   async seedDefaultData() {
     return await this.appService.seedDefaultData();
   }

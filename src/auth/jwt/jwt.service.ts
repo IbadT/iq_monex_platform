@@ -37,7 +37,12 @@ export class JwtTokenService {
         secret: this.configService.getOrThrow<string>('SECRET_TOKEN'),
       });
     } catch (error) {
-      throw new Error('Invalid token');
+      // Проверяем тип ошибки JWT
+      if (error.name === 'TokenExpiredError') {
+        throw new Error('TOKEN_EXPIRED');
+      }
+      // Другие ошибки: JsonWebTokenError, NotBeforeError и т.д.
+      throw new Error('INVALID_TOKEN');
     }
   }
 

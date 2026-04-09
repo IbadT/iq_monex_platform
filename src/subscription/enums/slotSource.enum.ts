@@ -1,0 +1,4 @@
+export enum SlotSource {
+  SUBSCRIPTION = 'SUBSCRIPTION',
+  SLOT_PACKAGE = 'SLOT_PACKAGE'
+}

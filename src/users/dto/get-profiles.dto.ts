@@ -1,12 +1,12 @@
 import { ApiProperty } from '@nestjs/swagger';
 import {
   IsArray,
-  IsUUID,
   IsString,
   IsNumber,
   Min,
   Max,
   IsOptional,
+  IsInt,
 } from 'class-validator';
 import { Type } from 'class-transformer';
 
@@ -61,23 +61,24 @@ export class GetProfilesDto {
   @ApiProperty({
     description: 'Массив ID активностей для фильтрации',
     example: [
-      '123e4567-e89b-12d3-a456-426614174000',
-      '456e7890-e89b-12d3-a456-426614174111',
+      1,
+      2,
     ],
     required: false,
-    type: [String],
+    type: [Number],
   })
   @IsOptional()
   @IsArray()
-  @IsUUID('all', { each: true })
-  activityIds?: string[];
+  @Type(() => Number)
+  @IsInt({ each: true, })
+  activityIds?: number[];
 
   constructor(
     limit: number,
     offset: number,
     query?: string,
     ratingMin?: number,
-    activitiIds?: string[],
+    activitiIds?: number[],
   ) {
     this.limit = limit;
     this.offset = offset;

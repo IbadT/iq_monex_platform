@@ -2,7 +2,7 @@ import { applyDecorators } from '@nestjs/common';
 import { ApiOperation, ApiBody, ApiResponse } from '@nestjs/swagger';
 import { HttpStatus } from '@nestjs/common';
 import { ChangeWorkerStatus } from '../dto/change-worker-status.dto';
-import { ChangeStatusResponseDto } from '../dto/response/change-status.dto';
+import { ChangeWorkerStatusResponseDto } from '../dto/response/change-status.dto';
 
 export function ApiChangeWorkerStatusDocs() {
   return applyDecorators(
@@ -17,7 +17,7 @@ export function ApiChangeWorkerStatusDocs() {
     ApiResponse({
       status: HttpStatus.OK,
       description: 'Статус сотрудника успешно изменен',
-      type: ChangeStatusResponseDto,
+      type: ChangeWorkerStatusResponseDto,
     }),
     ApiResponse({
       status: HttpStatus.BAD_REQUEST,

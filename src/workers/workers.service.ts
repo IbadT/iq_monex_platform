@@ -16,7 +16,7 @@ import {
   RoleResponseDto,
 } from './dto/response/role-response.dto';
 import { CreateWorkerResponseDto } from './dto/response/create-worker.dto';
-import { ChangeStatusResponseDto } from './dto/response/change-status.dto';
+import { ChangeWorkerStatusResponseDto } from './dto/response/change-status.dto';
 import { UpdateWorkerResponseDto } from './dto/response/update-worker.dto';
 
 @Injectable()
@@ -73,6 +73,64 @@ export class WorkersService {
           `Unknown worker action: ${worker.action}`,
         );
     }
+  }
+
+  async updateRole(id: string, role: string) {
+    const existingRole = await prisma.role.findUnique({
+      where: { id },
+    });
+
+    if (!existingRole) {
+      throw new BadRequestException(`Role with id ${id} not found`);
+    }
+
+    const roleWithSameName = await prisma.role.findFirst({
+      where: {
+        role: role,
+        id: { not: id },
+        type: RoleType.WORKER,
+      },
+    });
+
+    if (roleWithSameName) {
+      throw new ConflictException(`Role with name ${role} already exists`);
+    }
+
+    return await prisma.role.update({
+      where: { id },
+      data: { role },
+    });
+  }
+
+  async deleteWorkerRole(id: string) {
+    const existingRole = await prisma.role.findUnique({
+      where: { id },
+    });
+
+    if (!existingRole) {
+      throw new BadRequestException(`Role with id ${id} not found`);
+    }
+
+    const workersWithRole = await prisma.worker.findFirst({
+      where: {
+        roleId: id,
+        // type: RoleType.WORKER,
+        // role: RoleType.WORKER,
+        role: {
+          type: RoleType.WORKER
+        },
+      },
+    });
+
+    if (workersWithRole) {
+      throw new ConflictException(
+        `Cannot delete role with id ${id} because it is assigned to one or more workers`,
+      );
+    }
+
+    return await prisma.role.delete({
+      where: { id },
+    });
   }
 
   private async handleCreateWorker(
@@ -227,7 +285,7 @@ export class WorkersService {
   async changeWorkerActiveStatus(
     workerId: string,
     userId: string,
-  ): Promise<ChangeStatusResponseDto> {
+  ): Promise<ChangeWorkerStatusResponseDto> {
     // Проверяем, что worker принадлежит текущему пользователю
     const worker = await this.getWorkerById(workerId);
     if (!worker || worker.userId !== userId) {

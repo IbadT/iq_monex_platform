@@ -42,9 +42,11 @@ export function CreateListingApiDocs() {
         draft: {
           summary: 'Создание черновика',
           description:
-            'Все поля опциональны кроме subcategoryId. Можно заполнить частично или полностью.',
+            'Все поля опциональны кроме subcategoryId и contacts. Можно заполнить частично или полностью.',
           value: {
+            categoryId: 1,
             subcategoryId: 123,
+            subsubcategoryId: 2,
             status: 'DRAFT',
             title: 'iPhone 13',
             description: 'Отличное состояние, использовался 6 месяцев',
@@ -52,6 +54,10 @@ export function CreateListingApiDocs() {
             currencyId: 1,
             priceUnitId: 1,
             condition: 'USED',
+            contacts: {
+              id: "123e4567-e89b-12d3-a456-426614174000",
+              type: "WORKER",
+            },
             files: [
               'data:application/pdf;base64,JVBERi0xLjQKJeLjz9M=...',
               'data:text/plain;base64,SGVsbG8gV29ybGQ=',
@@ -60,26 +66,44 @@ export function CreateListingApiDocs() {
               'data:image/jpeg;base64,/9j/4AAQSkZJRgABAQAAAQ...',
               'data:image/jpeg;base64,/9j/4AAQSkZJRgABAQAAAQ...',
             ],
-            maps: {
+            maps: [{
               type: 'OFFICE',
               latitude: 55.7558,
               longitude: 37.6173,
-            },
+              address: 'г. Алматы, ул. Абая 123',
+              country: 'Казахстан',
+              city: 'Алматы',
+            }],
+            specifications: [
+              { specificationId: 1, value: 'Белый' },
+              { specificationId: 2, value: '128 ГБ' },
+              { specificationId: 3, value: 'iPhone 13' },
+              { specificationId: 4, value: 'Отличное' },
+              { specificationId: 5, value: '6 месяцев использования' },
+            ],
           },
         },
         draftMinimal: {
           summary: 'Минимальный черновик',
-          description: 'Только обязательное поле subcategoryId',
+          description: 'Только обязательные поля subcategoryId и contacts',
           value: {
+            categoryId: 1,
             subcategoryId: 123,
+            subsubcategoryId: 2,
             status: 'DRAFT',
+            contacts: {
+              id: "123e4567-e89b-12d3-a456-426614174000",
+              type: "USER",
+            }
           },
         },
         template: {
           summary: 'Создание шаблона',
-          description: 'Шаблон для быстрых публикаций. Все поля опциональны.',
+          description: 'Шаблон для быстрых публикаций. Все поля опциональны кроме contacts.',
           value: {
+            categoryId: 1,
             subcategoryId: 123,
+            subsubcategoryId: 2,
             status: 'TEMPLATE',
             title: 'Шаблон электроники',
             description: 'Шаблон для продажи электроники',
@@ -87,15 +111,21 @@ export function CreateListingApiDocs() {
             currencyId: 1,
             priceUnitId: 1,
             condition: 'USED',
+            contacts: {
+              id: "123e4567-e89b-12d3-a456-426614174000",
+              type: "WORKER",
+            },
             files: ['data:application/pdf;base64,JVBERi0xLjQKJeLjz9M=...'],
             photos: ['data:image/jpeg;base64,/9j/4AAQSkZJRgABAQAAAQ...'],
           },
         },
         published: {
           summary: 'Публикация объявления',
-          description: 'Все поля обязательны для публикации',
+          description: 'Все поля обязательны для публикации (title, description, price, currencyId, priceUnitId, condition, files, photos, maps, specifications минимум 5 шт)',
           value: {
+            categoryId: 1,
             subcategoryId: 123,
+            subsubcategoryId: 2,
             status: 'PUBLISHED',
             title: 'iPhone 13 Pro Max',
             description: 'Отличное состояние, использовался 6 месяцев',
@@ -112,11 +142,26 @@ export function CreateListingApiDocs() {
               'data:image/jpeg;base64,/9j/4AAQSkZJRgABAQAAAQ...',
               'data:image/jpeg;base64,/9j/4AAQSkZJRgABAQAAAQ...',
             ],
-            maps: {
+            maps: [{
               type: 'OFFICE',
               latitude: 55.7558,
               longitude: 37.6173,
-            },
+              address: 'г. Алматы, ул. Абая 123',
+              country: 'Казахстан',
+              city: 'Алматы',
+            }],
+            specifications: [
+              { specificationId: 1, value: 'Белый' },
+              { specificationId: 2, value: '256 ГБ' },
+              { specificationId: 3, value: 'iPhone 13 Pro Max' },
+              { specificationId: 4, value: 'Отличное состояние' },
+              { specificationId: 5, value: '6 месяцев использования' },
+              { specificationId: 6, value: 'Оригинальная коробка' },
+            ],
+            contacts: {
+              id: "123e4567-e89b-12d3-a456-426614174000",
+              type: "USER",
+            }
           },
         },
       },

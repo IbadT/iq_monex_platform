@@ -35,16 +35,6 @@ export class FavoriteController {
     private readonly logger: AppLogger,
   ) {}
 
-  @Get(':id')
-  @Protected()
-  @ApiGetFavoriteByIdDocs()
-  async getFavorites(
-    @Param('id', ParseUUIDPipe) id: string,
-  ): Promise<FavoriteByIdResponseDto | null> {
-    this.logger.log(`Получение избранных объявлений по id: ${id}`);
-    return await this.favoriteService.getById(id);
-  }
-
   @Get('')
   @Protected()
   @ApiGetFavoritesListDocs()
@@ -53,6 +43,25 @@ export class FavoriteController {
   ): Promise<FavoriteByIdResponseDto[]> {
     this.logger.log('Получить все объявления в избранном');
     return await this.favoriteService.getList(user.id);
+  }
+
+  @Get('users')
+  @Protected()
+  @ApiGetUserFavoritesDocs()
+  async favoriteUsers(
+    @CurrentUser() user: JwtPayload,
+  ): Promise<FavoriteUserProfileResponseDto[]> {
+    return await this.favoriteService.favoriteUsers(user.id);
+  }
+
+  @Get(':id')
+  @Protected()
+  @ApiGetFavoriteByIdDocs()
+  async getFavorites(
+    @Param('id', ParseUUIDPipe) id: string,
+  ): Promise<FavoriteByIdResponseDto | null> {
+    this.logger.log(`Получение избранных объявлений по id: ${id}`);
+    return await this.favoriteService.getById(id);
   }
 
   @Post()
@@ -64,15 +73,6 @@ export class FavoriteController {
   ): Promise<CreateFavoriteResponseDto> {
     this.logger.log('Добавить объявление в избранное');
     return await this.favoriteService.create(user.id, body);
-  }
-
-  @Get('users')
-  @Protected()
-  @ApiGetUserFavoritesDocs()
-  async favoriteUsers(
-    @CurrentUser() user: JwtPayload,
-  ): Promise<FavoriteUserProfileResponseDto[]> {
-    return await this.favoriteService.favoriteUsers(user.id);
   }
 
   @Post('users')

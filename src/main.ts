@@ -13,7 +13,8 @@ async function bootstrap() {
   const app = await NestFactory.create(AppModule);
 
   app.enableCors({
-    origin: '*',
+    // origin: '*',
+    origin: 'http://localhost:5173',
     credentials: true,
   });
 
@@ -42,7 +43,7 @@ async function bootstrap() {
   // Глобальный фильтр ошибок
   app.useGlobalFilters(new HttpExceptionFilter(configService));
 
-  app.setGlobalPrefix('api');
+  app.setGlobalPrefix('api/v1');
 
   const config = new DocumentBuilder()
     .setTitle('IQMONEX Platform')
@@ -56,8 +57,9 @@ async function bootstrap() {
     .build();
 
   const document = SwaggerModule.createDocument(app, config);
-  SwaggerModule.setup('/api/docs', app, document, swaggerCustomOptions);
+  // SwaggerModule.setup('/api/docs', app, document, swaggerCustomOptions);
+  SwaggerModule.setup('docs', app, document, swaggerCustomOptions);
 
-  await app.listen(configService.getOrThrow<number>('PORT') ?? 3000);
+  await app.listen(configService.getOrThrow<number>('PORT') ?? 8000);
 }
 bootstrap();

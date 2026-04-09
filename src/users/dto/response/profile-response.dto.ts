@@ -58,14 +58,16 @@ export class ProfileResponseDto {
   @ApiProperty({
     description: 'Описание типа организации',
     type: () => LegalEntityResponseDto,
+    nullable: true,
   })
-  legalEntityType: LegalEntityResponseDto;
+  legalEntityType: LegalEntityResponseDto | null;
 
   @ApiProperty({
     description: 'Описание валюты',
     type: () => CurrenciesResponseDto,
+    nullable: true,
   })
-  currency: CurrenciesResponseDto;
+  currency: CurrenciesResponseDto | null;
 
   @ApiProperty({
     description: 'Описание сферы деятельности',
@@ -95,8 +97,8 @@ export class ProfileResponseDto {
     telegram: string | null,
     siteUrl: string | null,
     description: string | null,
-    legalEntityType: LegalEntityResponseDto,
-    currency: CurrenciesResponseDto,
+    legalEntityType: LegalEntityResponseDto | null,
+    currency: CurrenciesResponseDto | null,
     activities: ActivityResponseDto[],
     rating: number,
     commentsCount: number,

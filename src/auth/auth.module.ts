@@ -10,6 +10,7 @@ import { RabbitmqModule } from '@/rabbitmq/rabbitmq.module';
 import { EmailModule } from '@/email/email.module';
 import { UsersModule } from '@/users/users.module';
 import { LoggerModule } from '@/common/logger/logger.module';
+import { PromoModule } from '@/promo/promo.module';
 
 @Module({
   imports: [
@@ -20,6 +21,7 @@ import { LoggerModule } from '@/common/logger/logger.module';
     EmailModule,
     LoggerModule,
     UsersModule,
+    PromoModule,
   ],
   controllers: [AuthController],
   providers: [AuthService, HashService, CacheService, ConfigService],

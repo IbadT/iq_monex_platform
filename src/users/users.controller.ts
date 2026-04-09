@@ -7,6 +7,7 @@ import {
   ParseUUIDPipe,
   Post,
   Query,
+  UseGuards,
 } from '@nestjs/common';
 import { UsersService } from './users.service';
 import { ApiTags } from '@nestjs/swagger';
@@ -26,11 +27,24 @@ import { GetAllProfilesResponseDto } from './dto/response/profile-response.dto';
 import { FullProfileResponseDto } from './dto/response/full-profile-response.dto';
 import { UserResponseDto } from './dto/response/user-response.dto';
 import { ComplaintResponseDto } from './dto/response/complaint-response.dto';
+import { OptionalJwtAuthGuard } from '@/common/guards/optional-jwt-auth.guard';
 
 @ApiTags('Users')
 @Controller('users')
 export class UsersController {
   constructor(private readonly usersService: UsersService) {}
+
+  @Post(':id/ban')
+  async banUser(
+    @Param('id', ParseUUIDPipe) id: string,
+    @Body() body: { isBan: boolean; reason: string },
+  ) {
+    const result = await this.usersService.banUser(id, body.isBan, body.reason);
+    return {
+      success: true,
+      data: result
+    };
+  }
 
   // получить все профили
   @Get('profiles')
@@ -49,21 +63,30 @@ export class UsersController {
   // получить свой профиль
   // получить профиль
   @Get(':id/profiles')
-  @Protected()
+  @UseGuards(OptionalJwtAuthGuard)
   @ApiGetProfileByIdDocs()
   async getProfileById(
-    @CurrentUser() user: JwtPayload,
     @Param('id', ParseUUIDPipe) id: string,
+    @CurrentUser() user?: JwtPayload,
   ): Promise<FullProfileResponseDto> {
-    return await this.usersService.getProfileById(user.id, id);
+    return await this.usersService.getProfileById(user?.id, id);
   }
 
-  @Get(':account_number')
+  @Get('account/:account_number')
   @ApiGetUserByAccountNumberDocs()
   async getUserByAccountNumber(
     @Param('account_number') account_number: string,
   ): Promise<UserResponseDto> {
     return await this.usersService.getUserByAccountNumber(account_number);
+  }
+
+  @Get(":id")
+  async getUserById(@Param("id", ParseUUIDPipe) id: string) {
+    const result = await this.usersService.getUserById(id);
+    return {
+      success: true,
+      data: result
+    };
   }
 
   @Post(':id/complaint')

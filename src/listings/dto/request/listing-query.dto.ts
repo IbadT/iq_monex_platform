@@ -5,7 +5,6 @@ import {
   IsString,
   Min,
   Max,
-  IsUUID,
   IsPositive,
 } from 'class-validator';
 import { Type } from 'class-transformer';
@@ -66,34 +65,34 @@ export class ListingQueryDto {
   condition?: ListingCondition;
 
   @ApiPropertyOptional({
-    description: 'ID категории (UUID)',
-    type: String,
-    format: 'uuid',
-    example: '550e8400-e29b-41d4-a716-446655440000',
+    description: 'ID категории',
+    type: Number,
+    example: 1,
   })
   @IsOptional()
-  @IsUUID()
-  categoryId?: string;
+  @IsNumber()
+  @Type(() => Number)
+  categoryId?: number;
 
   @ApiPropertyOptional({
-    description: 'ID подкатегории (UUID)',
-    type: String,
-    format: 'uuid',
-    example: '550e8400-e29b-41d4-a716-446655440001',
+    description: 'ID подкатегории',
+    type: Number,
+    example: 2,
   })
   @IsOptional()
-  @IsUUID()
-  subcategoryId?: string;
+  @IsNumber()
+  @Type(() => Number)
+  subcategoryId?: number;
 
   @ApiPropertyOptional({
-    description: 'ID под-подкатегории (UUID)',
-    type: String,
-    format: 'uuid',
-    example: '550e8400-e29b-41d4-a716-446655440002',
+    description: 'ID под-подкатегории',
+    type: Number,
+    example: 3,
   })
   @IsOptional()
-  @IsUUID()
-  subsubcategoryId?: string;
+  @IsNumber()
+  @Type(() => Number)
+  subsubcategoryId?: number;
 
   @ApiPropertyOptional({
     description: 'Минимальная цена',

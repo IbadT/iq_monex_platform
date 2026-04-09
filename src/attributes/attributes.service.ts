@@ -6,6 +6,20 @@ import { CacheService } from '@/cache/cacheService.service';
 import { AppLogger } from '@/common/logger/logger.service';
 import { specificationsData } from './default/specificaitonsData';
 import { SpecificationResponseDto } from './dto/response/specification.dto';
+import { CreateSpecificationDto } from './dto/request/createSpecification.dto';
+import { UpdateSpecificationDto } from './dto/request/updateSpecification.dto';
+
+interface MyMemoryResponse {
+  responseData: {
+    translatedText: string;
+    match: number;
+  };
+  quotaFinished: boolean;
+  mtLangSupported: boolean;
+  responseDetails: string;
+  responseStatus: number;
+  responderId: string;
+}
 
 @Injectable()
 export class AttributesService {
@@ -23,7 +37,7 @@ export class AttributesService {
 
     const specifications = await prisma.specification.findMany();
 
-    const response = specifications.map((spec: Specification) =>
+    const response = specifications.map((spec) =>
       Specification.fromPrisma(spec).toResponse(lang),
     );
 
@@ -36,6 +50,152 @@ export class AttributesService {
     }
 
     return response;
+  }
+
+  async createSpecification(
+    body: CreateSpecificationDto,
+  ): Promise<{ id: number }> {
+    const translations = await this.translateToMultipleLanguages(body.name);
+
+    // Сохраняем в БД
+    return prisma.specification.create({
+      data: {
+        name: translations,
+      }, // { ru: "...", en: "...", kk: "..." }
+      select: {
+        id: true,
+      },
+    });
+  }
+
+  async translateViaMyMemory(
+    text: string,
+    targetLang: string,
+  ): Promise<string> {
+    try {
+      const url = new URL('https://api.mymemory.translated.net/get');
+      url.searchParams.append('q', text);
+      url.searchParams.append('langpair', `ru|${targetLang}`);
+
+      const response = await fetch(url.toString());
+
+      if (!response.ok) {
+        this.logger.warn(
+          `MyMemory API returned ${response.status}`,
+          'AttributesService',
+        );
+        return text;
+      }
+
+      const data = (await response.json()) as MyMemoryResponse;
+
+      // Извлекаем переведённый текст из ответа
+      const translated = data.responseData?.translatedText;
+
+      // Если перевода нет или он совпадает с оригиналом
+      if (!translated || translated === text) {
+        return text;
+      }
+
+      return translated;
+    } catch (error) {
+      this.logger.error(
+        `Translation failed for "${text}" (${targetLang}): ${error instanceof Error ? error.message : 'Unknown error'}`,
+        'AttributesService',
+      );
+      return text;
+    }
+  }
+
+  async translateToMultipleLanguages(
+    text: string,
+  ): Promise<Record<string, string>> {
+    const translations: Record<string, string> = {
+      ru: text, // Для русского языка оставляем оригинальный текст
+    };
+
+    // Переводим только на другие языки
+    const targetLanguages = ['en', 'kk'];
+    
+    for (const lang of targetLanguages) {
+      translations[lang] = await this.translateViaMyMemory(text, lang);
+      // Небольшая задержка между запросами
+      await new Promise((resolve) => setTimeout(resolve, 200));
+    }
+
+    // Конвертируем kk в kz для совместимости с БД
+    const result: Record<string, string> = {
+      ru: translations.ru,
+      en: translations.en,
+      kz: translations.kk
+    };
+
+    return result;
+  }
+
+  async updateSpecification(
+    id: number,
+    body: UpdateSpecificationDto,
+  ): Promise<{ message: string }> {
+    this.logger.log(`Updating specification ${id} with name: ${body.name}`, 'AttributesService');
+    
+    const spec = await prisma.specification.findUnique({
+      where: { id },
+    });
+
+    if (!spec) {
+      throw new Error(`Specification with id ${id} not found`);
+    }
+
+    const translations = await this.translateToMultipleLanguages(body.name);
+
+    await prisma.specification.update({
+      where: { id },
+      data: {
+        name: translations,
+      },
+    });
+
+    // Очищаем кэш для всех языков
+    const languages = ['ru', 'en', 'kz'];
+    for (const lang of languages) {
+      const cacheKey = `specifications:${lang}`;
+      await this.cacheService.del(cacheKey);
+      this.logger.log(`Cleared cache for key: ${cacheKey}`, 'AttributesService');
+    }
+
+    this.logger.log(`Successfully updated specification ${id}`, 'AttributesService');
+    
+    return { message: 'Specification updated successfully' };
+  }
+
+  async deleteSpecification(id: number): Promise<{ message: string }> {
+    this.logger.log(`Deleting specification ${id}`, 'AttributesService');
+    
+    // Удаляем из БД
+    const spec = await prisma.specification.findUnique({
+      where: { id },
+    });
+
+    if (!spec) {
+      throw new Error(`Specification with id ${id} not found`);
+    }
+
+    await prisma.specification.delete({
+      where: { id },
+    });
+
+    // Очищаем кэш для всех языков
+    const languages = ['ru', 'en', 'kz'];
+    for (const lang of languages) {
+      const cacheKey = `specifications:${lang}`;
+      await this.cacheService.del(cacheKey);
+      this.logger.log(`Cleared cache for key: ${cacheKey}`, 'AttributesService');
+    }
+
+    this.logger.log(`Successfully deleted specification ${id}`, 'AttributesService');
+
+    return { message: 'Specification deleted' };
   }
 
   // TODO: добавить redis при создании
@@ -64,7 +224,11 @@ export class AttributesService {
 
       return 'OK';
     } catch (error) {
-      this.logger.error('Ошибка при сидировании specifications:', error);
+      if (error instanceof Error) {
+        this.logger.error(
+          `Ошибка при сидировании specifications: ${error.message}`,
+        );
+      }
       throw error;
     }
   }

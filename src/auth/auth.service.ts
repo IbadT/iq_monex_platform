@@ -26,6 +26,7 @@ import { prisma } from '@/lib/prisma';
 import { RoleType } from '@/users/enums/role-type.enum';
 import { UserLoginResponseDto } from './dto/response/user-login-response.dto';
 import { ConfigService } from '@nestjs/config';
+import { PromoParticipantService } from '@/promo/promo_participant.service';
 
 @Injectable()
 export class AuthService {
@@ -39,6 +40,7 @@ export class AuthService {
     private readonly configService: ConfigService,
     // private readonly emailService: EmailService,
     private readonly logger: AppLogger,
+    private readonly promoParticipantService: PromoParticipantService,
   ) {}
 
   async getMe(userId: string) {
@@ -254,7 +256,41 @@ export class AuthService {
       `[VERIFY] Пользователь создан: ${newUser.id}, email: ${newUser.email}`,
     );
 
-    // 5. Удаляем данные из Redis
+    // 5. Находим валюту RUB (российский рубль) для профиля по умолчанию
+    const rubCurrency = await prisma.currency.findUnique({
+      where: { code: 'RUB' },
+    });
+
+    if (!rubCurrency) {
+      throw new Error('Валюта RUB не найдена в базе данных. Запустите сид валют.');
+    }
+
+    // 6. Создаем профиль для пользователя с валютой по умолчанию (RUB)
+    await prisma.profile.create({
+      data: {
+        userId: newUser.id,
+        currencyId: rubCurrency.id,
+      },
+    });
+
+    this.logger.log(
+      `[VERIFY] Профиль создан для пользователя: ${newUser.id} с валютой RUB`,
+    );
+
+    // 7. Добавляем пользователя в активную промо-кампанию
+    try {
+      await this.promoParticipantService.joinActiveCampaign(newUser.id);
+      this.logger.log(
+        `[VERIFY] Пользователь ${newUser.id} добавлен в активную промо-кампанию`,
+      );
+    } catch (promoError) {
+      this.logger.error(
+        `[VERIFY] Ошибка добавления в промо-кампанию:`,
+        promoError,
+      );
+    }
+
+    // 8. Удаляем данные из Redis
     await this.cacheService.del(cacheKey);
 
     // 6. Генерируем JWT токены
@@ -357,7 +393,16 @@ export class AuthService {
     try {
       decodedToken = await this.jwtTokenService.verifyToken(refreshToken);
     } catch (error) {
-      throw new UnauthorizedException('Невалидный refresh token');
+      if (error.message === 'TOKEN_EXPIRED') {
+        throw new UnauthorizedException({
+          error: 'TOKEN_EXPIRED',
+          message: 'Refresh token has expired',
+        });
+      }
+      throw new UnauthorizedException({
+        error: 'INVALID_TOKEN',
+        message: 'Невалидный refresh token',
+      });
     }
 
     // 3. Получить ID пользователя из refresh token

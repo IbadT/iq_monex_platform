@@ -9,6 +9,7 @@ import {
 import { specificationsData } from './attributes/default/specificaitonsData';
 import { tariffData } from './tariffs/default/tariffData';
 import { S3Service } from './s3/s3.service';
+import { PromoCampaignStatus } from './promo/enums/promo-status.enum';
 
 @Injectable()
 export class AppService {
@@ -138,6 +139,7 @@ export class AppService {
         categories: { created: 0, updated: 0, errors: 0 },
         specifications: { created: 0, updated: 0, errors: 0 },
         tariffs: { created: 0, updated: 0, errors: 0 },
+        promoCampaigns: { created: 0, updated: 0, errors: 0 },
       };
 
       // Создаем дефолтные данные без очистки
@@ -147,6 +149,7 @@ export class AppService {
       await this.seedCategories(results);
       await this.seedSpecifications(results);
       await this.seedTariffs(results);
+      await this.seedPromoCampaigns(results);
 
       this.logger.log(' Seed дефолтных данных завершен успешно');
 
@@ -508,6 +511,67 @@ export class AppService {
 
     this.logger.log(
       ` Тарифы обработано: создано ${results.tariffs.created}, обновлено ${results.tariffs.updated}, ошибок ${results.tariffs.errors}`,
+    );
+  }
+
+  private async seedPromoCampaigns(results: any) {
+    this.logger.log(' Создание/обновление promo кампаний...');
+
+    const promoCampaigns = [
+      {
+        code: 'WELCOME_300',
+        name: 'Приветственная акция - Первые 300 пользователей',
+        status: PromoCampaignStatus.ACTIVE,
+        maxParticipants: 300,
+        requiredActiveListings: 10,
+        requiredDays: 7,
+        initialFreeDays: 360,
+        subsequentDays: 360,
+        subsequentDiscount: 50,
+        isLocked: false,
+      },
+      {
+        code: 'WELCOME_2000',
+        name: 'Приветственная акция - Следующие 2000 пользователей',
+        status: PromoCampaignStatus.CANCELED,
+        maxParticipants: 2000,
+        requiredActiveListings: 10,
+        requiredDays: 7,
+        initialFreeDays: 30,
+        subsequentDays: 360,
+        subsequentDiscount: 50,
+        isLocked: false,
+      },
+    ];
+
+    for (const campaignData of promoCampaigns) {
+      try {
+        const existing = await prisma.promoCampaign.findUnique({
+          where: { code: campaignData.code },
+        });
+
+        if (existing) {
+          await prisma.promoCampaign.update({
+            where: { code: campaignData.code },
+            data: campaignData,
+          });
+          results.promoCampaigns.updated++;
+        } else {
+          await prisma.promoCampaign.create({
+            data: campaignData,
+          });
+          results.promoCampaigns.created++;
+        }
+      } catch (error) {
+        this.logger.warn(
+          ` Ошибка при создании кампании ${campaignData.code}: ${error.message}`,
+        );
+        results.promoCampaigns.errors++;
+      }
+    }
+
+    this.logger.log(
+      ` Promo кампании обработано: создано ${results.promoCampaigns.created}, обновлено ${results.promoCampaigns.updated}, ошибок ${results.promoCampaigns.errors}`,
     );
   }
 }

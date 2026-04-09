@@ -77,6 +77,7 @@ export class ReviewMapper {
       avatarUrl,
       images,
       review.authorId,
+      review.author?.name || '',
       review.targetType,
       review.listingId,
       review.targetUserId,

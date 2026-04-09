@@ -1,7 +1,7 @@
 import { ApiOperation, ApiResponse, ApiTags, ApiBody } from '@nestjs/swagger';
 import { applyDecorators } from '@nestjs/common';
 import { FavoriteType } from '../enums/favorite-type.enum';
-import { CreateFavoriteResponseDto } from '../dto/response/create-favorite-response.dto';
+import { CreateFavoriteDto } from '../dto/create-favorite.dto';
 
 export const ApiCreateFavoriteDocs = () => {
   return applyDecorators(
@@ -13,7 +13,7 @@ export const ApiCreateFavoriteDocs = () => {
     }),
     ApiBody({
       description: 'Данные для добавления объявления в избранное',
-      type: CreateFavoriteResponseDto,
+      type: CreateFavoriteDto,
     }),
     ApiResponse({
       status: 201,

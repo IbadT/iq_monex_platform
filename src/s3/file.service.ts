@@ -1,5 +1,10 @@
 import { Injectable, Logger } from '@nestjs/common';
-import { PrismaClient, FileOwnerType, FileKind } from '../../prisma/generated/client';
+import {
+  PrismaClient,
+  FileOwnerType,
+  FileKind,
+  Prisma,
+} from '../../prisma/generated/client';
 import { S3Service } from './s3.service';
 import { RabbitmqService } from '@/rabbitmq/rabbitmq.service';
 
@@ -323,7 +328,7 @@ export class FileService {
     listingId: string,
     base64Array: string[],
     kind: FileKind,
-    tx: PrismaClient,
+    tx: Prisma.TransactionClient,
   ) {
     if (!base64Array || base64Array.length === 0) {
       await tx.file.deleteMany({

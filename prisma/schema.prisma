@@ -22,6 +22,10 @@ model User {
   password      String
   isVerified    Boolean @default(false) @map("is_verified")
 
+  // TODO: пересмотреть реализацию бана
+  isBanned  Boolean @default(false) @map("is_banned")
+  banReason String? @map("ban_reason")
+
   // Профиль пользователя
   profile Profile?
 
@@ -65,6 +69,9 @@ model User {
 
   // Активности (многие ко многим через промежуточную таблицу)
   userActivities UserActivity[]
+  
+  // Promo кампании
+  promoCampaignParticipants PromoCampaignParticipant[]
 
   @@map("users")
 }
@@ -76,11 +83,11 @@ model Profile {
   userId String @unique @map("user_id") @db.Uuid
   user   User   @relation(fields: [userId], references: [id], onDelete: Cascade)
 
-  // Тип юридического лица
-  legalEntityTypeId Int             @map("legal_entity_type_id")
-  legalEntityType   LegalEntityType @relation(fields: [legalEntityTypeId], references: [id])
+  // Тип юридического лица (опционально при регистрации)
+  legalEntityTypeId Int?             @map("legal_entity_type_id")
+  legalEntityType   LegalEntityType? @relation(fields: [legalEntityTypeId], references: [id])
 
-  // Валюта
+  // Валюта (обязательная, по умолчанию российский рубль)
   currencyId Int      @map("currency_id")
   currency   Currency @relation(fields: [currencyId], references: [id])
 
@@ -198,8 +205,10 @@ model Category {
   // Характеристики для этой категории (любого уровня)
   specifications CategorySpecification[]
 
-  // Объявления в этой категории
-  listings Listing[]
+  // Объявления в этой категории (разные уровни)
+  listingsAsCategory       Listing[] @relation("ListingCategory")
+  listingsAsSubcategory    Listing[] @relation("ListingSubcategory")
+  listingsAsSubsubcategory Listing[] @relation("ListingSubsubcategory")
 
   @@index([parentId])
   @@index([name])
@@ -242,6 +251,7 @@ model Specification {
   id                     Int                     @id @default(autoincrement())
   name                   Json
   categorySpecifications CategorySpecification[]
+  listingSpecifications  ListingSpecification[]
 
   @@map("specifications")
 }
@@ -360,11 +370,20 @@ model ChatFile {
 model Listing {
   id String @id @default(uuid()) @db.Uuid
 
-  userId      String @map("user_id") @db.Uuid
-  subcategoryId Int    @map("subcategory_id")
+  userId        String @map("user_id") @db.Uuid
+  categoryId    Int?   @map("category_id")
+  subcategoryId Int?   @map("subcategory_id")
+  subsubcategoryId Int? @map("subsubcategory_id")
+
+  // Контактные данные для объявления
+  contactId   String? @map("contact_id") @db.Uuid
+  contactType String? @map("contact_type") // "USER" или "WORKER"
 
   user     User     @relation(fields: [userId], references: [id], onDelete: Cascade)
-  category Category @relation(fields: [subcategoryId], references: [id])
+  // Связи с категориями разных уровней
+  category       Category? @relation("ListingCategory", fields: [categoryId], references: [id])
+  subcategory    Category? @relation("ListingSubcategory", fields: [subcategoryId], references: [id])
+  subsubcategory Category? @relation("ListingSubsubcategory", fields: [subsubcategoryId], references: [id])
 
   favorites Favorite[]
   reviews   Review[]
@@ -407,6 +426,11 @@ model Listing {
 
   // Для оптимистической блокировки(лайки)
   version Int @default(0)
+
+  // TODO: пересмотреть
+  // TODO: добавить причину в коде и проверку, что оно ARCHIVED
+  // архивация админом, если объявление нарушает правила
+  archivedReason String? @map("archived_reason") @db.VarChar(1000)
 
   // ===== ДАТЫ =====
   publishedAt  DateTime? @map("published_at") // Когда опубликовано
@@ -456,7 +480,8 @@ model ListingSpecification {
   unitId     Int?    @map("unit_id")
   isRequired Boolean @default(true) @map("is_required")
 
-  listing Listing @relation(fields: [listingId], references: [id], onDelete: Cascade)
+  listing       Listing       @relation(fields: [listingId], references: [id], onDelete: Cascade)
+  specification Specification @relation(fields: [specificationId], references: [id])
 
   @@unique([listingId, specificationId])
   @@map("listing_specifications")
@@ -478,6 +503,10 @@ model MapLocation {
 
   // Адрес для отображения
   address String
+
+  country String
+
+  city String
 
   latitude  Decimal @db.Decimal(10, 8)
   longitude Decimal @db.Decimal(11, 8)
@@ -724,6 +753,7 @@ model Subscription {
 
   periods   SubscriptionPeriod[]
   userSlots UserSlot[] // Слоты, созданные этой подпиской
+  participants PromoCampaignParticipant[] // Участники акций с этой подпиской
 
   createdAt DateTime @default(now()) @map("created_at")
   updatedAt DateTime @updatedAt @map("updated_at")
@@ -731,6 +761,100 @@ model Subscription {
   @@index([userId, isActive])
   @@map("subscriptions")
 }
+
+
+
+
+// ================ PROMO CAMPAIGNS ================
+
+enum PromoCampaignStatus {
+  ACTIVE
+  PAUSED
+  COMPLETED
+  CANCELED
+
+  @@map("promo_campaign_status")
+}
+
+enum PromoParticipantStatus {
+  PENDING
+  IN_PROGRESS
+  ELIGIBLE
+  FAILED
+  COMPLETED
+  CANCELED
+
+  @@map("promo_participant_status")
+}
+
+model PromoCampaign {
+  id                    String                @id @default(uuid()) @db.Uuid
+  code                  String                @unique
+  name                  String
+  status                PromoCampaignStatus   @default(ACTIVE)
+  maxParticipants       Int
+  currentParticipants   Int                   @default(0)
+
+  initialFreeDays       Int                  @map("initial_free_days")
+  subsequentDiscount    Int                  @map("subsequent_discount")
+  subsequentDays        Int                  @map("subsequent_days")
+
+  requiredActiveListings Int                  @default(10) @map("required_active_listings")
+  requiredDays          Int                  @default(7) @map("required_days")
+
+  startAt DateTime      @default(now()) @map("start_at")
+  endAt   DateTime?     @map("end_at")
+
+  // Флаг блокировки кампании (true когда достигнут лимит участников)
+  isLocked  Boolean     @default(false) @map("is_locked")
+
+  participants PromoCampaignParticipant[]
+
+  createdAt DateTime    @default(now()) @map("created_at")
+  updatedAt DateTime    @updatedAt @map("updated_at")
+
+  @@index([status])
+  @@map("promo_campaigns")
+}
+
+model PromoCampaignParticipant {
+  id                String                @id @default(uuid()) @db.Uuid
+  campaignId        String                @map("campaign_id") @db.Uuid
+  userId            String                @map("user_id") @db.Uuid
+
+  status            PromoParticipantStatus @default(PENDING)
+
+  joinedAt          DateTime              @default(now()) @map("joined_at")
+  conditionReachedAt DateTime?            @map("condition_reached_at")
+  conditionLostAt    DateTime?            @map("condition_lost_at")
+
+  // Флаг что пользователь получил бесплатный период
+  freePeriodGranted  Boolean  @default(false) @map("free_period_granted")
+  // Флаг что пользователь использовал скидку 50% на второй год
+  discountUsed       Boolean  @default(false) @map("discount_used")
+  // Дата когда скидка стала доступной
+  discountAvailableAt DateTime? @map("discount_available_at")
+  // Статус вылета из акции (не смог выполнить условия)
+  droppedOut         Boolean  @default(false) @map("dropped_out")
+  droppedOutAt       DateTime? @map("dropped_out_at")
+  // Причина вылета
+  dropReason         String?  @map("drop_reason")
+
+  campaign          PromoCampaign         @relation(fields: [campaignId], references: [id], onDelete: Cascade)
+  user              User                  @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  subscriptionId    String?               @map("subscription_id") @db.Uuid
+  subscription      Subscription?         @relation(fields: [subscriptionId], references: [id], onDelete: SetNull)
+
+  @@unique([campaignId, userId])
+  @@index([userId])
+  @@index([campaignId])
+  @@map("promo_campaign_participants")
+}
+
+
+
+
 
 model SubscriptionPeriod {
   id             String @id @default(uuid()) @db.Uuid
@@ -742,6 +866,11 @@ model SubscriptionPeriod {
 
   // Ссылка на платёж, которым оплачен этот период
   paymentId String? @map("payment_id") @db.Uuid
+
+  // Процент скидки (0 = без скидки, 50 = 50% скидка, 100 = бесплатно)
+  discountPercent Int     @default(0) @map("discount_percent")
+  // Статус периода: FREE = бесплатный период, DISCOUNTED = со скидкой, PAID = обычная цена
+  periodType      String  @default("PAID") @map("period_type") // FREE, DISCOUNTED, PAID
 
   subscription Subscription @relation(fields: [subscriptionId], references: [id], onDelete: Cascade)
 
@@ -987,6 +1116,7 @@ enum TariffCode {
   BASE // 3 слота, 30 дней
   MAIN // 10 слотов, 60 дней  
   PREMIUM // 30 слотов, 90 дней, возможность продления
+  ADDITIONAL_PACKAGE // Дополнительный пакет слотов
 
   @@map("tariff_code")
 }
@@ -1010,7 +1140,6 @@ enum ListingCondition {
 enum MapLocationType {
   OFFICE
   WAREHOUSE
-  OTHER
 
   @@map("map_location_type")
 }
@@ -1065,3 +1194,4 @@ enum ComplaintType {
   LISTING
   USER
 }
+

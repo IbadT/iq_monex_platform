@@ -5,42 +5,67 @@ import { Decimal } from '@prisma/client/runtime/index-browser';
 const MapLocationType = {
   OFFICE: 'OFFICE',
   WAREHOUSE: 'WAREHOUSE',
-  PRODUCTION: 'PRODUCTION',
-  RETAIL: 'RETAIL',
-  OTHER: 'OTHER',
 } as const;
 
 type MapLocationType = (typeof MapLocationType)[keyof typeof MapLocationType];
 
 // map-location-response.dto.ts
 export class MapLocationResponseDto {
-  @ApiProperty({ example: '550e8400-e29b-41d4-a716-446655440000' })
+  @ApiProperty({ 
+    description: 'Уникальный идентификатор локации',
+    example: '550e8400-e29b-41d4-a716-446655440000' 
+  })
   id: string;
 
-  @ApiProperty({ enum: MapLocationType, example: 'OFFICE' })
-  // type: MapLocationType;
+  @ApiProperty({ 
+    description: 'Тип локации: OFFICE (офис), WAREHOUSE (склад)',
+    enum: MapLocationType, example: 'OFFICE' 
+  })
   type: string;
 
-  @ApiProperty({ example: 'г. Москва, ул. Ленина, д. 1' })
+  @ApiProperty({ 
+    description: 'Полный адрес локации',
+    example: 'г. Москва, ул. Ленина, д. 1' 
+  })
   address: string;
 
-  @ApiProperty({ example: 55.7558 })
+  @ApiProperty({ 
+    description: 'Географическая широта',
+    example: 55.7558 
+  })
   latitude: number;
 
-  @ApiProperty({ example: 37.6173 })
+  @ApiProperty({ 
+    description: 'Географическая долгота',
+    example: 37.6173 
+  })
   longitude: number;
 
+  @ApiProperty({ 
+    description: 'Страна локации',
+    example: "Россия" 
+  })
+  country: string;
+
+  @ApiProperty({ 
+    description: 'Город локации',
+    example: "Москва" 
+  })
+  city: string;
+
   @ApiProperty({
-    description: '',
-    example: '',
+    description: 'ID пользователя, которому принадлежит локация',
+    example: '550e8400-e29b-41d4-a716-446655440000',
     type: 'string',
+    nullable: true,
   })
   userId?: string | null;
 
   @ApiProperty({
-    description: '',
-    example: '',
+    description: 'ID объявления, к которому привязана локация',
+    example: '550e8400-e29b-41d4-a716-446655440001',
     type: 'string',
+    nullable: true,
   })
   listingId?: string | null;
 
@@ -53,6 +78,8 @@ export class MapLocationResponseDto {
     address: string,
     latitude: Decimal,
     longitude: Decimal,
+    country: string,
+    city: string,
     userId?: string | null,
     listingId?: string | null,
     // user: User,
@@ -62,6 +89,8 @@ export class MapLocationResponseDto {
     this.address = address;
     this.latitude = +latitude;
     this.longitude = +longitude;
+    this.country = country;
+    this.city = city;
     if (userId !== undefined) {
       this.userId = userId;
     }

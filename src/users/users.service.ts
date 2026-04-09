@@ -67,6 +67,24 @@ export class UsersService {
     private readonly fileService: FileService,
   ) {}
 
+  async banUser(id: string, isBan: boolean, reason: string) {
+    const user = await prisma.user.findUnique({
+      where: { id },
+    });
+
+    if (!user) {
+      throw new NotFoundException(`Пользователь с id: ${id} не найден`);
+    }
+
+    await prisma.user.update({
+      where: { id },
+      data: {
+        isBanned: isBan,
+        banReason: reason,
+      },
+    });
+  }
+
   async searchProfiles(
     query: GetProfilesDto,
   ): Promise<GetAllProfilesResponseDto> {
@@ -356,7 +374,7 @@ export class UsersService {
   }
 
   async getUserById(id: string) {
-    return await prisma.user.findFirst({
+    return await prisma.user.findUnique({
       where: {
         id,
       },
@@ -368,152 +386,63 @@ export class UsersService {
     });
   }
 
-  // async getProfileById(
-  //   userId: string,
-  //   id: string,
-  // ): Promise<FullProfileResponseDto> {
-  //   // const cachedUser = await this.cacheService.getUserById(id);
-
-  //   // if (cachedUser) {
-  //   //   return cachedUser;
-  //   // }
-
-  //   const user = await prisma.user.findUnique({
-  //     where: { id },
-  //     include: {
-  //       profile: {
-  //         include: {
-  //           user: true,
-  //           legalEntityType: true,
-  //           currency: true,
-  //         },
-  //       },
-  //       userActivities: {
-  //         include: {
-  //           activity: true,
-  //         },
-  //       },
-  //       files: {
-  //         where: {
-  //           uploadStatus: 'completed',
-  //           ownerType: "USER",
-  //         },
-  //       },
-  //       workers: {
-  //         include: {
-  //           role: true,
-  //         },
-  //         where: {
-  //           isActive: true,
-  //         },
-  //       },
-  //       locations: {
-  //         where: {
-  //           userId: id,
-  //         },
-  //       },
-  //       receivedReviews: {
-  //         where: {
-  //           status: 'APPROVED',
-  //         },
-  //         select: {
-  //           rating: true,
-  //           createdAt: true,
-  //         },
-  //         orderBy: {
-  //           createdAt: 'desc',
-  //         },
-  //       },
-  //       // favorites: {
-  //       //   where: {
-  //       //     // userId: currentUserId,
-  //       //     userId: id,
-  //       //     targetUserId: id,
-  //       //     type: FavoriteType.USER,
-  //       //   },
-  //       // },
-  //       favorites: id
-  //         ? {
-  //             where: {
-  //               userId: id,
-  //               targetUserId: id,
-  //               type: FavoriteType.USER,
-  //             },
-  //             take: 1, // Добавляем take, чтобы не получать массив
-  //           }
-  //         : false, // Используем false вместо undefined
-  //     },
-  //   });
-
-  //   if (!user) {
-  //     throw new NotFoundException(`Пользователь с id: ${id} не найден`);
-  //   }
-
-  //   // Преобразуем в DTO
-  //   const fullProfile = ProfileMapper.toFullResponse(user, userId);
-
-  //   // Кешируем
-  //   // await this.cacheService.setUserById(id, fullProfile, 3600);
-  //   // await this.cacheService.setUserById(id, fullProfile, 3600);
-
-  //   return fullProfile;
-  // }
 
   async getProfileById(
-    currentUserId: string,
+    currentUserId: string | undefined,
     id: string,
   ): Promise<FullProfileResponseDto> {
+    // Строим include динамически
+    const include: any = {
+      profile: {
+        include: {
+          legalEntityType: true,
+          currency: true,
+        },
+      },
+      userActivities: {
+        include: {
+          activity: true,
+        },
+      },
+      files: {
+        where: {
+          ownerType: 'USER',
+          uploadStatus: 'completed',
+        },
+        orderBy: {
+          sortOrder: 'asc',
+        },
+      },
+      workers: {
+        where: { isActive: true },
+        include: { role: true },
+      },
+      locations: true,
+      receivedReviews: {
+        where: { status: 'APPROVED' },
+        select: { rating: true, createdAt: true },
+        orderBy: { createdAt: 'desc' },
+      },
+    };
+
     const user = await prisma.user.findUnique({
       where: { id },
-      include: {
-        profile: {
-          include: {
-            legalEntityType: true,
-            currency: true,
-          },
-        },
-
-        userActivities: {
-          include: {
-            activity: true,
-          },
-        },
-
-        files: {
-          where: {
-            ownerType: 'USER',
-            uploadStatus: 'completed',
-          },
-          orderBy: {
-            sortOrder: 'asc',
-          },
-        },
-
-        workers: {
-          where: { isActive: true },
-          include: { role: true },
-        },
-
-        locations: true,
-
-        receivedReviews: {
-          where: { status: 'APPROVED' },
-          select: { rating: true, createdAt: true },
-          orderBy: { createdAt: 'desc' },
-        },
-
-        favorites: currentUserId
-          ? {
-              where: {
-                userId: currentUserId,
-                targetUserId: id,
-                type: FavoriteType.USER,
-              },
-              take: 1,
-            }
-          : false,
-      },
+      include,
     });
+
+    // Проверяем избранное отдельным запросом
+    let isFavorite = false;
+    if (currentUserId) {
+      const favorite = await prisma.favorite.findFirst({
+        where: {
+          userId: currentUserId,
+          targetUserId: id,
+          type: FavoriteType.USER,
+        },
+      });
+      isFavorite = !!favorite;
+      console.log('[DEBUG Service] Favorite found:', isFavorite);
+    }
 
     if (!user) {
       throw new NotFoundException(`Пользователь с id: ${id} не найден`);
@@ -534,7 +463,7 @@ export class UsersService {
       } as any;
     }
 
-    return ProfileMapper.toFullResponse(user, currentUserId);
+    return ProfileMapper.toFullResponse(user, currentUserId, isFavorite);
   }
 
   async getUserByAccountNumber(
@@ -931,7 +860,11 @@ export class UsersService {
 
       return UserMapper.toUserResponse(result);
     } catch (error) {
-      this.logger.error(`Ошибка при обновлении пользователя: ${error.message}`);
+      if (error instanceof Error) {
+        this.logger.error(
+          `Ошибка при обновлении пользователя: ${error.message}`,
+        );
+      }
       throw error;
     }
   }
@@ -1046,10 +979,12 @@ export class UsersService {
 
         return { user, profile, avatar, photos, files };
       } catch (error) {
-        this.logger.error(
-          `[Transaction] CRITICAL ERROR: ${error.message}`,
-          error.stack,
-        );
+        if (error instanceof Error) {
+          this.logger.error(
+            `[Transaction] CRITICAL ERROR: ${error.message}`,
+            error.stack,
+          );
+        }
         throw error;
       }
     });
@@ -1082,10 +1017,12 @@ export class UsersService {
       });
       this.logger.log(`[DB Verification] Photo files count: ${photoCount}`);
     } catch (verifyError) {
-      this.logger.error(
-        `[DB Verification] Error: ${verifyError.message}`,
-        verifyError.stack,
-      );
+      if (verifyError instanceof Error) {
+        this.logger.error(
+          `[DB Verification] Error: ${verifyError.message}`,
+          verifyError.stack,
+        );
+      }
     }
     // this.logger.log(
     //   `Result: ${JSON.stringify({
