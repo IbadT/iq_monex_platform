@@ -81,7 +81,8 @@ export class ProfileMapper {
 
   static toFullResponse(
     user: any,
-    currentUserId: string,
+    currentUserId: string | undefined,
+    isFavoriteParam?: boolean,
   ): FullProfileResponseDto {
     // Активности
     const activities =
@@ -89,20 +90,24 @@ export class ProfileMapper {
         (ua: any) => new ActivityResponseDto(ua.activity.id, ua.activity.name),
       ) || [];
 
-    // Юр лицо (обязательное поле - всегда должно быть)
-    const legalEntityType = new LegalEntityResponseDto(
-      user.profile.legalEntityType.id,
-      user.profile.legalEntityType.code,
-      user.profile.legalEntityType.name,
-    );
+    // Юр лицо (опциональное поле)
+    const legalEntityType = user.profile?.legalEntityType
+      ? new LegalEntityResponseDto(
+          user.profile.legalEntityType.id,
+          user.profile.legalEntityType.code,
+          user.profile.legalEntityType.name,
+        )
+      : null;
 
-    // Валюта (обязательное поле - всегда должно быть)
-    const currency = new CurrenciesResponseDto(
-      user.profile.currency.id,
-      user.profile.currency.symbol,
-      user.profile.currency.name,
-      user.profile.currency.code,
-    );
+    // Валюта (опциональное поле)
+    const currency = user.profile?.currency
+      ? new CurrenciesResponseDto(
+          user.profile.currency.id,
+          user.profile.currency.symbol,
+          user.profile.currency.name,
+          user.profile.currency.code,
+        )
+      : null;
 
     // Файлы и изображения
     const avatar = user.files?.find((f: any) => f.kind === 'AVATAR' && f.ownerType === 'USER');
@@ -167,18 +172,25 @@ export class ProfileMapper {
         (l: any) =>
           new MapLocationResponseDto(
             l.id,
-            l.userId,
-            l.listingId,
+            l.type,
             l.address,
             l.latitude,
             l.longitude,
-            l.type,
+            l.country,
+            l.city,
+            l.userId,
+            l.listingId,
           ),
       ) || [];
 
     // Проверка в избранном
-    const isFavorite =
-      currentUserId && user.favorites && user.favorites.length > 0;
+    console.log('[DEBUG Mapper] currentUserId:', currentUserId);
+    console.log('[DEBUG Mapper] isFavoriteParam:', isFavoriteParam);
+    // Используем переданный isFavorite, или проверяем через include если есть
+    const isFavorite = isFavoriteParam !== undefined 
+      ? isFavoriteParam 
+      : (currentUserId && user.favorites && user.favorites.length > 0);
+    console.log('[DEBUG Mapper] isFavorite result:', isFavorite);
 
     return new FullProfileResponseDto(
       user.id,

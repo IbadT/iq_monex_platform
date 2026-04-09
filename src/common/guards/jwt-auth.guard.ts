@@ -3,6 +3,8 @@ import {
   CanActivate,
   ExecutionContext,
   UnauthorizedException,
+  HttpException,
+  HttpStatus,
 } from '@nestjs/common';
 import { Reflector } from '@nestjs/core';
 // import { ConfigService } from '@nestjs/config';
@@ -42,7 +44,20 @@ export class JwtAuthGuard implements CanActivate {
 
       return true;
     } catch (error) {
-      throw new UnauthorizedException('Invalid or expired access token');
+      // Проверяем тип ошибки токена
+      if (error.message === 'TOKEN_EXPIRED') {
+        throw new HttpException(
+          {
+            statusCode: 401,
+            error: 'TOKEN_EXPIRED',
+            message: 'Access token has expired',
+          },
+          HttpStatus.UNAUTHORIZED,
+        );
+      }
+
+      // Для других ошибок токена
+      throw new UnauthorizedException('Invalid access token');
     }
   }
 

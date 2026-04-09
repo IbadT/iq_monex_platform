@@ -4,7 +4,7 @@ export class Specification {
   id: number;
   name: Record<string, string>;
 
-  static fromPrisma(specification: Specification): Specification {
+  static fromPrisma(specification: any): Specification {
     return new Specification(specification.id, specification.name);
   }
 

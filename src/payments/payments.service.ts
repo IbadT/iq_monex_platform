@@ -34,10 +34,36 @@ export class PaymentsService {
     const tariff = await this.tariffsService.getTariffById(body.tariffId);
 
     const tariffData = tariff;
-    const amount = Number(tariffData.price);
+    let amount = Number(tariffData.price);
     const daysCount = tariffData.baseDays;
     const currency = tariffData.currencyCode;
     const currencyCode = tariffData.currencyCode;
+
+    // Проверяем скидку 50% для EXTEND_BASE_SUBSCRIPTION
+    let discountApplied = false;
+    let discountPercent = 0;
+    if (body.paymentType === PaymentType.EXTEND_BASE_SUBSCRIPTION) {
+      const participant = await prisma.promoCampaignParticipant.findFirst({
+        where: {
+          userId,
+          freePeriodGranted: true,
+          discountUsed: false,
+          droppedOut: false,
+        },
+        include: { campaign: true },
+      });
+
+      if (participant && participant.campaign) {
+        // Проверяем что скидка доступна (дата начала скидочного периода)
+        const now = new Date();
+        if (participant.discountAvailableAt && now >= participant.discountAvailableAt) {
+          discountPercent = participant.campaign.subsequentDiscount; // 50%
+          amount = amount * (1 - discountPercent / 100); // Применяем скидку
+          discountApplied = true;
+          this.logger.log(`Applied ${discountPercent}% discount for user ${userId}, new amount: ${amount}`);
+        }
+      }
+    }
 
     this.logger.log(
       `Create payment for user ${userId}: type=${body.paymentType}, tariff=${body.tariffId}, amount=${amount}, days=${daysCount}`,
@@ -111,6 +137,8 @@ export class PaymentsService {
           currency,
           daysCount,
           paymentId,
+          discountApplied,
+          discountPercent,
         },
       });
 
@@ -729,9 +757,49 @@ export class PaymentsService {
             itemId: subscription.id,
             quantity: 1,
             unitPrice: paymentData.amount,
-            description: `Продление базовой подписки на ${daysCount} дней`,
+            description: `Продление базовой подписки на ${daysCount} дней${paymentData.discountApplied ? ` (со скидкой ${paymentData.discountPercent}%)` : ''}`,
           },
         });
+
+        // Если была применена скидка - активируем скидочный период и отмечаем скидку как использованную
+        if (paymentData.discountApplied) {
+          this.logger.log(
+            `[handleExtendBaseSubscription] Activating discount period for user ${userId}`,
+          );
+
+          // Находим скидочный период (DISCOUNTED) без paymentId и обновляем его
+          const discountedPeriod = await tx.subscriptionPeriod.findFirst({
+            where: {
+              subscriptionId: subscription.id,
+              periodType: 'DISCOUNTED',
+              paymentId: null, // Ещё не оплачен
+            },
+          });
+
+          if (discountedPeriod) {
+            await tx.subscriptionPeriod.update({
+              where: { id: discountedPeriod.id },
+              data: { paymentId: paymentId },
+            });
+            this.logger.log(
+              `[handleExtendBaseSubscription] Discount period ${discountedPeriod.id} activated with payment ${paymentId}`,
+            );
+          }
+
+          // Отмечаем скидку как использованную
+          await tx.promoCampaignParticipant.updateMany({
+            where: {
+              userId,
+              discountUsed: false,
+              freePeriodGranted: true,
+            },
+            data: { discountUsed: true },
+          });
+
+          this.logger.log(
+            `[handleExtendBaseSubscription] Discount marked as used for user ${userId}`,
+          );
+        }
 
         // Обновляем expiresAt существующих слотов или создаем новые
         const existingSlots = await tx.userSlot.findMany({

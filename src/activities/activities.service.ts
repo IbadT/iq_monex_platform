@@ -120,10 +120,12 @@ export class ActivitiesService {
       if (error.code === 'P2002') {
         throw new ConflictException('User already has this activity');
       }
-      this.logger.error(
-        `[handleCreateActivity] ERROR: ${error.message}`,
-        error.stack,
-      );
+      if (error instanceof Error) {
+        this.logger.error(
+          `[handleCreateActivity] ERROR: ${error.message}`,
+          error.stack,
+        );
+      }
       throw error;
     }
   }
@@ -259,10 +261,12 @@ export class ActivitiesService {
         await this.processActivityAction(activity, userId, tx);
       }
     } catch (error) {
-      this.logger.error(
-        `[Activities] ERROR in processActivities: ${error.message}`,
-        error.stack,
-      );
+      if (error instanceof Error) {
+        this.logger.error(
+          `[Activities] ERROR in processActivities: ${error.message}`,
+          error.stack,
+        );
+      }
       throw error;
     }
   }

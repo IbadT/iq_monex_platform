@@ -120,6 +120,7 @@ describe('ListingsController', () => {
       expect(listingsService.listingById).toHaveBeenCalledWith(
         listingId,
         query,
+        undefined,
       );
       expect(result).toEqual(mockListing);
     });

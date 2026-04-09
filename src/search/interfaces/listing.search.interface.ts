@@ -15,6 +15,12 @@ export interface IListingSearchBody {
   };
   tags?: string[];
   status: 'active' | 'inactive' | 'deleted';
+  contacts?: {
+    id: string;
+    phone: string | null;
+    email: string | null;
+    type: string;
+  } | null;
 }
 
 export interface IListingSearchResult {

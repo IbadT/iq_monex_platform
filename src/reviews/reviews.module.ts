@@ -14,6 +14,7 @@ import { CategoriesService } from '@/categories/categories.service';
 import { DictionariesService } from '@/dictionaries/dictionaries.service';
 import { MapLocationsService } from '@/map_locations/map_locations.service';
 import { FileService } from '@/s3/file.service';
+import { PromoModule } from '@/promo/promo.module';
 
 @Module({
   imports: [
@@ -21,6 +22,7 @@ import { FileService } from '@/s3/file.service';
     RedisCacheModule,
     SubscriptionServiceModule,
     SearchModule,
+    PromoModule,
   ],
   controllers: [ReviewsController],
   providers: [

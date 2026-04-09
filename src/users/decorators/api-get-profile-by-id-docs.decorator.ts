@@ -6,13 +6,13 @@ import { FullProfileResponseDto } from '../dto/response/full-profile-response.dt
 export function ApiGetProfileByIdDocs() {
   return applyDecorators(
     ApiOperation({
-      summary: 'Получить профиль по ID',
+      summary: 'Получить профиль по ID пользователя',
       description:
         'Возвращает информацию о профиле по указанному идентификатору',
     }),
     ApiParam({
       name: 'id',
-      description: 'UUID профиля',
+      description: 'UUID пользователя',
       required: true,
       example: '550e8400-e29b-41d4-a716-446655440000',
     }),

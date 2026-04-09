@@ -20,7 +20,7 @@ CREATE TYPE "listing_status" AS ENUM ('DRAFT', 'PUBLISHED', 'ARCHIVED', 'TEMPLAT
 CREATE TYPE "listing_condition" AS ENUM ('NEW', 'USED');
 
 -- CreateEnum
-CREATE TYPE "map_location_type" AS ENUM ('OFFICE', 'WAREHOUSE', 'OTHER');
+CREATE TYPE "map_location_type" AS ENUM ('OFFICE', 'WAREHOUSE');
 
 -- CreateEnum
 CREATE TYPE "file_owner_type" AS ENUM ('USER', 'LISTING');

@@ -12,7 +12,6 @@ import {
 export enum MapLocationType {
   OFFICE = 'OFFICE',
   WAREHOUSE = 'WAREHOUSE',
-  OTHER = 'OTHER',
 }
 
 export enum LocationAction {
@@ -75,17 +74,36 @@ export class CreateMapLocationDto {
   @IsNotEmpty({ message: 'Адрес обязателен' })
   address: string;
 
+  @ApiProperty({
+    description: "Страна",
+    example: "Россия",
+    required: true,
+  })
+  @IsString({ message: "Страна должна быть строкой" })
+  @IsNotEmpty({ message: "Страна обязательна" })
+  country: string;
+
+  @ApiProperty({
+    description: "Город",
+    example: "Москва",
+    required: true,
+  })
+  @IsString({ message: "Город должен быть строкой" })
+  @IsNotEmpty({ message: "Город обязателен" })
+  city: string;
+
   @ApiPropertyOptional({
     description:
       'Действие с локацией (CREATE - создать новую, UPDATE - обновить существующую, IGNORE - не трогать)',
     enum: LocationAction,
     example: LocationAction.CREATE,
-    required: true,
+    required: false,
   })
+  @IsOptional()
   @IsEnum(LocationAction, {
     message: 'Неверное действие с локацией',
   })
-  action: LocationAction;
+  action?: LocationAction;
 
   constructor(
     id: string | null,
@@ -93,13 +111,17 @@ export class CreateMapLocationDto {
     latitude: number,
     longitude: number,
     address: string,
-    action: LocationAction,
+    country: string,
+    city: string,
+    action?: LocationAction,
   ) {
     this.id = id;
     this.type = type;
     this.latitude = latitude;
     this.longitude = longitude;
     this.address = address;
-    this.action = action;
+    this.country = country;
+    this.city = city;
+    this.action = action || LocationAction.CREATE;
   }
 }

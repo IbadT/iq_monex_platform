@@ -5,7 +5,9 @@ export interface ListingDocument {
   price: number | null;
   status: string;
   userId: string;
-  subcategoryId: number;
+  categoryId: number | null;
+  subcategoryId: number | null;
+  subsubcategoryId: number | null;
   currencyId: number | null;
   priceUnitId: number | null;
   condition: string | null;
@@ -22,18 +24,18 @@ export interface ListingDocument {
   autoDeleteAt: Date | null;
   lastUsedAt: Date | null;
   // Связанные данные - как в Prisma
-  category?: {
+  category: {
     id: number;
     name: string;
     parentId: number | null;
-  };
-  currency?: {
+  } | null;
+  currency: {
     id: number;
     name: any;
     code: string;
     symbol: string;
   } | null;
-  priceUnit?: {
+  priceUnit: {
     id: number;
     name: any;
   } | null;
@@ -55,4 +57,10 @@ export interface ListingDocument {
     unitId: number | null;
     isRequired: boolean;
   }>;
+  contacts?: {
+    id: string;
+    phone: string | null;
+    email: string | null;
+    type: string;
+  } | null;
 }

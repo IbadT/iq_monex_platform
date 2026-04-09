@@ -1,6 +1,7 @@
 import { applyDecorators } from '@nestjs/common';
 import { ApiQuery, ApiOperation, ApiResponse } from '@nestjs/swagger';
 import { ListingStatus } from '../enums/listing-status.enum';
+import { ListingListResponseDto } from '../dto/response/listing-list-response.dto';
 
 // Enum для состояния
 enum ListingCondition {
@@ -125,93 +126,7 @@ GET /listings?status=TEMPLATE&condition=USED
     ApiResponse({
       status: 200,
       description: 'Список объявлений успешно получен',
-      schema: {
-        type: 'object',
-        properties: {
-          rows: {
-            type: 'array',
-            items: {
-              type: 'object',
-              properties: {
-                id: {
-                  type: 'string',
-                  example: '123e4567-e89b-12d3-a456-426614174000',
-                  description: 'UUID объявления',
-                },
-                categoryId: {
-                  type: 'number',
-                  example: 1,
-                  description: 'ID категории',
-                },
-                title: {
-                  type: 'string',
-                  example: 'iPhone 13 Pro Max',
-                  description: 'Заголовок объявления',
-                },
-                description: {
-                  type: 'string',
-                  example: 'Отличное состояние, использовался 6 месяцев',
-                  description: 'Описание объявления',
-                },
-                price: {
-                  type: 'number',
-                  example: 85000,
-                  description: 'Цена объявления',
-                },
-                condition: {
-                  type: 'string',
-                  enum: ['NEW', 'USED'],
-                  example: 'USED',
-                  description: 'Состояние товара',
-                },
-                status: {
-                  type: 'string',
-                  enum: ['DRAFT', 'PUBLISHED', 'TEMPLATE', 'ARCHIVED'],
-                  example: 'PUBLISHED',
-                  description: 'Статус объявления',
-                },
-                createdAt: {
-                  type: 'string',
-                  format: 'date-time',
-                  example: '2024-01-15T10:30:00Z',
-                  description: 'Дата создания',
-                },
-                updatedAt: {
-                  type: 'string',
-                  format: 'date-time',
-                  example: '2024-01-15T10:30:00Z',
-                  description: 'Дата обновления',
-                },
-              },
-            },
-          },
-          pagination: {
-            type: 'object',
-            properties: {
-              total: {
-                type: 'number',
-                example: 150,
-                description: 'Общее количество объявлений',
-              },
-              limit: {
-                type: 'number',
-                example: 20,
-                description: 'Количество на странице',
-              },
-              offset: {
-                type: 'number',
-                example: 0,
-                description: 'Текущее смещение',
-              },
-              hasMore: {
-                type: 'boolean',
-                example: true,
-                description: 'Есть ли еще объявления',
-              },
-            },
-          },
-        },
-      },
+      type: ListingListResponseDto,
     }),
     ApiResponse({
       status: 400,

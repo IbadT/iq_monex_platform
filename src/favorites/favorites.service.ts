@@ -102,13 +102,46 @@ export class FavoriteService {
         userId,
       },
       include: {
-        listing: true,
+        listing: {
+          include: {
+            category: true,
+            subcategory: true,
+            subsubcategory: true,
+            currency: true,
+            priceUnit: true,
+            files: true,
+            locations: true,
+            specifications: {
+              include: {
+                specification: true,
+              },
+            },
+            user: {
+              select: {
+                id: true,
+                name: true,
+                files: {
+                  where: { kind: 'AVATAR' },
+                  select: { url: true },
+                },
+              },
+            },
+          },
+        },
       },
     });
 
+    // Загружаем контакты для всех объявлений
+    const contactDataMap = await this.getContactsForListings(
+      list.map((f) => f.listing).filter(Boolean) as any[],
+    );
+
     const response = list.map((favorite) => {
+      const contactData = favorite.listing
+        ? contactDataMap.get(favorite.listing.id) || null
+        : null;
       const listingDto = favorite.listing
-        ? ListingMapper.toResponse(favorite.listing)
+        ? ListingMapper.toResponse(favorite.listing, contactData)
         : null;
 
       return new FavoriteByIdResponseDto(
@@ -132,6 +165,59 @@ export class FavoriteService {
     }
 
     return response;
+  }
+
+  /**
+   * Получает данные контактов для списка объявлений (batch)
+   */
+  private async getContactsForListings(
+    listings: any[],
+  ): Promise<Map<string, { phone: string | null; email: string | null }>> {
+    const contactDataMap = new Map<string, { phone: string | null; email: string | null }>();
+
+    await Promise.all(
+      listings.map(async (listing) => {
+        if (!listing.contactId || !listing.contactType) {
+          return;
+        }
+
+        try {
+          let contactData: { phone: string | null; email: string | null } | null = null;
+
+          if (listing.contactType === 'WORKER') {
+            const worker = await prisma.worker.findUnique({
+              where: { id: listing.contactId },
+              select: { phone: true, email: true },
+            });
+            if (worker) {
+              contactData = { phone: worker.phone, email: worker.email };
+            }
+          } else if (listing.contactType === 'USER') {
+            const user = await prisma.user.findUnique({
+              where: { id: listing.contactId },
+              include: { profile: { select: { phone: true } } },
+            });
+            if (user) {
+              contactData = {
+                phone: user.profile?.phone || null,
+                email: user.email,
+              };
+            }
+          }
+
+          if (contactData) {
+            contactDataMap.set(listing.id, contactData);
+          }
+        } catch (error) {
+          this.logger.error(
+            `Error fetching contact data for ${listing.contactType} ${listing.contactId}:`,
+            error,
+          );
+        }
+      }),
+    );
+
+    return contactDataMap;
   }
 
   async getById(id: string): Promise<FavoriteByIdResponseDto | null> {
@@ -179,6 +265,20 @@ export class FavoriteService {
     body: CreateFavoriteDto,
   ): Promise<CreateFavoriteResponseDto> {
     const cacheKey = `favorites/userId:${userId}`;
+
+    // Проверяем, не добавлено ли уже в избранное
+    const existingFavorite = await prisma.favorite.findFirst({
+      where: {
+        userId,
+        listingId: body.listingId,
+        type: FavoriteType.LISTING,
+      },
+    });
+
+    if (existingFavorite) {
+      throw new BadRequestException('Объявление уже добавлено в избранное');
+    }
+
     const createdFavorite = await prisma.favorite.create({
       data: {
         userId,

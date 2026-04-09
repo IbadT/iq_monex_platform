@@ -1,4 +1,4 @@
-import { SpecificationResponseDto } from '@/attributes/dto/response/specification.dto';
+import { ListingSpecificationResponseDto } from './listing-specification-response.dto';
 import { CategoryResponseDto } from '@/categories/dto/response/categories-response.dto';
 import { CurrenciesResponseDto } from '@/dictionaries/dto/response/currencies-response.dto';
 import { MapLocationResponseDto } from '@/map_locations/dto/response/map-enterprice.response.dto';
@@ -6,6 +6,8 @@ import { ApiProperty } from '@nestjs/swagger';
 import { Decimal } from '@prisma/client/runtime/index-browser';
 import { UserListingResponseDto } from './user-listing-response.dto';
 import { ListingFileResponseDto } from './listing-file-response.dto';
+import { ListingContactResponseDto } from './listing-contact-response.dto';
+import { ListingSubscriptionResponseDto } from './listing-subscription-response.dto';
 
 export class ListingResposeDto {
   @ApiProperty({
@@ -16,12 +18,6 @@ export class ListingResposeDto {
   })
   id: string;
 
-  @ApiProperty({
-    description: 'ID подкатегории',
-    example: 1,
-    type: 'integer',
-  })
-  subcategoryId: number;
 
   @ApiProperty({
     description: 'Заголовок объявления',
@@ -91,13 +87,35 @@ export class ListingResposeDto {
   favoritesCount: number;
 
   @ApiProperty({
-    description: 'Описание категории',
-    type: () => CategoryResponseDto,
+    description: 'Добавлено ли объявление в избранное текущим пользователем',
+    example: false,
+    type: 'boolean',
   })
-  category: CategoryResponseDto;
+  isFavorite: boolean;
 
   @ApiProperty({
-    description: 'Описание валюты',
+    description: 'Данные категории',
+    type: () => CategoryResponseDto,
+    nullable: true,
+  })
+  category: CategoryResponseDto | null;
+
+  @ApiProperty({
+    description: 'Данные подкатегории',
+    type: () => CategoryResponseDto,
+    nullable: true,
+  })
+  subcategory: CategoryResponseDto | null;
+
+  @ApiProperty({
+    description: 'Данные под-подкатегории',
+    type: () => CategoryResponseDto,
+    nullable: true,
+  })
+  subsubcategory: CategoryResponseDto | null;
+
+  @ApiProperty({
+    description: 'Данные валюты',
     type: () => CurrenciesResponseDto,
   })
   currency: CurrenciesResponseDto | null;
@@ -130,10 +148,10 @@ export class ListingResposeDto {
   locations: MapLocationResponseDto[];
 
   @ApiProperty({
-    description: 'Описание спецификации',
-    type: () => [SpecificationResponseDto],
+    description: 'Характеристики объявления',
+    type: () => [ListingSpecificationResponseDto],
   })
-  specifications: SpecificationResponseDto[];
+  specifications: ListingSpecificationResponseDto[];
 
   @ApiProperty({
     description: 'Данные пользователя',
@@ -141,9 +159,22 @@ export class ListingResposeDto {
   })
   user: UserListingResponseDto;
 
+  @ApiProperty({
+    description: 'Контактные данные для объявления',
+    type: () => ListingContactResponseDto,
+    required: true,
+    nullable: true,
+  })
+  contacts: ListingContactResponseDto | null;
+
+  @ApiProperty({
+    description: 'Информация о подписке пользователя',
+    type: () => ListingSubscriptionResponseDto,
+  })
+  subscription: ListingSubscriptionResponseDto;
+
   constructor(
     id: string,
-    subcategoryId: number,
     title: string | null,
     description: string | null,
     price: Decimal | null,
@@ -153,17 +184,21 @@ export class ListingResposeDto {
     commentsCount: number,
     viewsCount: number,
     favoritesCount: number,
-    category: CategoryResponseDto,
+    category: CategoryResponseDto | null,
+    subcategory: CategoryResponseDto | null,
+    subsubcategory: CategoryResponseDto | null,
     currency: CurrenciesResponseDto | null,
     priceUnit: any,
     files: ListingFileResponseDto[],
     images: ListingFileResponseDto[],
     locations: MapLocationResponseDto[],
-    specifications: SpecificationResponseDto[],
+    specifications: ListingSpecificationResponseDto[],
     user: UserListingResponseDto,
+    contacts: ListingContactResponseDto | null,
+    subscription: ListingSubscriptionResponseDto,
+    isFavorite: boolean,
   ) {
     this.id = id;
-    this.subcategoryId = subcategoryId;
     this.title = title;
     this.description = description;
     this.price = price;
@@ -173,13 +208,18 @@ export class ListingResposeDto {
     this.commentsCount = commentsCount;
     this.viewsCount = viewsCount;
     this.favoritesCount = favoritesCount;
+    this.isFavorite = isFavorite;
     this.category = category;
+    this.subcategory = subcategory;
+    this.subsubcategory = subsubcategory;
     this.currency = currency;
+    this.subscription = subscription;
     ((this.priceUnit = priceUnit),
       (this.files = files),
       (this.images = images));
     this.locations = locations;
     this.specifications = specifications;
     this.user = user;
+    this.contacts = contacts;
   }
 }

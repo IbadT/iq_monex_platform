@@ -25,12 +25,12 @@ import { ApiCreateReviewToUserDocs } from './decorators/api-create-review-to-use
 import { ApiGetUserReviewsDocs } from './decorators/api-get-user-reviews-docs.decorator';
 // import { AppLogger } from '@/common/logger/logger.service';
 import { Admin, Protected } from '@/common/decorators';
-import { PaginationDto } from '@/common/dto/pagintation.dto';
 import { CreateReviewToUserDto } from '@/reviews/dto/create-review.to-user.dto';
 import { GetReviewsDto } from './dto/response/get-reviews.dto';
 import { CreateReviesResponseDto } from './dto/response/create-reviews-response.dto';
 import { ReviewResponseDto } from './dto/response/review-by-id-response.dto';
 import { ListingReviewsQueryDto } from './dto/request/listing-reviews-query.dto';
+import { UserReviewsQueryDto } from './dto/request/user-reviews-query.dto';
 
 // TODO: добавить логику для выставления лайков коментариям
 // TODO: добавить логику удаления коментария
@@ -42,11 +42,12 @@ export class ReviewsController {
   ) {}
 
   @Get('users/:id')
-  @Protected()
+  // @Protected()
   @ApiGetUserReviewsDocs()
   async getUserReviews(
     @Param('id', ParseUUIDPipe) id: string,
-    @Query() query: PaginationDto,
+    // @Query() query: PaginationDto,
+    @Query() query: UserReviewsQueryDto,
   ): Promise<GetReviewsDto[]> {
     return await this.reviewsService.getUserReviews(id, query);
   }

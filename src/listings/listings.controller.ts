@@ -9,6 +9,7 @@ import {
   Delete,
   HttpCode,
   HttpStatus,
+  UseGuards,
 } from '@nestjs/common';
 import { ListingsService } from './listings.service';
 import { ListingQueryDto } from './dto/request/listing-query.dto';
@@ -37,6 +38,8 @@ import { CreateListingResponseDto } from './dto/response/create-listing-response
 import { ChangeStatusResponseDto } from './dto/response/change-status-response.dto';
 import { BulkRestoreResponseDto } from './dto/response/bulk-restore-response.dto';
 import { CreateListingComplaintResponseDto } from './dto/response/create-listing-complaint-response.dto';
+import { ListingListResponseDto } from './dto/response/listing-list-response.dto';
+import { OptionalJwtAuthGuard } from '@/common/guards/optional-jwt-auth.guard';
 
 @Controller('listings')
 export class ListingsController {
@@ -44,7 +47,7 @@ export class ListingsController {
 
   @Get('')
   @ApiListingQueryDocs()
-  async listingList(@Query() query: ListingQueryDto) {
+  async listingList(@Query() query: ListingQueryDto): Promise<ListingListResponseDto> {
     // Если есть поисковый запрос, используем Elasticsearch
     return await this.listingsService.searchListings(query);
     // if (query.search) {
@@ -54,12 +57,14 @@ export class ListingsController {
   }
 
   @Get(':id')
+  @UseGuards(OptionalJwtAuthGuard)
   @ApiListingByIdDocs()
   async listingById(
     @Param('id', ParseUUIDPipe) id: string,
     @Query() query: StatusQueryDto,
+    @CurrentUser() user?: JwtPayload,
   ): Promise<ListingResposeDto> {
-    return await this.listingsService.listingById(id, query);
+    return await this.listingsService.listingById(id, query, user?.id);
   }
 
   @Get(':listingId/recomends')
@@ -88,6 +93,15 @@ export class ListingsController {
     @Body() body: CreateListingDto,
   ): Promise<CreateListingResponseDto> {
     return await this.listingsService.createListing(user.id, body);
+  }
+
+  // TODO: ДЛЯ БОТА В АБМИНКЕ
+  @Post(':id/archive')
+  async archiveListingByIdWithReason(
+    @Param('id', ParseUUIDPipe) id: string,
+    @Body('reason') reason: string,
+  ): Promise<{ message: string }> {
+    return await this.listingsService.archiveListingByIdWithReason(id, reason);
   }
 
   // изменить статус объявления

@@ -13,6 +13,7 @@ import { User } from '@/users/entities/user.entity';
 import { RoleType } from '@/users/enums/role-type.enum';
 import { LoginResponseDto } from './dto/response/login-response.dto';
 import { UserLoginResponseDto } from './dto/response/user-login-response.dto';
+import { PromoParticipantService } from '@/promo/promo_participant.service';
 
 describe('AuthService', () => {
   let service: AuthService;
@@ -94,6 +95,12 @@ describe('AuthService', () => {
           useValue: {
             get: jest.fn(),
             getOrThrow: jest.fn(),
+          },
+        },
+        {
+          provide: PromoParticipantService,
+          useValue: {
+            joinActiveCampaign: jest.fn(),
           },
         },
       ],
@@ -267,6 +274,8 @@ describe('AuthService', () => {
         updatedAt: new Date(),
         reviewsCount: 0,
         roleId: 'role-123',
+        isBanned: false,
+        banReason: null,
         role: {
           id: 'role-123',
           role: 'USER',

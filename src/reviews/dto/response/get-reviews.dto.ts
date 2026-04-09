@@ -17,6 +17,13 @@ export class GetReviewsDto {
   authorId: string;
 
   @ApiProperty({
+    description: 'Имя автора отзыва',
+    example: 'Иван Иванов',
+    type: 'string',
+  })
+  authorName: string;
+
+  @ApiProperty({
     description: 'Url аватара пользователя',
     example: '',
     type: 'string',
@@ -135,6 +142,7 @@ export class GetReviewsDto {
     avatarUrl: string,
     images: ListingFileResponseDto[],
     authorId: string,
+    authorName: string,
     targetType: string,
     listingId: string | null,
     targetUserId: string | null,
@@ -154,6 +162,7 @@ export class GetReviewsDto {
     this.avatarUrl = avatarUrl;
     this.images = images;
     this.authorId = authorId;
+    this.authorName = authorName;
     this.targetType = targetType;
     this.listingId = listingId;
     this.targetUserId = targetUserId;

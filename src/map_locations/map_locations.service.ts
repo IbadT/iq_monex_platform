@@ -50,6 +50,8 @@ export class MapLocationsService {
         longitude: map.longitude,
         address: map.address,
         listingId: listingId,
+        country: map.country,
+        city: map.city,
         // Добавляем geoHash для быстрого поиска
         geoHash: ngeohash.encode(map.latitude, map.longitude, 7),
       })),
@@ -138,6 +140,8 @@ export class MapLocationsService {
         address: true,
         type: true,
         userId: true,
+        country: true,
+        city: true,
         // user: {
         //   select: {
         //     id: true,
@@ -218,10 +222,12 @@ export class MapLocationsService {
       (i) =>
         new MapLocationResponseDto(
           i.id,
-          i.type,
+          i.type as 'OFFICE' | 'WAREHOUSE',
           i.address,
           i.latitude,
           i.longitude,
+          i.country,
+          i.city,
         ),
     );
   }
@@ -324,6 +330,8 @@ export class MapLocationsService {
         latitude: location.latitude,
         longitude: location.longitude,
         address: location.address,
+        country: location.country,
+        city: location.city,
         geoHash: geoHash,
       },
     });

@@ -11,7 +11,6 @@ import { TransactionClient } from 'prisma/generated/internal/prismaNamespace';
 import { ReviewTargetType } from './enums/review-target-type.enum';
 import { CacheService } from '@/cache/cacheService.service';
 import { FILE_KIND, ListingStatus } from '@/listings/enums/listing-status.enum';
-import { PaginationDto } from '@/common/dto/pagintation.dto';
 import { CreateReviewToUserDto } from './dto/create-review.to-user.dto';
 import { S3Service } from '@/s3/s3.service';
 import { RabbitmqService } from '@/rabbitmq/rabbitmq.service';
@@ -21,6 +20,7 @@ import { CreateReviesResponseDto } from './dto/response/create-reviews-response.
 import { ReviewResponseDto } from './dto/response/review-by-id-response.dto';
 import { ReviewMapper } from './mappers/review.mapper';
 import { ListingReviewsQueryDto } from './dto/request/listing-reviews-query.dto';
+import { UserReviewsQueryDto } from './dto/request/user-reviews-query.dto';
 
 @Injectable()
 export class ReviewsService {
@@ -33,17 +33,51 @@ export class ReviewsService {
 
   async getUserReviews(
     userId: string,
-    query: PaginationDto,
+    query: UserReviewsQueryDto,
   ): Promise<GetReviewsDto[]> {
-    const reviews = await prisma.review.findMany({
-      where: {
-        targetUserId: userId,
-        targetType: ReviewTargetType.USER,
-      },
+    // Формируем условия where
+    const where: any = {
+      targetUserId: userId,
+      targetType: ReviewTargetType.USER,
+    };
+
+    // Фильтр по наличию фото
+    if (query.hasPhoto === true) {
+      where.files = {
+        some: {},
+      };
+    } else if (query.hasPhoto === false) {
+      where.files = {
+        none: {},
+      };
+    }
+
+    // Формируем сортировку
+    const orderBy: any[] = [];
+
+    // Сортировка по рейтингу (positive_rate_first)
+    if (query.positiveRateFirst === true) {
+      orderBy.push({ rating: 'desc' });
+    } else if (query.positiveRateFirst === false) {
+      orderBy.push({ rating: 'asc' });
+    }
+
+    // Сортировка по дате (new_first)
+    if (query.newFirst === true) {
+      orderBy.push({ createdAt: 'desc' });
+    } else if (query.newFirst === false) {
+      orderBy.push({ createdAt: 'asc' });
+    }
+
+    // Строим объект запроса
+    const findManyArgs: any = {
+      where,
       include: {
         files: true,
         author: {
-          include: {
+          select: {
+            id: true,
+            name: true,
             files: {
               where: {
                 kind: FILE_KIND.AVATAR,
@@ -58,7 +92,13 @@ export class ReviewsService {
       },
       take: query.limit,
       skip: query.offset,
-    });
+    };
+
+    if (orderBy.length > 0) {
+      findManyArgs.orderBy = orderBy;
+    }
+
+    const reviews = await prisma.review.findMany(findManyArgs);
 
     return ReviewMapper.toGetReviewsDtoList(reviews);
   }

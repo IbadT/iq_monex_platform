@@ -1,4 +1,12 @@
-import { Body, Controller, Get, Patch, Post } from '@nestjs/common';
+import {
+  Body,
+  Controller,
+  Delete,
+  Get,
+  Param,
+  Patch,
+  Post,
+} from '@nestjs/common';
 import { WorkersService } from './workers.service';
 import { CreateWorkersDto } from './dto/create-workers.dto';
 import { ChangeWorkerStatus } from './dto/change-worker-status.dto';
@@ -19,7 +27,7 @@ import {
   RoleResponseDto,
 } from './dto/response/role-response.dto';
 import { CreateWorkerResponseDto } from './dto/response/create-worker.dto';
-import { ChangeStatusResponseDto } from './dto/response/change-status.dto';
+import { ChangeWorkerStatusResponseDto } from './dto/response/change-status.dto';
 import { UpdateWorkerResponseDto } from './dto/response/update-worker.dto';
 
 @Controller('workers')
@@ -44,7 +52,7 @@ export class WorkersController {
   async changeWorkerActiveStatus(
     @CurrentUser() user: JwtPayload,
     @Body() body: ChangeWorkerStatus,
-  ): Promise<ChangeStatusResponseDto> {
+  ): Promise<ChangeWorkerStatusResponseDto> {
     return await this.workersService.changeWorkerActiveStatus(body.id, user.id);
   }
 
@@ -67,6 +75,20 @@ export class WorkersController {
   @ApiCreateRoleDocs()
   async createRole(@Body() body: CreateRoleDto): Promise<RoleResponseDto> {
     return await this.workersService.createRole(body);
+  }
+
+  @Patch('roles/:id')
+  async updateRole(@Param('id') id: string, @Body() body: { role: string }) {
+    return await this.workersService.updateRole(id, body.role);
+  }
+
+  @Delete('roles/:id')
+  async deleteWorkerRole(@Param('id') id: string) {
+    const result = await this.workersService.deleteWorkerRole(id);
+    return {
+      success: true,
+      data: result
+    };
   }
 
   // ? ДОБАВИТЬ ОТВЕТ

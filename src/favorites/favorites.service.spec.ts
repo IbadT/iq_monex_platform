@@ -108,7 +108,32 @@ describe('FavoriteService', () => {
           userId,
         },
         include: {
-          listing: true,
+          listing: {
+            include: {
+              category: true,
+              subcategory: true,
+              subsubcategory: true,
+              currency: true,
+              priceUnit: true,
+              files: true,
+              locations: true,
+              specifications: {
+                include: {
+                  specification: true,
+                },
+              },
+              user: {
+                select: {
+                  id: true,
+                  name: true,
+                  files: {
+                    where: { kind: 'AVATAR' },
+                    select: { url: true },
+                  },
+                },
+              },
+            },
+          },
         },
       });
 

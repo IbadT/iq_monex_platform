@@ -12,6 +12,7 @@ import { CategoriesService } from '@/categories/categories.service';
 import { DictionariesService } from '@/dictionaries/dictionaries.service';
 import { MapLocationsService } from '@/map_locations/map_locations.service';
 import { FileService } from '@/s3/file.service';
+import { PromoParticipantService } from '@/promo/promo_participant.service';
 
 describe('ListingsService', () => {
   let service: ListingsService;
@@ -117,6 +118,12 @@ describe('ListingsService', () => {
             replaceListingFilesArray: jest.fn(),
           },
         },
+        {
+          provide: PromoParticipantService,
+          useValue: {
+            checkUserConditions: jest.fn(),
+          },
+        },
       ],
     }).compile();
 
@@ -155,6 +162,7 @@ describe('ListingsService', () => {
           locations: [{ id: 'loc-1', city: 'Moscow' }],
           specifications: [{ id: 'spec-1', name: 'Color', value: 'Black' }],
           listingSlot: { id: 'slot-1', userSlot: { id: 'user-slot-1' } },
+          user: { id: 'user-1', name: 'Test User', files: [] },
           createdAt: new Date(),
           updatedAt: new Date(),
         },
@@ -172,6 +180,7 @@ describe('ListingsService', () => {
           locations: [{ id: 'loc-2', city: 'St. Petersburg' }],
           specifications: [{ id: 'spec-2', name: 'Author', value: 'John Doe' }],
           listingSlot: { id: 'slot-2', userSlot: { id: 'user-slot-2' } },
+          user: { id: 'user-2', name: 'Test User 2', files: [] },
           createdAt: new Date(),
           updatedAt: new Date(),
         },
@@ -204,7 +213,11 @@ describe('ListingsService', () => {
           priceUnit: true,
           files: true,
           locations: true,
-          specifications: true,
+          specifications: {
+            include: {
+              specification: true,
+            },
+          },
           listingSlot: {
             include: {
               userSlot: true,
@@ -232,25 +245,16 @@ describe('ListingsService', () => {
         skip: 0,
       });
 
-      expect(result).toEqual({
-        rows: [
-          {
-            ...mockListings[0],
-            photos: [{ id: 'file-1', kind: 'PHOTO', url: 'photo1.jpg' }],
-            files: [{ id: 'file-2', kind: 'DOCUMENT', url: 'doc1.pdf' }],
-          },
-          {
-            ...mockListings[1],
-            photos: [{ id: 'file-3', kind: 'PHOTO', url: 'photo2.jpg' }],
-            files: [],
-          },
-        ],
-        pagination: {
-          total: 2,
-          limit: 10,
-          offset: 0,
-          hasMore: false,
-        },
+      // Verify result has correct structure (DTOs, not plain objects)
+      expect(result.rows).toHaveLength(2);
+      expect(result.rows[0]).toHaveProperty('id', 'listing-1');
+      expect(result.rows[0]).toHaveProperty('title', 'Test Listing 1');
+      expect(result.rows[1]).toHaveProperty('id', 'listing-2');
+      expect(result.pagination).toEqual({
+        total: 2,
+        limit: 10,
+        offset: 0,
+        hasMore: false,
       });
     });
 
@@ -269,6 +273,7 @@ describe('ListingsService', () => {
           locations: [],
           specifications: [],
           listingSlot: { id: 'slot-1', userSlot: { id: 'user-slot-1' } },
+          user: { id: 'user-1', name: 'Test User', files: [] },
           createdAt: new Date(),
           updatedAt: new Date(),
         },

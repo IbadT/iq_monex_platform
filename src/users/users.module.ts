@@ -16,11 +16,13 @@ import { RabbitmqModule } from '@/rabbitmq/rabbitmq.module';
 import { UserCoreService } from './user-core.service';
 import { ProfileService } from './profile.service';
 import { FileService } from '@/s3/file.service';
+import { GuardsModule } from '@/common/guards/guards.module';
 
 @Module({
   imports: [
     RedisCacheModule,
     JwtAuthModule,
+    GuardsModule,
     WorkersModule,
     ActivitiesModule,
     MapLocationsModule,
