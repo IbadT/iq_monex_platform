@@ -88,7 +88,6 @@ describe('ReviewsController', () => {
 
       const createReviewDto: CreateReviewDto = new CreateReviewDto(
         'listing-123',
-        'Great listing',
         'Excellent product, highly recommend',
         5,
         ['data:image/png;base64,test'],

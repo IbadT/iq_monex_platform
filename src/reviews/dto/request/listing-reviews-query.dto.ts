@@ -1,6 +1,13 @@
 import { ApiPropertyOptional, ApiProperty } from '@nestjs/swagger';
 import { Type } from 'class-transformer';
-import { IsOptional, IsInt, IsBoolean, IsUUID, Min, Max } from 'class-validator';
+import {
+  IsOptional,
+  IsInt,
+  IsBoolean,
+  IsUUID,
+  Min,
+  Max,
+} from 'class-validator';
 
 export class ListingReviewsQueryDto {
   @ApiProperty({
@@ -39,7 +46,8 @@ export class ListingReviewsQueryDto {
   offset?: number = 0;
 
   @ApiPropertyOptional({
-    description: 'Комментарии только с фото\n\ntrue - только с фото; false - только без фото',
+    description:
+      'Комментарии только с фото\n\ntrue - только с фото; false - только без фото',
     example: true,
   })
   @IsOptional()
@@ -47,7 +55,8 @@ export class ListingReviewsQueryDto {
   has_photo?: boolean;
 
   @ApiPropertyOptional({
-    description: 'Отсортировать по дате создания\n\ntrue - сначала новые; false - сначала старые; null - игнорируем',
+    description:
+      'Отсортировать по дате создания\n\ntrue - сначала новые; false - сначала старые; null - игнорируем',
     example: true,
   })
   @IsOptional()
@@ -55,7 +64,8 @@ export class ListingReviewsQueryDto {
   new_first?: boolean;
 
   @ApiPropertyOptional({
-    description: 'Отсортировать по рейтингу\n\ntrue - сначала положительные; false - сначала негативные; null - игнорируем',
+    description:
+      'Отсортировать по рейтингу\n\ntrue - сначала положительные; false - сначала негативные; null - игнорируем',
     example: true,
   })
   @IsOptional()

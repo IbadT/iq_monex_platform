@@ -7,6 +7,7 @@ import {
   IsArray,
   IsString,
   ArrayMaxSize,
+  IsOptional,
 } from 'class-validator';
 import { ApiProperty } from '@nestjs/swagger';
 
@@ -18,14 +19,6 @@ export class CreateReviewDto {
   })
   @IsUUID()
   listingId: string;
-
-  @ApiProperty({
-    description: 'Заголовок отзыва',
-    example: 'Отличное объявление',
-    required: true,
-  })
-  @IsString()
-  title: string;
 
   @ApiProperty({
     description: 'Содержание отзыва',
@@ -51,24 +44,23 @@ export class CreateReviewDto {
     example: [
       'data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAYAAAAfFcSJAAAADUlEQVR42mNk+M9QDwADhgGAWjR9awAAAABJRU5ErkJggg==',
     ],
-    required: true,
+    required: false,
   })
+  @IsOptional()
   @IsArray()
   @IsString({ each: true })
   @ArrayMaxSize(5)
-  photos: string[]; // Массив base64 строк для документов (макс. 5)
+  photos?: string[]; // Массив base64 строк для документов (макс. 5)
 
   constructor(
     listingId: string,
-    title: string,
     content: string,
     rating: number,
-    photos: string[],
+    photos?: string[],
   ) {
     this.listingId = listingId;
-    this.title = title;
     this.content = content;
     this.rating = rating;
-    this.photos = photos;
+    this.photos = photos || [];
   }
 }

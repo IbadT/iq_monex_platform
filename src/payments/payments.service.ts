@@ -56,11 +56,16 @@ export class PaymentsService {
       if (participant && participant.campaign) {
         // Проверяем что скидка доступна (дата начала скидочного периода)
         const now = new Date();
-        if (participant.discountAvailableAt && now >= participant.discountAvailableAt) {
+        if (
+          participant.discountAvailableAt &&
+          now >= participant.discountAvailableAt
+        ) {
           discountPercent = participant.campaign.subsequentDiscount; // 50%
           amount = amount * (1 - discountPercent / 100); // Применяем скидку
           discountApplied = true;
-          this.logger.log(`Applied ${discountPercent}% discount for user ${userId}, new amount: ${amount}`);
+          this.logger.log(
+            `Applied ${discountPercent}% discount for user ${userId}, new amount: ${amount}`,
+          );
         }
       }
     }

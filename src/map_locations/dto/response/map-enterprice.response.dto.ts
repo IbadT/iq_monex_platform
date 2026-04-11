@@ -11,45 +11,46 @@ type MapLocationType = (typeof MapLocationType)[keyof typeof MapLocationType];
 
 // map-location-response.dto.ts
 export class MapLocationResponseDto {
-  @ApiProperty({ 
+  @ApiProperty({
     description: 'Уникальный идентификатор локации',
-    example: '550e8400-e29b-41d4-a716-446655440000' 
+    example: '550e8400-e29b-41d4-a716-446655440000',
   })
   id: string;
 
-  @ApiProperty({ 
+  @ApiProperty({
     description: 'Тип локации: OFFICE (офис), WAREHOUSE (склад)',
-    enum: MapLocationType, example: 'OFFICE' 
+    enum: MapLocationType,
+    example: 'OFFICE',
   })
   type: string;
 
-  @ApiProperty({ 
+  @ApiProperty({
     description: 'Полный адрес локации',
-    example: 'г. Москва, ул. Ленина, д. 1' 
+    example: 'г. Москва, ул. Ленина, д. 1',
   })
   address: string;
 
-  @ApiProperty({ 
+  @ApiProperty({
     description: 'Географическая широта',
-    example: 55.7558 
+    example: 55.7558,
   })
   latitude: number;
 
-  @ApiProperty({ 
+  @ApiProperty({
     description: 'Географическая долгота',
-    example: 37.6173 
+    example: 37.6173,
   })
   longitude: number;
 
-  @ApiProperty({ 
+  @ApiProperty({
     description: 'Страна локации',
-    example: "Россия" 
+    example: 'Россия',
   })
   country: string;
 
-  @ApiProperty({ 
+  @ApiProperty({
     description: 'Город локации',
-    example: "Москва" 
+    example: 'Москва',
   })
   city: string;
 

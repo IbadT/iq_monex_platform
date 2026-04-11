@@ -48,18 +48,16 @@ export class AttributesController {
     const result = await this.attributesService.updateSpecification(id, body);
     return {
       success: true,
-      data: result
+      data: result,
     };
   }
 
   @Delete(':id')
-  async deleteSpecification(
-    @Param('id') id: number,
-  ) {
+  async deleteSpecification(@Param('id') id: number) {
     const result = await this.attributesService.deleteSpecification(id);
     return {
       success: true,
-      data: result
+      data: result,
     };
   }
 

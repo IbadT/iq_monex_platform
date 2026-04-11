@@ -1,7 +1,9 @@
 import { ApiProperty } from '@nestjs/swagger';
 import {
+  ArrayMaxSize,
   IsNotEmpty,
   IsNumber,
+  IsOptional,
   IsString,
   IsUUID,
   Max,
@@ -26,7 +28,7 @@ export class CreateReviewToUserDto {
   })
   @IsNotEmpty()
   @IsString()
-  text: string;
+  content: string;
 
   @ApiProperty({
     description: 'Оценка от 1 до 5',
@@ -34,8 +36,8 @@ export class CreateReviewToUserDto {
     required: true,
   })
   @IsNumber()
-  @Min(0)
-  @Max(5)
+  @Min(1, { message: 'Минимальный рейтинг - 1' })
+  @Max(5, { message: 'Максимальный рейтинг - 5' })
   rating: number;
 
   @ApiProperty({
@@ -43,13 +45,15 @@ export class CreateReviewToUserDto {
     example: [],
     required: false,
   })
+  @IsOptional()
   @IsString({ each: true })
-  photos: string[] = [];
+  @ArrayMaxSize(5)
+  photos?: string[];
 
-  constructor(userId: string, text: string, rating: number, photos: string[]) {
+  constructor(userId: string, content: string, rating: number, photos?: string[]) {
     this.userId = userId;
-    this.text = text;
+    this.content = content;
     this.rating = rating;
-    this.photos = photos;
+    this.photos = photos || [];
   }
 }

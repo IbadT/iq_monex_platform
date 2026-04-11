@@ -132,7 +132,7 @@ export class ReviewsService {
           targetUserId: body.userId, // ID пользователя, которому оставляют отзыв
           targetType: ReviewTargetType.USER,
           authorId: userId, // ID авторизованного пользователя (автор отзыва)
-          content: body.text,
+          content: body.content,
           rating: body.rating,
         },
       });
@@ -259,7 +259,8 @@ export class ReviewsService {
             listingId: review.listingId,
             targetType: ReviewTargetType.LISTING,
             rating: review.rating,
-            title: review.title,
+            // title: review.title,
+            title: "",
             content: review.content,
           },
         });
@@ -273,7 +274,10 @@ export class ReviewsService {
               index,
               'photo',
             );
-            const s3Key = this.s3Service.generatePhotoKey(reviewListing.id, index);
+            const s3Key = this.s3Service.generatePhotoKey(
+              reviewListing.id,
+              index,
+            );
             const contentType =
               this.s3Service.getContentTypeFromBase64(photoData);
             const fileSize = this.s3Service.getFileSizeFromBase64(photoData);
@@ -337,8 +341,15 @@ export class ReviewsService {
   }
 
   async findAll(query: ListingReviewsQueryDto): Promise<GetReviewsDto[]> {
-    const { listing_id, limit = 20, offset = 0, has_photo, new_first, positive_rate_first } = query;
-    
+    const {
+      listing_id,
+      limit = 20,
+      offset = 0,
+      has_photo,
+      new_first,
+      positive_rate_first,
+    } = query;
+
     const cacheKey = `reviews:${listing_id}:${JSON.stringify({ limit, offset, has_photo, new_first, positive_rate_first })}`;
     const cachedData = await this.cacheService.get<GetReviewsDto[]>(cacheKey);
     if (cachedData) return cachedData;
@@ -350,20 +361,22 @@ export class ReviewsService {
 
     // Фильтр по наличию фото
     if (has_photo !== undefined) {
-      where.files = has_photo ? {
-        some: {} // Есть хотя бы один файл
-      } : {
-        none: {} // Нет файлов
-      };
+      where.files = has_photo
+        ? {
+            some: {}, // Есть хотя бы один файл
+          }
+        : {
+            none: {}, // Нет файлов
+          };
     }
 
     // Создаем условия сортировки
     const orderBy: any[] = [];
-    
+
     if (new_first !== undefined) {
       orderBy.push({ createdAt: new_first ? 'desc' : 'asc' });
     }
-    
+
     if (positive_rate_first !== undefined) {
       orderBy.push({ rating: positive_rate_first ? 'desc' : 'asc' });
     }

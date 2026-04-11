@@ -58,7 +58,10 @@ export class AppController {
 
   @Get('suggestions')
   @ApiOperation({ summary: 'Получение предложений пользователей с пагинацией' })
-  @ApiResponse({ status: 200, description: 'Возвращает пагинированные предложения' })
+  @ApiResponse({
+    status: 200,
+    description: 'Возвращает пагинированные предложения',
+  })
   async userSuggestions(@Query() query: PaginationDto) {
     return await this.appService.userSuggestions(query.limit, query.offset);
   }

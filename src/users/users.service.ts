@@ -50,6 +50,7 @@ import { FileOwnerType } from '../../prisma/generated/enums';
 import { UserCoreService } from './user-core.service';
 import { ProfileService } from './profile.service';
 import { FileService } from '@/s3/file.service';
+import { NoteTargetType } from '@/notes';
 
 @Injectable()
 export class UsersService {
@@ -386,15 +387,15 @@ export class UsersService {
     });
   }
 
-
   async getProfileById(
     currentUserId: string | undefined,
     id: string,
   ): Promise<FullProfileResponseDto> {
-    // Строим include динамически
-    const include: any = {
+    // Строим include динамически с явным типом
+    const include = {
       profile: {
-        include: {
+        select: {
+          id: true,
           legalEntityType: true,
           currency: true,
         },
@@ -423,7 +424,7 @@ export class UsersService {
         select: { rating: true, createdAt: true },
         orderBy: { createdAt: 'desc' },
       },
-    };
+    } as const;
 
     const user = await prisma.user.findUnique({
       where: { id },
@@ -432,16 +433,32 @@ export class UsersService {
 
     // Проверяем избранное отдельным запросом
     let isFavorite = false;
-    if (currentUserId) {
+    let note;
+    console.log('[DEBUG Service] Looking for note: authorId=', currentUserId, 'targetUserId=', user?.profile?.id);
+    if (currentUserId && user?.profile?.id) {
+      const profileId = user.profile.id;
+
       const favorite = await prisma.favorite.findFirst({
         where: {
           userId: currentUserId,
-          targetUserId: id,
+          targetUserId: profileId,
           type: FavoriteType.USER,
         },
       });
       isFavorite = !!favorite;
       console.log('[DEBUG Service] Favorite found:', isFavorite);
+
+      const userNote = await prisma.userNote.findFirst({
+        where: {
+          authorId: currentUserId,
+            targetType: NoteTargetType.USER,
+          targetUserId: profileId,
+        },
+      });
+      console.log('[DEBUG Service] Found note:', userNote ? userNote.id : 'null');
+      note = userNote
+        ? ProfileMapper.buildNoteEmbeddedDto(userNote.id, NoteTargetType.USER, profileId)
+        : null;
     }
 
     if (!user) {
@@ -463,7 +480,7 @@ export class UsersService {
       } as any;
     }
 
-    return ProfileMapper.toFullResponse(user, currentUserId, isFavorite);
+    return ProfileMapper.toFullResponse(user, currentUserId, isFavorite, note);
   }
 
   async getUserByAccountNumber(

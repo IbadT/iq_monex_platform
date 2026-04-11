@@ -6,6 +6,7 @@ import { LegalEntityResponseDto } from '@/categories/dto/response/legal-entity.r
 import { CurrenciesResponseDto } from '@/dictionaries/dto/response/currencies-response.dto';
 import { ApiProperty } from '@nestjs/swagger';
 import { ListingFileResponseDto } from '@/listings/dto/response/listing-file-response.dto';
+import { NoteEmbeddedDto } from '@/notes/dto/note-embedded.dto';
 
 export class FullProfileResponseDto extends ProfileResponseDto {
   @ApiProperty({
@@ -67,8 +68,16 @@ export class FullProfileResponseDto extends ProfileResponseDto {
   })
   maps: MapLocationResponseDto[];
 
+  @ApiProperty({
+    description: 'Личная заметка текущего пользователя о профиле',
+    type: () => NoteEmbeddedDto,
+    nullable: true,
+  })
+  note: NoteEmbeddedDto | null;
+
   constructor(
     id: string,
+    name: string,
     avatarUrl: string | null,
     phone: string | null,
     email: string | null,
@@ -85,9 +94,11 @@ export class FullProfileResponseDto extends ProfileResponseDto {
     commentsCount: number,
     workers: UserWorkerResponseDto[],
     maps: MapLocationResponseDto[],
+    note: NoteEmbeddedDto | null,
   ) {
     super(
       id,
+      name,
       avatarUrl,
       phone,
       email,
@@ -108,5 +119,6 @@ export class FullProfileResponseDto extends ProfileResponseDto {
     this.commentsCount = commentsCount;
     this.workers = workers;
     this.maps = maps;
+    this.note = note;
   }
 }

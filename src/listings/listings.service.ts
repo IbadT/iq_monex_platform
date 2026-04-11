@@ -41,6 +41,7 @@ import { BulkRestoreResponseDto } from './dto/response/bulk-restore-response.dto
 import { CreateListingComplaintResponseDto } from './dto/response/create-listing-complaint-response.dto';
 import { FileService } from '@/s3/file.service';
 import { PromoParticipantService } from '@/promo/promo_participant.service';
+import { NoteTargetType } from '@/notes';
 
 @Injectable()
 export class ListingsService {
@@ -137,6 +138,26 @@ export class ListingsService {
         files: true,
         locations: true,
         specifications: true,
+        user: {
+          select: {
+            id: true,
+            name: true,
+            files: {
+              where: { kind: 'AVATAR' },
+              select: { url: true },
+            },
+            profile: {
+              select: {
+                legalEntityType: {
+                  select: {
+                    id: true,
+                    data: true,
+                  },
+                },
+              },
+            },
+          },
+        },
         listingSlot: {
           include: {
             userSlot: true,
@@ -410,6 +431,16 @@ export class ListingsService {
                 where: { kind: 'AVATAR' },
                 select: { url: true },
               },
+              profile: {
+                select: {
+                  legalEntityType: {
+                    select: {
+                      id: true,
+                      data: true,
+                    },
+                  },
+                },
+              },
             },
           },
           listingSlot: {
@@ -449,7 +480,11 @@ export class ListingsService {
           );
           const promoData = await this.getPromoData(listing.userId);
 
-          return ListingMapper.toResponse(listingWithSeparatedFiles, contactData, promoData);
+          return ListingMapper.toResponse(
+            listingWithSeparatedFiles,
+            contactData,
+            promoData,
+          );
         }),
       );
 
@@ -543,6 +578,16 @@ export class ListingsService {
               where: { kind: 'AVATAR' },
               select: { url: true },
             },
+            profile: {
+              select: {
+                legalEntityType: {
+                  select: {
+                    id: true,
+                    data: true,
+                  },
+                },
+              },
+            },
           },
         },
         listingSlot: {
@@ -563,7 +608,9 @@ export class ListingsService {
       listings.map(async (listing: any) => {
         const listingWithSeparatedFiles = {
           ...listing,
-          photos: listing.files.filter((file: any) => file.kind === FileKind.PHOTO),
+          photos: listing.files.filter(
+            (file: any) => file.kind === FileKind.PHOTO,
+          ),
           files: listing.files.filter(
             (file: any) => file.kind === FileKind.DOCUMENT,
           ),
@@ -576,7 +623,11 @@ export class ListingsService {
         );
         const promoData = await this.getPromoData(listing.userId);
 
-        return ListingMapper.toResponse(listingWithSeparatedFiles, contactData, promoData);
+        return ListingMapper.toResponse(
+          listingWithSeparatedFiles,
+          contactData,
+          promoData,
+        );
       }),
     );
 
@@ -608,40 +659,85 @@ export class ListingsService {
       throw new BadRequestException(`Объявление с id: ${listingId} не найдено`);
     }
 
-    const result = await prisma.$transaction(async (tx: Prisma.TransactionClient) => {
-      let updatedListing: any;
+    const result = await prisma.$transaction(
+      async (tx: Prisma.TransactionClient) => {
+        let updatedListing: any;
 
-      // проверка активных объявлений для PUBLISHED
-      if (status === ListingStatus.PUBLISHED) {
-        const availableSlots =
-          await this.subscriptionService.getUserAvailableSlots(userId);
-        this.logger.log(`Доступных слотов: ${availableSlots.length}`);
+        // проверка активных объявлений для PUBLISHED
+        if (status === ListingStatus.PUBLISHED) {
+          const availableSlots =
+            await this.subscriptionService.getUserAvailableSlots(userId);
+          this.logger.log(`Доступных слотов: ${availableSlots.length}`);
 
-        if (availableSlots.length === 0) {
-          throw new BadRequestException(
-            'Нет доступных слотов для создания объявления',
+          if (availableSlots.length === 0) {
+            throw new BadRequestException(
+              'Нет доступных слотов для создания объявления',
+            );
+          }
+
+          // Обновляем статус объявления
+          updatedListing = await tx.listing.update({
+            where: { id: listingId },
+            data: {
+              status: status,
+              publishedAt: new Date(),
+              autoDeleteAt: null,
+              archivedAt: null,
+            },
+          });
+
+          // Создаем связь объявления со слотом
+          await tx.listingSlot.create({
+            data: {
+              listingId,
+              userSlotId: availableSlots[0].id,
+              assignedAt: new Date(),
+            },
+          });
+
+          return new ChangeStatusResponseDto(
+            updatedListing.id,
+            updatedListing.status,
+            updatedListing.publishedAt,
+            updatedListing.archivedAt,
+            updatedListing.autoDeleteAt,
           );
         }
 
-        // Обновляем статус объявления
-        updatedListing = await tx.listing.update({
-          where: { id: listingId },
-          data: {
-            status: status,
-            publishedAt: new Date(),
-            autoDeleteAt: null,
-            archivedAt: null,
-          },
-        });
+        // если статус НЕ PUBLISHED, то освобождаем слоты
+        if (checkIfListingExist.status === ListingStatus.PUBLISHED) {
+          await tx.listingSlot.delete({
+            where: {
+              listingId,
+            },
+          });
+          this.logger.log(`Освобожден слот для объявления ${listingId}`);
+        }
 
-        // Создаем связь объявления со слотом
-        await tx.listingSlot.create({
-          data: {
-            listingId,
-            userSlotId: availableSlots[0].id,
-            assignedAt: new Date(),
-          },
-        });
+        // Обработка ARCHIVED
+        if (status === ListingStatus.ARCHIVED) {
+          updatedListing = await tx.listing.update({
+            where: { id: listingId },
+            data: {
+              status,
+              archivedAt: new Date(),
+              autoDeleteAt: this.calculateAutoDeleteDate(),
+              publishedAt: null,
+            },
+          });
+        }
+        // Остальные статусы (DRAFT, TEMPLATE)
+        else {
+          updatedListing = await tx.listing.update({
+            where: { id: listingId },
+            data: {
+              status: status,
+              publishedAt: null,
+              archivedAt: null,
+              autoDeleteAt: null,
+            },
+          });
+        }
 
         return new ChangeStatusResponseDto(
           updatedListing.id,
@@ -650,55 +746,14 @@ export class ListingsService {
           updatedListing.archivedAt,
           updatedListing.autoDeleteAt,
         );
-      }
-
-      // если статус НЕ PUBLISHED, то освобождаем слоты
-      if (checkIfListingExist.status === ListingStatus.PUBLISHED) {
-        await tx.listingSlot.delete({
-          where: {
-            listingId,
-          },
-        });
-        this.logger.log(`Освобожден слот для объявления ${listingId}`);
-      }
-
-      // Обработка ARCHIVED
-      if (status === ListingStatus.ARCHIVED) {
-        updatedListing = await tx.listing.update({
-          where: { id: listingId },
-          data: {
-            status,
-            archivedAt: new Date(),
-            autoDeleteAt: this.calculateAutoDeleteDate(),
-            publishedAt: null,
-          },
-        });
-      }
-      // Остальные статусы (DRAFT, TEMPLATE)
-      else {
-        updatedListing = await tx.listing.update({
-          where: { id: listingId },
-          data: {
-            status: status,
-            publishedAt: null,
-            archivedAt: null,
-            autoDeleteAt: null,
-          },
-        });
-      }
-
-      return new ChangeStatusResponseDto(
-        updatedListing.id,
-        updatedListing.status,
-        updatedListing.publishedAt,
-        updatedListing.archivedAt,
-        updatedListing.autoDeleteAt,
-      );
-    });
+      },
+    );
 
     // Проверяем условия акции после изменения статуса (асинхронно)
     this.promoParticipantService.checkUserConditions(userId).catch((err) => {
-      this.logger.warn(`Failed to check promo conditions after status change: ${err.message}`);
+      this.logger.warn(
+        `Failed to check promo conditions after status change: ${err.message}`,
+      );
     });
 
     return result;
@@ -818,7 +873,9 @@ export class ListingsService {
     // const cachedListing = await this.cacheSevice.get(cachedKey);
     // if (cachedListing) return cachedListing;
 
-    this.logger.log(`Listing ID: ${id}, Status: ${status.status}, UserID: ${userId || 'undefined (anonymous)'}`);
+    this.logger.log(
+      `Listing ID: ${id}, Status: ${status.status}, UserID: ${userId || 'undefined (anonymous)'}`,
+    );
     const listing = await prisma.listing.findFirst({
       where: { id, status: status.status },
       include: {
@@ -842,6 +899,16 @@ export class ListingsService {
               where: { kind: 'AVATAR' },
               select: { url: true },
             },
+            profile: {
+              select: {
+                legalEntityType: {
+                  select: {
+                    id: true,
+                    data: true,
+                  }
+                }
+              }
+            }
           },
         },
         listingSlot: {
@@ -869,6 +936,10 @@ export class ListingsService {
 
     // Проверяем, добавлено ли объявление в избранное (если userId предоставлен)
     let isFavorite = false;
+    let isUserFavorite = false;
+    let note
+    // Определяем, является ли объявление собственностью текущего пользователя
+    const mine = userId ? listing.userId === userId : false;
     if (userId) {
       const favorite = await prisma.favorite.findFirst({
         where: {
@@ -877,9 +948,41 @@ export class ListingsService {
         },
       });
       isFavorite = !!favorite;
+
+      // Проверяем, находится ли владелец объявления в избранном пользователя
+      const userFavorite = await prisma.favorite.findFirst({
+        where: {
+          userId,
+          targetUserId: listing.userId,
+          type: 'USER',
+        },
+      });
+      isUserFavorite = !!userFavorite;
+
+      // Получаем заметку пользователя об объявлении
+      this.logger.log(`[DEBUG] Looking for note: authorId=${userId}, targetListingId=${id}`);
+      const userNote = await prisma.userNote.findFirst({
+        where: {
+          authorId: userId,
+          targetType: 'LISTING',
+          targetListingId: id,
+        },
+      });
+      this.logger.log(`[DEBUG] Found note: ${userNote ? userNote.id : 'null'}`);
+      note = userNote
+        ? ListingMapper.buildNoteEmbeddedDto(userNote.id, NoteTargetType.LISTING, id)
+        : null;
     }
 
-    return ListingMapper.toResponse(listing, contactData, promoData, isFavorite);
+    return ListingMapper.toResponse(
+      listing,
+      contactData,
+      promoData,
+      isFavorite,
+      note,
+      isUserFavorite,
+      mine,
+    );
   }
 
   async listingsByUserId(userId: string): Promise<ListingResposeDto[]> {
@@ -902,6 +1005,26 @@ export class ListingsService {
         specifications: {
           include: {
             specification: true,
+          },
+        },
+        user: {
+          select: {
+            id: true,
+            name: true,
+            files: {
+              where: { kind: 'AVATAR' },
+              select: { url: true },
+            },
+            profile: {
+              select: {
+                legalEntityType: {
+                  select: {
+                    id: true,
+                    data: true,
+                  },
+                },
+              },
+            },
           },
         },
         listingSlot: {
@@ -1055,7 +1178,9 @@ export class ListingsService {
     // Проверяем условия акции для пользователя (10 активных объявлений)
     // Запускаем асинхронно, чтобы не блокировать ответ
     this.promoParticipantService.checkUserConditions(userId).catch((err) => {
-      this.logger.warn(`Failed to check promo conditions for user ${userId}: ${err.message}`);
+      this.logger.warn(
+        `Failed to check promo conditions for user ${userId}: ${err.message}`,
+      );
     });
 
     return createdListing.listing;
@@ -1101,7 +1226,15 @@ export class ListingsService {
     if (body.title) this.validateText(body.title);
     if (body.description) this.validateText(body.description);
 
-    const { maps, photos, files, specifications, status, contacts, ...listingData } = body;
+    const {
+      maps,
+      photos,
+      files,
+      specifications,
+      status,
+      contacts,
+      ...listingData
+    } = body;
 
     // Проверяем существование объявления и права доступа
     const existingListing = await prisma.listing.findFirst({
@@ -1134,15 +1267,24 @@ export class ListingsService {
       async (tx: Prisma.TransactionClient) => {
         // Формируем данные для обновления
         const updateData: any = {};
-        if (listingData.categoryId !== undefined) updateData.categoryId = listingData.categoryId;
-        if (listingData.subcategoryId !== undefined) updateData.subcategoryId = listingData.subcategoryId;
-        if (listingData.subsubcategoryId !== undefined) updateData.subsubcategoryId = listingData.subsubcategoryId;
-        if (listingData.title !== undefined) updateData.title = listingData.title;
-        if (listingData.description !== undefined) updateData.description = listingData.description;
-        if (listingData.price !== undefined) updateData.price = new Decimal(listingData.price);
-        if (listingData.currencyId !== undefined) updateData.currencyId = listingData.currencyId;
-        if (listingData.priceUnitId !== undefined) updateData.priceUnitId = listingData.priceUnitId;
-        if (listingData.condition !== undefined) updateData.condition = listingData.condition;
+        if (listingData.categoryId !== undefined)
+          updateData.categoryId = listingData.categoryId;
+        if (listingData.subcategoryId !== undefined)
+          updateData.subcategoryId = listingData.subcategoryId;
+        if (listingData.subsubcategoryId !== undefined)
+          updateData.subsubcategoryId = listingData.subsubcategoryId;
+        if (listingData.title !== undefined)
+          updateData.title = listingData.title;
+        if (listingData.description !== undefined)
+          updateData.description = listingData.description;
+        if (listingData.price !== undefined)
+          updateData.price = new Decimal(listingData.price);
+        if (listingData.currencyId !== undefined)
+          updateData.currencyId = listingData.currencyId;
+        if (listingData.priceUnitId !== undefined)
+          updateData.priceUnitId = listingData.priceUnitId;
+        if (listingData.condition !== undefined)
+          updateData.condition = listingData.condition;
         if (status !== undefined) updateData.status = status;
 
         // Обновляем основные поля объявления
@@ -1297,7 +1439,13 @@ export class ListingsService {
       }
     }
 
-    const { subcategoryId, categoryId, subsubcategoryId, contacts, ...listingData } = listing;
+    const {
+      subcategoryId,
+      categoryId,
+      subsubcategoryId,
+      contacts,
+      ...listingData
+    } = listing;
 
     return prisma.listing.create({
       data: {
@@ -1345,7 +1493,9 @@ export class ListingsService {
 
       // Проверяем условия акции после удаления (может повлиять на 10 активных объявлений)
       this.promoParticipantService.checkUserConditions(user.id).catch((err) => {
-        this.logger.warn(`Failed to check promo conditions after delete: ${err.message}`);
+        this.logger.warn(
+          `Failed to check promo conditions after delete: ${err.message}`,
+        );
       });
     }
 
@@ -1506,7 +1656,10 @@ export class ListingsService {
    */
   private async getPromoData(
     userId: string,
-  ): Promise<{ subscriptionStartDate: Date | null; promoEndDate: Date | null }> {
+  ): Promise<{
+    subscriptionStartDate: Date | null;
+    promoEndDate: Date | null;
+  }> {
     try {
       const promoParticipant = await prisma.promoCampaignParticipant.findFirst({
         where: { userId },
@@ -1538,8 +1691,16 @@ export class ListingsService {
    */
   private async getPromoDataForUsers(
     listings: any[],
-  ): Promise<Map<string, { subscriptionStartDate: Date | null; promoEndDate: Date | null }>> {
-    const promoDataMap = new Map<string, { subscriptionStartDate: Date | null; promoEndDate: Date | null }>();
+  ): Promise<
+    Map<
+      string,
+      { subscriptionStartDate: Date | null; promoEndDate: Date | null }
+    >
+  > {
+    const promoDataMap = new Map<
+      string,
+      { subscriptionStartDate: Date | null; promoEndDate: Date | null }
+    >();
 
     // Собираем уникальные userId
     const userIds = [...new Set(listings.map((l) => l.userId).filter(Boolean))];
@@ -1584,12 +1745,18 @@ export class ListingsService {
   private async getContactsForListings(
     listings: any[],
   ): Promise<Map<string, { phone: string | null; email: string | null }>> {
-    const contactDataMap = new Map<string, { phone: string | null; email: string | null }>();
+    const contactDataMap = new Map<
+      string,
+      { phone: string | null; email: string | null }
+    >();
 
     // Собираем уникальные ID контактов по типам
     const workerIds: string[] = [];
     const userIds: string[] = [];
-    const listingContactMap = new Map<string, { contactId: string; contactType: string }>();
+    const listingContactMap = new Map<
+      string,
+      { contactId: string; contactType: string }
+    >();
 
     for (const listing of listings) {
       if (listing.contactId && listing.contactType) {
@@ -1619,7 +1786,7 @@ export class ListingsService {
           select: { id: true, phone: true, email: true },
         });
 
-        const workerMap = new Map(workers.map(w => [w.id, w]));
+        const workerMap = new Map(workers.map((w) => [w.id, w]));
 
         for (const [listingId, contactInfo] of listingContactMap) {
           if (contactInfo.contactType === 'WORKER') {
@@ -1645,7 +1812,7 @@ export class ListingsService {
           include: { profile: { select: { phone: true } } },
         });
 
-        const userMap = new Map(users.map(u => [u.id, u]));
+        const userMap = new Map(users.map((u) => [u.id, u]));
 
         for (const [listingId, contactInfo] of listingContactMap) {
           if (contactInfo.contactType === 'USER') {

@@ -8,7 +8,10 @@ import { PromoCompaignService } from './promo_compaign.service';
 //   // SlotSource,
 // } from 'prisma/generated/enums';
 import { PromoCampaign } from 'prisma/generated/client';
-import { PromoCampaignStatus, PromoParticipantStatus } from './enums/promo-status.enum';
+import {
+  PromoCampaignStatus,
+  PromoParticipantStatus,
+} from './enums/promo-status.enum';
 import { SlotSource } from '@/subscription/enums/slotSource.enum';
 
 @Injectable()
@@ -33,7 +36,9 @@ export class PromoParticipantService {
 
     // Проверить, не заблокирована ли кампания (тумблер сработал)
     if (campaign.isLocked) {
-      throw new BadRequestException('Campaign is locked - no new participants allowed');
+      throw new BadRequestException(
+        'Campaign is locked - no new participants allowed',
+      );
     }
 
     // Проверить лимит
@@ -62,9 +67,14 @@ export class PromoParticipantService {
     // Начислить бонусы СРАЗУ (слоты и подписка)
     try {
       await this.applyPromoBenefits(userId, campaign, participant.id);
-      console.log(`User ${userId} joined campaign and received promo benefits immediately`);
+      console.log(
+        `User ${userId} joined campaign and received promo benefits immediately`,
+      );
     } catch (error) {
-      console.error(`Failed to apply promo benefits for user ${userId}:`, error);
+      console.error(
+        `Failed to apply promo benefits for user ${userId}:`,
+        error,
+      );
       // Не прерываем регистрацию, если не удалось начислить бонусы
     }
 
@@ -141,7 +151,8 @@ export class PromoParticipantService {
     });
 
     const now = new Date();
-    const hasEnoughListings = activeListingsCount >= campaign.requiredActiveListings;
+    const hasEnoughListings =
+      activeListingsCount >= campaign.requiredActiveListings;
 
     if (hasEnoughListings) {
       // У пользователя достаточно объявлений
@@ -160,7 +171,8 @@ export class PromoParticipantService {
         const conditionReachedAt = participant.conditionReachedAt;
         if (conditionReachedAt) {
           const daysSinceConditionMet = Math.floor(
-            (now.getTime() - conditionReachedAt.getTime()) / (1000 * 60 * 60 * 24),
+            (now.getTime() - conditionReachedAt.getTime()) /
+              (1000 * 60 * 60 * 24),
           );
           if (daysSinceConditionMet >= campaign.requiredDays) {
             // Условие выполнено полностью (10 объявлений + 7 дней подряд) - ELIGIBLE
@@ -168,7 +180,9 @@ export class PromoParticipantService {
               where: { id: participantId },
               data: { status: PromoParticipantStatus.ELIGIBLE },
             });
-            console.log(`User ${userId} completed 7 days with 10 listings - ELIGIBLE`);
+            console.log(
+              `User ${userId} completed 7 days with 10 listings - ELIGIBLE`,
+            );
           }
         }
       }
@@ -180,12 +194,19 @@ export class PromoParticipantService {
         const conditionReachedAt = participant.conditionReachedAt;
         if (conditionReachedAt) {
           const daysSinceConditionMet = Math.floor(
-            (now.getTime() - conditionReachedAt.getTime()) / (1000 * 60 * 60 * 24),
+            (now.getTime() - conditionReachedAt.getTime()) /
+              (1000 * 60 * 60 * 24),
           );
           if (daysSinceConditionMet >= campaign.requiredDays) {
             // Прошло более 7 дней и условия не выполнены (меньше 10 объявлений) - ВЫЛЕТ
-            console.log(`User ${userId} failed to maintain 10 listings for 7 days - DROPPING OUT`);
-            await this.dropOutFromCampaign(participantId, campaign.id, 'FAILED_REQUIREMENTS');
+            console.log(
+              `User ${userId} failed to maintain 10 listings for 7 days - DROPPING OUT`,
+            );
+            await this.dropOutFromCampaign(
+              participantId,
+              campaign.id,
+              'FAILED_REQUIREMENTS',
+            );
             // Отзываем бонусы (слоты и подписку)
             await this.revokePromoBenefits(userId, participantId);
           } else {
@@ -198,7 +219,9 @@ export class PromoParticipantService {
                 conditionReachedAt: null, // Сбрасываем таймер
               },
             });
-            console.log(`User ${userId} dropped below 10 listings, timer reset`);
+            console.log(
+              `User ${userId} dropped below 10 listings, timer reset`,
+            );
           }
         }
       }
@@ -242,9 +265,13 @@ export class PromoParticipantService {
             },
           },
         });
-        console.log(`User dropped out from campaign ${campaignId}, slot returned. Reason: ${reason}`);
+        console.log(
+          `User dropped out from campaign ${campaignId}, slot returned. Reason: ${reason}`,
+        );
       } else {
-        console.log(`User dropped out from locked campaign ${campaignId}. Slot NOT returned (campaign is locked). Reason: ${reason}`);
+        console.log(
+          `User dropped out from locked campaign ${campaignId}. Slot NOT returned (campaign is locked). Reason: ${reason}`,
+        );
       }
     });
   }
@@ -307,7 +334,8 @@ export class PromoParticipantService {
       // Рассчитать даты для скидочного периода (второй год)
       const discountStartAt = new Date(freeEndAt);
       const discountEndAt = new Date(
-        discountStartAt.getTime() + campaign.subsequentDays * 24 * 60 * 60 * 1000,
+        discountStartAt.getTime() +
+          campaign.subsequentDays * 24 * 60 * 60 * 1000,
       );
 
       // Создать скидочный период подписки (второй год со скидкой)
@@ -406,16 +434,23 @@ export class PromoParticipantService {
           },
         });
 
-        console.log(`Revoked promo benefits for user ${userId}: subscription and slots removed`);
+        console.log(
+          `Revoked promo benefits for user ${userId}: subscription and slots removed`,
+        );
       });
     } catch (error) {
-      console.error(`Failed to revoke promo benefits for user ${userId}:`, error);
+      console.error(
+        `Failed to revoke promo benefits for user ${userId}:`,
+        error,
+      );
       // Не прерываем основной flow, но логируем ошибку
     }
   }
 
   // Использование скидки 50% на второй год
-  async useDiscount(userId: string): Promise<{ success: boolean; message: string }> {
+  async useDiscount(
+    userId: string,
+  ): Promise<{ success: boolean; message: string }> {
     const participant = await prisma.promoCampaignParticipant.findFirst({
       where: {
         userId,
@@ -436,7 +471,8 @@ export class PromoParticipantService {
     if (!participant) {
       return {
         success: false,
-        message: 'Скидка недоступна: нет активной акции или скидка уже использована',
+        message:
+          'Скидка недоступна: нет активной акции или скидка уже использована',
       };
     }
 
@@ -454,7 +490,10 @@ export class PromoParticipantService {
 
     // Проверяем, что скидка доступна (дата начала скидочного периода)
     const now = new Date();
-    if (participant.discountAvailableAt && now < participant.discountAvailableAt) {
+    if (
+      participant.discountAvailableAt &&
+      now < participant.discountAvailableAt
+    ) {
       return {
         success: false,
         message: `Скидка будет доступна с ${participant.discountAvailableAt.toISOString()}`,

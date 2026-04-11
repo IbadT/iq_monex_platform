@@ -13,7 +13,7 @@ export interface FileUploadMessage {
 
 export interface AvatarUploadMessage {
   userId: string;
-  fileType: "photo",
+  fileType: 'photo';
   fileIndex: number;
   fileData: string;
   fileName: string;

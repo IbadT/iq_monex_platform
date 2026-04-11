@@ -1,6 +1,7 @@
 // profile.mapper.ts
 import { ActivityResponseDto } from '@/activities/dto/response/activity-response.dto';
-import { LegalEntityResponseDto } from '@/categories/dto/response/legal-entity.response.dto';
+import { LegalEntityType } from '@/categories/entities/legal-entity-type.entity';
+import { Language } from '@/dictionaries/dto/request/get-currency.dto';
 import { CurrenciesResponseDto } from '@/dictionaries/dto/response/currencies-response.dto';
 import {
   GetAllProfilesResponseDto,
@@ -10,8 +11,10 @@ import {
 import { FullProfileResponseDto } from '../dto/response/full-profile-response.dto';
 import { UserWorkerResponseDto } from '@/workers/dto/response/worker-response.dto';
 import { RoleResponseDto } from '@/workers/dto/response/role-response.dto';
+import { NoteEmbeddedDto } from '@/notes/dto/note-embedded.dto';
 import { ListingFileResponseDto } from '@/listings/dto/response/listing-file-response.dto';
 import { MapLocationResponseDto } from '@/map_locations/dto/response/map-enterprice.response.dto';
+import { NoteTargetType } from '@/notes';
 
 interface UserActivityWithActivity {
   activity: {
@@ -29,12 +32,11 @@ export class ProfileMapper {
           new ActivityResponseDto(ua.activity.id, ua.activity.name),
       ) || [];
 
-    // Преобразуем тип юр лица
-    const legalEntityType = new LegalEntityResponseDto(
-      profile.legalEntityType.id,
-      profile.legalEntityType.code,
-      profile.legalEntityType.name,
-    );
+    // Преобразуем тип юр лица через маппер с дефолтным языком RU
+    const legalEntityType = LegalEntityType.fromPromise({
+      id: profile.legalEntityType.id,
+      data: profile.legalEntityType.data,
+    }).toResponse(Language.RU);
 
     // Преобразуем валюту
     const currency = new CurrenciesResponseDto(
@@ -47,8 +49,14 @@ export class ProfileMapper {
     const rating = profile.user.rating;
     const commentsCount = profile.user.reviewsCount;
 
+    // Формируем имя из legalEntityType (code + name) или используем user.name
+    const displayName = legalEntityType
+      ? `${legalEntityType.code} ${legalEntityType.name}`
+      : profile.user?.name || '';
+
     return new ProfileResponseDto(
       profile.id,
+      displayName,
       profile.avatarUrl,
       profile.phone,
       profile.email,
@@ -83,6 +91,7 @@ export class ProfileMapper {
     user: any,
     currentUserId: string | undefined,
     isFavoriteParam?: boolean,
+    note?: NoteEmbeddedDto | null,
   ): FullProfileResponseDto {
     // Активности
     const activities =
@@ -90,14 +99,18 @@ export class ProfileMapper {
         (ua: any) => new ActivityResponseDto(ua.activity.id, ua.activity.name),
       ) || [];
 
-    // Юр лицо (опциональное поле)
+    // Юр лицо (опциональное поле) - данные хранятся в JSON поле data по локалям
     const legalEntityType = user.profile?.legalEntityType
-      ? new LegalEntityResponseDto(
-          user.profile.legalEntityType.id,
-          user.profile.legalEntityType.code,
-          user.profile.legalEntityType.name,
-        )
+      ? LegalEntityType.fromPromise({
+          id: user.profile.legalEntityType.id,
+          data: user.profile.legalEntityType.data,
+        }).toResponse(Language.RU)
       : null;
+
+    // Формируем имя из legalEntityType (code + name) или используем user.name
+    const displayName = legalEntityType
+      ? `${legalEntityType.code} ${legalEntityType.name}`
+      : user.name || '';
 
     // Валюта (опциональное поле)
     const currency = user.profile?.currency
@@ -110,7 +123,9 @@ export class ProfileMapper {
       : null;
 
     // Файлы и изображения
-    const avatar = user.files?.find((f: any) => f.kind === 'AVATAR' && f.ownerType === 'USER');
+    const avatar = user.files?.find(
+      (f: any) => f.kind === 'AVATAR' && f.ownerType === 'USER',
+    );
 
     const images: ListingFileResponseDto[] =
       user.files
@@ -187,13 +202,15 @@ export class ProfileMapper {
     console.log('[DEBUG Mapper] currentUserId:', currentUserId);
     console.log('[DEBUG Mapper] isFavoriteParam:', isFavoriteParam);
     // Используем переданный isFavorite, или проверяем через include если есть
-    const isFavorite = isFavoriteParam !== undefined 
-      ? isFavoriteParam 
-      : (currentUserId && user.favorites && user.favorites.length > 0);
+    const isFavorite =
+      isFavoriteParam !== undefined
+        ? isFavoriteParam
+        : currentUserId && user.favorites && user.favorites.length > 0;
     console.log('[DEBUG Mapper] isFavorite result:', isFavorite);
 
     return new FullProfileResponseDto(
       user.id,
+      displayName,
       avatar?.url || null,
       user.profile?.phone || null,
       user.profile?.email || null,
@@ -210,6 +227,17 @@ export class ProfileMapper {
       user.receivedReviews?.length || 0,
       workers,
       maps,
+      note ?? null,
     );
+  }
+
+  static buildNoteEmbeddedDto(
+    noteId: string | null,
+    // targetType: 'USER' | 'LISTING',
+    targetType: NoteTargetType,
+    targetId: string,
+  ): NoteEmbeddedDto | null {
+    if (!noteId) return null;
+    return new NoteEmbeddedDto(noteId, targetType, targetId);
   }
 }

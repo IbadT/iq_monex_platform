@@ -7,35 +7,50 @@ import { ListingFileResponseDto } from '../dto/response/listing-file-response.dt
 import { ListingContactResponseDto } from '../dto/response/listing-contact-response.dto';
 import { ListingSubscriptionResponseDto } from '../dto/response/listing-subscription-response.dto';
 import { UserListingResponseDto } from '../dto/response/user-listing-response.dto';
+import { NoteEmbeddedDto } from '@/notes/dto/note-embedded.dto';
+import { NoteTargetType } from '@/notes/enums/note-target-type.enum';
+import { LegalEntityType } from '@/categories/entities/legal-entity-type.entity';
+import { Language } from '@/dictionaries/dto/request/get-currency.dto';
 
 export class ListingMapper {
   // static toResponse(listing: any): ListingResposeDto {
-    static toResponse(
+  static toResponse(
     listing: any,
     contactData?: { phone: string | null; email: string | null } | null,
-    promoData?: { subscriptionStartDate: Date | null; promoEndDate: Date | null } | null,
+    promoData?: {
+      subscriptionStartDate: Date | null;
+      promoEndDate: Date | null;
+    } | null,
     isFavorite?: boolean,
+    note?: NoteEmbeddedDto | null,
+    isUserFavorite?: boolean,
+    mine?: boolean,
   ): ListingResposeDto {
-
     // Преобразуем категории (все 3 уровня)
     const category = listing.category
       ? new CategoryResponseDto(listing.category.id, listing.category.name)
       : null;
     const subcategory = listing.subcategory
-      ? new CategoryResponseDto(listing.subcategory.id, listing.subcategory.name)
+      ? new CategoryResponseDto(
+          listing.subcategory.id,
+          listing.subcategory.name,
+        )
       : null;
     const subsubcategory = listing.subsubcategory
-      ? new CategoryResponseDto(listing.subsubcategory.id, listing.subsubcategory.name)
+      ? new CategoryResponseDto(
+          listing.subsubcategory.id,
+          listing.subsubcategory.name,
+        )
       : null;
 
     // Преобразуем валюту (с проверкой на null)
     let currency: CurrenciesResponseDto | null = null;
     if (listing.currency) {
       currency = new CurrenciesResponseDto(
-          listing.currency.id,
+        listing.currency.id,
         listing.currency.symbol,
-          listing.currency.name,
-          listing.currency.code,
+        listing.currency.name,
+        listing.currency.code,
       );
     }
 
@@ -60,7 +75,9 @@ export class ListingMapper {
         (spec: any) =>
           new ListingSpecificationResponseDto(
             spec.specificationId,
-            spec.specification?.name?.ru || spec.specification?.name || 'Unknown',
+            spec.specification?.name?.ru ||
+              spec.specification?.name ||
+              'Unknown',
             spec.value,
           ),
       ) || [];
@@ -86,7 +103,7 @@ export class ListingMapper {
             new ListingFileResponseDto(f.id, f.url, f.fileType, false),
         ) || [];
 
-    const user = ListingMapper.userListingToResponse(listing.user);
+    const user = ListingMapper.userListingToResponse(listing.user, isUserFavorite);
 
     // Формируем контакты для объявления (данные приходят из отдельного запроса)
     let contacts: ListingContactResponseDto | null = null;
@@ -131,18 +148,41 @@ export class ListingMapper {
       contacts,
       subscription,
       isFavorite ?? false,
+      note ?? null,
+      listing.createdAt,
+      mine ?? false,
     );
+  }
+
+  static buildNoteEmbeddedDto(
+    noteId: string | null,
+    targetType: NoteTargetType,
+    targetId: string,
+  ): NoteEmbeddedDto | null {
+    if (!noteId) return null;
+    return new NoteEmbeddedDto(noteId, targetType, targetId);
   }
 
   static toResponseList(listings: any[]): ListingResposeDto[] {
     return listings.map((l) => this.toResponse(l));
   }
 
-  static userListingToResponse(user: any): UserListingResponseDto {
+  static userListingToResponse(user: any, isUserFavorite: boolean = false): UserListingResponseDto {
+    // Формируем имя из legalEntityType через маппер с дефолтным языком RU
+    let displayName = user.name;
+    if (user.profile?.legalEntityType) {
+      const legalEntity = LegalEntityType.fromPromise({
+        id: user.profile.legalEntityType.id,
+        data: user.profile.legalEntityType.data,
+      }).toResponse(Language.RU);
+      displayName = `${legalEntity.code} ${legalEntity.name}`;
+    }
+
     return {
       id: user.id,
-      name: user.name,
+      name: displayName,
       avatar: user.files && user.files.length > 0 ? user.files[0].url : null,
+      isFavorite: isUserFavorite,
     };
   }
 }

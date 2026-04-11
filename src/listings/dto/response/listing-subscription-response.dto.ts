@@ -15,10 +15,7 @@ export class ListingSubscriptionResponseDto {
   })
   promoEndDate: Date | null;
 
-  constructor(
-    subscriptionStartDate: Date | null,
-    promoEndDate: Date | null,
-  ) {
+  constructor(subscriptionStartDate: Date | null, promoEndDate: Date | null) {
     this.subscriptionStartDate = subscriptionStartDate;
     this.promoEndDate = promoEndDate;
   }

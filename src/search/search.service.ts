@@ -136,8 +136,6 @@ export class SearchService {
     }
   }
 
-
-
   /**
    * Индексация профиля пользователя в Elasticsearch
    */
@@ -211,7 +209,7 @@ export class SearchService {
     }
   }
 
-    async indexProfile(profile: any, tx: PrismaClient) {
+  async indexProfile(profile: any, tx: PrismaClient) {
     try {
       // Получаем данные через User (проще и логичнее)
       const userWithProfile = await tx.user.findUnique({

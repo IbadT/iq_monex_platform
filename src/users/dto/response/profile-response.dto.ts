@@ -14,6 +14,13 @@ export class ProfileResponseDto {
   id: string;
 
   @ApiProperty({
+    description: 'Название профиля (из legalEntityType)',
+    example: 'ООО Общество с ограниченной ответственностью',
+    type: 'string',
+  })
+  name: string;
+
+  @ApiProperty({
     description: 'URL аватара',
     example: 'https://example.com/avatar.jpg',
     type: 'string',
@@ -91,6 +98,7 @@ export class ProfileResponseDto {
 
   constructor(
     id: string,
+    name: string,
     avatarUrl: string | null,
     phone: string | null,
     email: string | null,
@@ -104,6 +112,7 @@ export class ProfileResponseDto {
     commentsCount: number,
   ) {
     this.id = id;
+    this.name = name;
     this.avatarUrl = avatarUrl;
     this.phone = phone;
     this.email = email;

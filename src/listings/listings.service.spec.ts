@@ -235,6 +235,16 @@ describe('ListingsService', () => {
                   kind: 'AVATAR',
                 },
               },
+              profile: {
+                select: {
+                  legalEntityType: {
+                    select: {
+                      id: true,
+                      data: true,
+                    },
+                  },
+                },
+              },
             },
           },
         },

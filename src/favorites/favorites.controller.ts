@@ -16,7 +16,8 @@ import {
   ApiGetFavoritesListDocs,
   ApiCreateFavoriteDocs,
   ApiAddFavoriteToUserDocs,
-  ApiDeleteFavoriteDocs,
+  ApiDeleteListingFavoriteDocs,
+  ApiDeleteUserFavoriteDocs,
   ApiGetFavoriteByIdDocs,
   ApiGetUserFavoritesDocs,
 } from './decorators';
@@ -85,12 +86,27 @@ export class FavoriteController {
     return await this.favoriteService.addFavoriteToUser(user.id, body);
   }
 
-  // удалить из избранного
-  @Delete(':id')
+  // удалить объявление из избранного
+  @Delete('listings/:id')
   @Protected()
-  @ApiDeleteFavoriteDocs()
-  async deleteFavorite(@Param('id', ParseUUIDPipe) id: string) {
+  @ApiDeleteListingFavoriteDocs()
+  async deleteListingFavorite(
+    @CurrentUser() user: JwtPayload,
+    @Param('id', ParseUUIDPipe) id: string,
+  ) {
     this.logger.log(`Удалить объявление из избранного по id: ${id}`);
-    return await this.favoriteService.delete(id);
+    return await this.favoriteService.deleteListing(user.id, id);
+  }
+
+  // удалить пользователя из избранного
+  @Delete('users/:id')
+  @Protected()
+  @ApiDeleteUserFavoriteDocs()
+  async deleteUserFavorite(
+    @CurrentUser() user: JwtPayload,
+    @Param('id', ParseUUIDPipe) id: string,
+  ) {
+    this.logger.log(`Удалить пользователя из избранного по id: ${id}`);
+    return await this.favoriteService.deleteUser(user.id, id);
   }
 }

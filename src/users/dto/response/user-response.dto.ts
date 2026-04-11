@@ -26,7 +26,8 @@ export class UserResponseDto {
 
   @ApiProperty({
     description: 'URL аватара пользователя',
-    example: 'https://storage.clo.ru/adverts/users/550e8400-e29b-41d4-a716-446655440000/avatar/avatar.jpg',
+    example:
+      'https://storage.clo.ru/adverts/users/550e8400-e29b-41d4-a716-446655440000/avatar/avatar.jpg',
     type: 'string',
     nullable: true,
   })

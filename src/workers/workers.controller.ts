@@ -87,7 +87,7 @@ export class WorkersController {
     const result = await this.workersService.deleteWorkerRole(id);
     return {
       success: true,
-      data: result
+      data: result,
     };
   }
 

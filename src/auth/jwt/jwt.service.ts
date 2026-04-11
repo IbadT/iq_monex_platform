@@ -18,7 +18,7 @@ export class JwtTokenService {
     const data = { id: userId, name, email, role };
 
     const accessToken = await this.jwtService.signAsync(data, {
-      expiresIn: '15m', // Явно указываем 15 минут
+      expiresIn: '25m', // Явно указываем 25 минут
     });
 
     const refreshToken = await this.jwtService.signAsync(data, {

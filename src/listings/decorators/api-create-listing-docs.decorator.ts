@@ -55,8 +55,8 @@ export function CreateListingApiDocs() {
             priceUnitId: 1,
             condition: 'USED',
             contacts: {
-              id: "123e4567-e89b-12d3-a456-426614174000",
-              type: "WORKER",
+              id: '123e4567-e89b-12d3-a456-426614174000',
+              type: 'WORKER',
             },
             files: [
               'data:application/pdf;base64,JVBERi0xLjQKJeLjz9M=...',
@@ -66,14 +66,16 @@ export function CreateListingApiDocs() {
               'data:image/jpeg;base64,/9j/4AAQSkZJRgABAQAAAQ...',
               'data:image/jpeg;base64,/9j/4AAQSkZJRgABAQAAAQ...',
             ],
-            maps: [{
-              type: 'OFFICE',
-              latitude: 55.7558,
-              longitude: 37.6173,
-              address: 'г. Алматы, ул. Абая 123',
-              country: 'Казахстан',
-              city: 'Алматы',
-            }],
+            maps: [
+              {
+                type: 'OFFICE',
+                latitude: 55.7558,
+                longitude: 37.6173,
+                address: 'г. Алматы, ул. Абая 123',
+                country: 'Казахстан',
+                city: 'Алматы',
+              },
+            ],
             specifications: [
               { specificationId: 1, value: 'Белый' },
               { specificationId: 2, value: '128 ГБ' },
@@ -92,14 +94,15 @@ export function CreateListingApiDocs() {
             subsubcategoryId: 2,
             status: 'DRAFT',
             contacts: {
-              id: "123e4567-e89b-12d3-a456-426614174000",
-              type: "USER",
-            }
+              id: '123e4567-e89b-12d3-a456-426614174000',
+              type: 'USER',
+            },
           },
         },
         template: {
           summary: 'Создание шаблона',
-          description: 'Шаблон для быстрых публикаций. Все поля опциональны кроме contacts.',
+          description:
+            'Шаблон для быстрых публикаций. Все поля опциональны кроме contacts.',
           value: {
             categoryId: 1,
             subcategoryId: 123,
@@ -112,8 +115,8 @@ export function CreateListingApiDocs() {
             priceUnitId: 1,
             condition: 'USED',
             contacts: {
-              id: "123e4567-e89b-12d3-a456-426614174000",
-              type: "WORKER",
+              id: '123e4567-e89b-12d3-a456-426614174000',
+              type: 'WORKER',
             },
             files: ['data:application/pdf;base64,JVBERi0xLjQKJeLjz9M=...'],
             photos: ['data:image/jpeg;base64,/9j/4AAQSkZJRgABAQAAAQ...'],
@@ -121,7 +124,8 @@ export function CreateListingApiDocs() {
         },
         published: {
           summary: 'Публикация объявления',
-          description: 'Все поля обязательны для публикации (title, description, price, currencyId, priceUnitId, condition, files, photos, maps, specifications минимум 5 шт)',
+          description:
+            'Все поля обязательны для публикации (title, description, price, currencyId, priceUnitId, condition, files, photos, maps, specifications минимум 5 шт)',
           value: {
             categoryId: 1,
             subcategoryId: 123,
@@ -142,14 +146,16 @@ export function CreateListingApiDocs() {
               'data:image/jpeg;base64,/9j/4AAQSkZJRgABAQAAAQ...',
               'data:image/jpeg;base64,/9j/4AAQSkZJRgABAQAAAQ...',
             ],
-            maps: [{
-              type: 'OFFICE',
-              latitude: 55.7558,
-              longitude: 37.6173,
-              address: 'г. Алматы, ул. Абая 123',
-              country: 'Казахстан',
-              city: 'Алматы',
-            }],
+            maps: [
+              {
+                type: 'OFFICE',
+                latitude: 55.7558,
+                longitude: 37.6173,
+                address: 'г. Алматы, ул. Абая 123',
+                country: 'Казахстан',
+                city: 'Алматы',
+              },
+            ],
             specifications: [
               { specificationId: 1, value: 'Белый' },
               { specificationId: 2, value: '256 ГБ' },
@@ -159,9 +165,9 @@ export function CreateListingApiDocs() {
               { specificationId: 6, value: 'Оригинальная коробка' },
             ],
             contacts: {
-              id: "123e4567-e89b-12d3-a456-426614174000",
-              type: "USER",
-            }
+              id: '123e4567-e89b-12d3-a456-426614174000',
+              type: 'USER',
+            },
           },
         },
       },
