@@ -262,7 +262,9 @@ export class AuthService {
     });
 
     if (!rubCurrency) {
-      throw new Error('Валюта RUB не найдена в базе данных. Запустите сид валют.');
+      throw new Error(
+        'Валюта RUB не найдена в базе данных. Запустите сид валют.',
+      );
     }
 
     // 6. Создаем профиль для пользователя с валютой по умолчанию (RUB)
@@ -523,43 +525,45 @@ export class AuthService {
     };
   }
 
-    async addSuperAdmin() {
-      const superAdminRole = await prisma.role.findFirst({
-        where: {
-          code: RoleType.SUPER_ADMIN,
-        },
-      });
-      
-      if (!superAdminRole) {
-        throw new NotFoundException('Super admin role not found');
-      }
-      const superAdminEmail = this.configService.getOrThrow("SMTP_SUPPORT_USER")
-      
-      // проверяем, есть ли уже super admin
-      const hasSuperAdmin = await prisma.user.findUnique({
-        where: {
-          email: superAdminEmail
-        }
-      })
+  async addSuperAdmin() {
+    const superAdminRole = await prisma.role.findFirst({
+      where: {
+        code: RoleType.SUPER_ADMIN,
+      },
+    });
 
-      if (hasSuperAdmin) {
-        throw new ConflictException('Super admin уже существует');
-      }
-      
-      const hashedPassword = await this.hashService.hash(await this.configService.getOrThrow("SUPER_ADMIN_PASSWORD"))
-
-      const createdSuperAdmin = await prisma.user.create({
-        data: {
-          email: superAdminEmail,
-          name: "IVAN",
-          accountNumber: "00000000",
-          password: hashedPassword,
-          roleId: superAdminRole.id,
-        }
-      })
-
-      return createdSuperAdmin.id;
+    if (!superAdminRole) {
+      throw new NotFoundException('Super admin role not found');
     }
+    const superAdminEmail = this.configService.getOrThrow('SMTP_SUPPORT_USER');
+
+    // проверяем, есть ли уже super admin
+    const hasSuperAdmin = await prisma.user.findUnique({
+      where: {
+        email: superAdminEmail,
+      },
+    });
+
+    if (hasSuperAdmin) {
+      throw new ConflictException('Super admin уже существует');
+    }
+
+    const hashedPassword = await this.hashService.hash(
+      await this.configService.getOrThrow('SUPER_ADMIN_PASSWORD'),
+    );
+
+    const createdSuperAdmin = await prisma.user.create({
+      data: {
+        email: superAdminEmail,
+        name: 'IVAN',
+        accountNumber: '00000000',
+        password: hashedPassword,
+        roleId: superAdminRole.id,
+      },
+    });
+
+    return createdSuperAdmin.id;
+  }
 
   private async generateUniqueAccountNumber(): Promise<string> {
     const accountNumber = randomInt(10_000_000, 100_000_000).toString();

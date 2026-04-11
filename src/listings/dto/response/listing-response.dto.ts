@@ -8,6 +8,7 @@ import { UserListingResponseDto } from './user-listing-response.dto';
 import { ListingFileResponseDto } from './listing-file-response.dto';
 import { ListingContactResponseDto } from './listing-contact-response.dto';
 import { ListingSubscriptionResponseDto } from './listing-subscription-response.dto';
+import { NoteEmbeddedDto } from '@/notes/dto/note-embedded.dto';
 
 export class ListingResposeDto {
   @ApiProperty({
@@ -17,7 +18,6 @@ export class ListingResposeDto {
     format: 'uuid',
   })
   id: string;
-
 
   @ApiProperty({
     description: 'Заголовок объявления',
@@ -173,6 +173,27 @@ export class ListingResposeDto {
   })
   subscription: ListingSubscriptionResponseDto;
 
+  @ApiProperty({
+    description: 'Личная заметка текущего пользователя об объявлении',
+    type: () => NoteEmbeddedDto,
+    nullable: true,
+  })
+  note: NoteEmbeddedDto | null;
+
+  @ApiProperty({
+    description: 'Дата создания',
+    example: '2026-03-22T16:24:33.144Z',
+    type: 'string',
+  })
+  createdAt: Date;
+
+  @ApiProperty({
+    description: 'Является ли объявление собственностью текущего пользователя',
+    example: false,
+    type: 'boolean',
+  })
+  mine: boolean;
+
   constructor(
     id: string,
     title: string | null,
@@ -197,6 +218,9 @@ export class ListingResposeDto {
     contacts: ListingContactResponseDto | null,
     subscription: ListingSubscriptionResponseDto,
     isFavorite: boolean,
+    note: NoteEmbeddedDto | null,
+    createdAt: Date,
+    mine: boolean,
   ) {
     this.id = id;
     this.title = title;
@@ -221,5 +245,8 @@ export class ListingResposeDto {
     this.specifications = specifications;
     this.user = user;
     this.contacts = contacts;
+    this.note = note;
+    this.createdAt = createdAt;
+    this.mine = mine;
   }
 }

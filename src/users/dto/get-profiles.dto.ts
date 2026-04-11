@@ -60,17 +60,14 @@ export class GetProfilesDto {
 
   @ApiProperty({
     description: 'Массив ID активностей для фильтрации',
-    example: [
-      1,
-      2,
-    ],
+    example: [1, 2],
     required: false,
     type: [Number],
   })
   @IsOptional()
   @IsArray()
   @Type(() => Number)
-  @IsInt({ each: true, })
+  @IsInt({ each: true })
   activityIds?: number[];
 
   constructor(

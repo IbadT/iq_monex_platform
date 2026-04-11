@@ -6,4 +6,5 @@ export class UserListingResponseDto extends PickType(UserResponseDto, [
   'name',
 ]) {
   avatar?: string | null;
+  isFavorite!: boolean;
 }

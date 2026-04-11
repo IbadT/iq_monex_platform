@@ -47,7 +47,9 @@ export class ListingsController {
 
   @Get('')
   @ApiListingQueryDocs()
-  async listingList(@Query() query: ListingQueryDto): Promise<ListingListResponseDto> {
+  async listingList(
+    @Query() query: ListingQueryDto,
+  ): Promise<ListingListResponseDto> {
     // Если есть поисковый запрос, используем Elasticsearch
     return await this.listingsService.searchListings(query);
     // if (query.search) {

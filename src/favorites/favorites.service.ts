@@ -173,7 +173,10 @@ export class FavoriteService {
   private async getContactsForListings(
     listings: any[],
   ): Promise<Map<string, { phone: string | null; email: string | null }>> {
-    const contactDataMap = new Map<string, { phone: string | null; email: string | null }>();
+    const contactDataMap = new Map<
+      string,
+      { phone: string | null; email: string | null }
+    >();
 
     await Promise.all(
       listings.map(async (listing) => {
@@ -182,7 +185,10 @@ export class FavoriteService {
         }
 
         try {
-          let contactData: { phone: string | null; email: string | null } | null = null;
+          let contactData: {
+            phone: string | null;
+            email: string | null;
+          } | null = null;
 
           if (listing.contactType === 'WORKER') {
             const worker = await prisma.worker.findUnique({
@@ -291,10 +297,43 @@ export class FavoriteService {
     return createdFavorite;
   }
 
-  async delete(id: string) {
-    // TODO: продумать логику над удалением всех или по id
+  async deleteListing(userId: string, listingId: string) {
+    const favorite = await prisma.favorite.findFirst({
+      where: {
+        userId,
+        listingId,
+        type: FavoriteType.LISTING,
+      },
+    });
+
+    if (!favorite) {
+      throw new BadRequestException('Объявление не найдено в избранном');
+    }
+
+    await this.cacheService.del(`favorites/userId:${userId}`);
+
     return await prisma.favorite.delete({
-      where: { id },
+      where: { id: favorite.id },
+    });
+  }
+
+  async deleteUser(userId: string, targetUserId: string) {
+    const favorite = await prisma.favorite.findFirst({
+      where: {
+        userId,
+        targetUserId,
+        type: FavoriteType.USER,
+      },
+    });
+
+    if (!favorite) {
+      throw new BadRequestException('Пользователь не найден в избранном');
+    }
+
+    await this.cacheService.del(`favorites/users:${userId}`);
+
+    return await prisma.favorite.delete({
+      where: { id: favorite.id },
     });
   }
 }

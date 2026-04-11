@@ -117,7 +117,7 @@ export class WorkersService {
         // type: RoleType.WORKER,
         // role: RoleType.WORKER,
         role: {
-          type: RoleType.WORKER
+          type: RoleType.WORKER,
         },
       },
     });

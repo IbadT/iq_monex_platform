@@ -42,7 +42,7 @@ export class UsersController {
     const result = await this.usersService.banUser(id, body.isBan, body.reason);
     return {
       success: true,
-      data: result
+      data: result,
     };
   }
 
@@ -80,12 +80,12 @@ export class UsersController {
     return await this.usersService.getUserByAccountNumber(account_number);
   }
 
-  @Get(":id")
-  async getUserById(@Param("id", ParseUUIDPipe) id: string) {
+  @Get(':id')
+  async getUserById(@Param('id', ParseUUIDPipe) id: string) {
     const result = await this.usersService.getUserById(id);
     return {
       success: true,
-      data: result
+      data: result,
     };
   }
 

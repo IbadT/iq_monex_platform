@@ -35,7 +35,7 @@ import { PromoModule } from '@/promo/promo.module';
     CategoriesService,
     DictionariesService,
     MapLocationsService,
-    FileService
+    FileService,
   ],
 })
 export class ReviewsModule {}

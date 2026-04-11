@@ -116,7 +116,7 @@ export class AttributesService {
 
     // Переводим только на другие языки
     const targetLanguages = ['en', 'kk'];
-    
+
     for (const lang of targetLanguages) {
       translations[lang] = await this.translateViaMyMemory(text, lang);
       // Небольшая задержка между запросами
@@ -127,7 +127,7 @@ export class AttributesService {
     const result: Record<string, string> = {
       ru: translations.ru,
       en: translations.en,
-      kz: translations.kk
+      kz: translations.kk,
     };
 
     return result;
@@ -137,8 +137,11 @@ export class AttributesService {
     id: number,
     body: UpdateSpecificationDto,
   ): Promise<{ message: string }> {
-    this.logger.log(`Updating specification ${id} with name: ${body.name}`, 'AttributesService');
-    
+    this.logger.log(
+      `Updating specification ${id} with name: ${body.name}`,
+      'AttributesService',
+    );
+
     const spec = await prisma.specification.findUnique({
       where: { id },
     });
@@ -161,17 +164,23 @@ export class AttributesService {
     for (const lang of languages) {
       const cacheKey = `specifications:${lang}`;
       await this.cacheService.del(cacheKey);
-      this.logger.log(`Cleared cache for key: ${cacheKey}`, 'AttributesService');
+      this.logger.log(
+        `Cleared cache for key: ${cacheKey}`,
+        'AttributesService',
+      );
     }
 
-    this.logger.log(`Successfully updated specification ${id}`, 'AttributesService');
-    
+    this.logger.log(
+      `Successfully updated specification ${id}`,
+      'AttributesService',
+    );
+
     return { message: 'Specification updated successfully' };
   }
 
   async deleteSpecification(id: number): Promise<{ message: string }> {
     this.logger.log(`Deleting specification ${id}`, 'AttributesService');
-    
+
     // Удаляем из БД
     const spec = await prisma.specification.findUnique({
       where: { id },
@@ -190,10 +199,16 @@ export class AttributesService {
     for (const lang of languages) {
       const cacheKey = `specifications:${lang}`;
       await this.cacheService.del(cacheKey);
-      this.logger.log(`Cleared cache for key: ${cacheKey}`, 'AttributesService');
+      this.logger.log(
+        `Cleared cache for key: ${cacheKey}`,
+        'AttributesService',
+      );
     }
 
-    this.logger.log(`Successfully deleted specification ${id}`, 'AttributesService');
+    this.logger.log(
+      `Successfully deleted specification ${id}`,
+      'AttributesService',
+    );
 
     return { message: 'Specification deleted' };
   }

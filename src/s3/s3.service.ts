@@ -104,7 +104,11 @@ export class S3Service {
     return `users/${userId}/photos/photo_${index}.jpg`;
   }
 
-  generateUserFileKey(userId: string, index: number, extension: string): string {
+  generateUserFileKey(
+    userId: string,
+    index: number,
+    extension: string,
+  ): string {
     return `users/${userId}/files/file_${index}.${extension}`;
   }
 
@@ -160,7 +164,6 @@ export class S3Service {
   generateListingFileKey(listingId: string, index: number, type: string) {
     return `listings/${listingId}/${type}-${index}-${Date.now()}`;
   }
-
 
   // Получение размера файла из base64
   getFileSizeFromBase64(base64String: string): number {

@@ -75,21 +75,21 @@ export class CreateMapLocationDto {
   address: string;
 
   @ApiProperty({
-    description: "Страна",
-    example: "Россия",
+    description: 'Страна',
+    example: 'Россия',
     required: true,
   })
-  @IsString({ message: "Страна должна быть строкой" })
-  @IsNotEmpty({ message: "Страна обязательна" })
+  @IsString({ message: 'Страна должна быть строкой' })
+  @IsNotEmpty({ message: 'Страна обязательна' })
   country: string;
 
   @ApiProperty({
-    description: "Город",
-    example: "Москва",
+    description: 'Город',
+    example: 'Москва',
     required: true,
   })
-  @IsString({ message: "Город должен быть строкой" })
-  @IsNotEmpty({ message: "Город обязателен" })
+  @IsString({ message: 'Город должен быть строкой' })
+  @IsNotEmpty({ message: 'Город обязателен' })
   city: string;
 
   @ApiPropertyOptional({

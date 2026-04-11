@@ -1,5 +1,5 @@
-import { ApiProperty } from "@nestjs/swagger";
-import { IsNotEmpty, IsString, IsUUID, IsEnum } from "class-validator";
+import { ApiProperty } from '@nestjs/swagger';
+import { IsNotEmpty, IsString, IsUUID, IsEnum } from 'class-validator';
 
 export enum LISTING_CONTACTS {
   USER,
@@ -8,9 +8,9 @@ export enum LISTING_CONTACTS {
 
 export class ListingContactDto {
   @ApiProperty({
-    description: "ID контакта",
-    example: "123e4567-e89b-12d3-a456-426614174000",
-    format: "uuid",
+    description: 'ID контакта',
+    example: '123e4567-e89b-12d3-a456-426614174000',
+    format: 'uuid',
     required: true,
   })
   @IsNotEmpty()
@@ -19,8 +19,8 @@ export class ListingContactDto {
   id: string;
 
   @ApiProperty({
-    description: "Кто является контактом (WORKER или USER)",
-    example: "WORKER",
+    description: 'Кто является контактом (WORKER или USER)',
+    example: 'WORKER',
     enum: LISTING_CONTACTS,
     required: true,
   })

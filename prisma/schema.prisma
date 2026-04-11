@@ -73,6 +73,10 @@ model User {
   // Promo кампании
   promoCampaignParticipants PromoCampaignParticipant[]
 
+  // Заметки пользователя
+  authoredNotes UserNote[] @relation("AuthoredNotes")
+  // receivedNotes UserNote[] @relation("ReceivedNotes")
+
   @@map("users")
 }
 
@@ -1193,5 +1197,42 @@ enum FavoriteType {
 enum ComplaintType {
   LISTING
   USER
+}
+
+// ================ USER NOTES ================
+// Заметки пользователей о других пользователях и объявлениях
+model UserNote {
+  id        String   @id @default(uuid()) @db.Uuid
+  
+  // Кто создал заметку
+  authorId  String   @map("author_id") @db.Uuid
+  author    User     @relation("AuthoredNotes", fields: [authorId], references: [id], onDelete: Cascade)
+  
+  // Тип цели заметки
+  targetType UserNoteTargetType @map("target_type")
+  
+  // ID цели (пользователь или объявление)
+  targetUserId  String? @map("target_user_id") @db.Uuid
+  targetListingId String? @map("target_listing_id") @db.Uuid
+  
+  // Текст заметки (макс 100 символов)
+  content   String   @db.VarChar(100)
+  
+  createdAt DateTime @default(now()) @map("created_at")
+  updatedAt DateTime @updatedAt @map("updated_at")
+  
+  // Один пользователь может иметь только одну заметку на одну цель
+  @@unique([authorId, targetType, targetUserId], name: "unique_user_note_per_user")
+  @@unique([authorId, targetType, targetListingId], name: "unique_user_note_per_listing")
+  
+  @@index([authorId])
+  @@index([targetUserId])
+  @@index([targetListingId])
+  @@map("user_notes")
+}
+
+enum UserNoteTargetType {
+  USER
+  LISTING
 }
 

@@ -15,7 +15,13 @@ import { FileService } from '@/s3/file.service';
 import { PromoModule } from '@/promo/promo.module';
 
 @Module({
-  imports: [JwtAuthModule, GuardsModule, SearchModule, RabbitmqModule, PromoModule],
+  imports: [
+    JwtAuthModule,
+    GuardsModule,
+    SearchModule,
+    RabbitmqModule,
+    PromoModule,
+  ],
   controllers: [ListingsController],
   providers: [
     CacheService,

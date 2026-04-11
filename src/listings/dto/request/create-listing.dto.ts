@@ -174,8 +174,8 @@ export class CreateListingDto {
         latitude: 55.7558,
         longitude: 37.6173,
         address: 'г. Алматы, ул. Абая 123',
-        city: "Москва",
-        country: "Россия"
+        city: 'Москва',
+        country: 'Россия',
       },
     ],
     required: false,
@@ -188,7 +188,7 @@ export class CreateListingDto {
   maps?: CreateMapLocationDto[];
 
   @ApiProperty({
-    description: "Контакты объявления",
+    description: 'Контакты объявления',
     type: ListingContactDto,
     required: false,
     nullable: true,

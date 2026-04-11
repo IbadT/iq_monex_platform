@@ -72,7 +72,6 @@ describe('ReviewsService', () => {
       const authorId = 'user-123';
       const createReviewDto: CreateReviewDto = new CreateReviewDto(
         '123e4567-e89b-12d3-a456-426614174000',
-        'Great listing',
         'Excellent product, highly recommend',
         5,
         ['data:image/png;base64,test'],
@@ -100,7 +99,6 @@ describe('ReviewsService', () => {
       const authorId = 'user-123';
       const createReviewDto: CreateReviewDto = new CreateReviewDto(
         '123e4567-e89b-12d3-a456-426614174999',
-        'Great listing',
         'Excellent product, highly recommend',
         5,
         ['data:image/png;base64,test'],
