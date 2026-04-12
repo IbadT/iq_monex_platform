@@ -70,7 +70,8 @@ export class ListingMapper {
           ),
       ) || [];
 
-    const specifications: ListingSpecificationResponseDto[] =
+    // Базовые характеристики (из таблицы Specification)
+    const baseSpecifications: ListingSpecificationResponseDto[] =
       listing.specifications?.map(
         (spec: any) =>
           new ListingSpecificationResponseDto(
@@ -81,6 +82,22 @@ export class ListingMapper {
             spec.value,
           ),
       ) || [];
+
+    // Пользовательские характеристики (из таблицы UserSpecification)
+    const userSpecifications: ListingSpecificationResponseDto[] =
+      listing.userSpecifications?.map(
+        (spec: any) =>
+          new ListingSpecificationResponseDto(
+            spec.userSpecificationId,
+            spec.userSpecification?.name?.ru ||
+              spec.userSpecification?.name ||
+              'Unknown',
+            spec.value,
+          ),
+      ) || [];
+
+    // Объединяем базовые и пользовательские характеристики
+    const specifications = [...baseSpecifications, ...userSpecifications];
 
     const images: ListingFileResponseDto[] =
       listing.files

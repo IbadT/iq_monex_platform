@@ -33,27 +33,31 @@ export class ProfileMapper {
           new ActivityResponseDto(ua.activity.id, ua.activity.name),
       ) || [];
 
-    // Преобразуем тип юр лица через маппер с дефолтным языком RU
-    const legalEntityType = LegalEntityType.fromPromise({
-      id: profile.legalEntityType.id,
-      data: profile.legalEntityType.data,
-    }).toResponse(Language.RU);
+    // Преобразуем тип юр лица через маппер с дефолтным языком RU (опциональное поле)
+    const legalEntityType = profile.legalEntityType
+      ? LegalEntityType.fromPromise({
+          id: profile.legalEntityType.id,
+          data: profile.legalEntityType.data,
+        }).toResponse(Language.RU)
+      : null;
 
-    // Преобразуем валюту
-    const currency = new CurrenciesResponseDto(
-      profile.currency.id,
-      profile.currency.symbol,
-      profile.currency.name,
-      profile.currency.code,
-    );
+    // Преобразуем валюту (опциональное поле)
+    const currency = profile.currency
+      ? new CurrenciesResponseDto(
+          profile.currency.id,
+          profile.currency.symbol,
+          profile.currency.name,
+          profile.currency.code,
+        )
+      : null;
 
     const rating = profile.user.rating;
     const commentsCount = profile.user.reviewsCount;
 
     // Формируем имя из legalEntityType (code + name) или используем user.name
     const displayName = legalEntityType
-      // ? `${legalEntityType.code} ${legalEntityType.name}`
-      ? `${legalEntityType.code} ${profile.user?.name}`
+      ? // ? `${legalEntityType.code} ${legalEntityType.name}`
+        `${legalEntityType.code} ${profile.user?.name}`
       : profile.user?.name || '';
 
     // Бан информация
@@ -120,8 +124,8 @@ export class ProfileMapper {
 
     // Формируем имя из legalEntityType (code + name) или используем user.name
     const displayName = legalEntityType
-      // ? `${legalEntityType.code} ${legalEntityType.name}`
-      ? `${legalEntityType.code} ${user.name}`
+      ? // ? `${legalEntityType.code} ${legalEntityType.name}`
+        `${legalEntityType.code} ${user.name}`
       : user.name || '';
 
     // Валюта (опциональное поле)
@@ -176,32 +180,23 @@ export class ProfileMapper {
 
     // Сотрудники
     const workers =
-      user.workers?.map(
-        (w: any) => {
-          // Получаем аватар из files
-          const avatarFile = w.files?.find(
-            (f: any) => f.kind === 'AVATAR',
-          );
-          const avatar = avatarFile?.url || null;
+      user.workers?.map((w: any) => {
+        // Получаем аватар из files
+        const avatarFile = w.files?.find((f: any) => f.kind === 'AVATAR');
+        const avatar = avatarFile?.url || null;
 
-          return new UserWorkerResponseDto(
-            w.id,
-            w.name,
-            w.email,
-            w.phone,
-            w.roleId,
-            w.userId,
-            w.isActive,
-            new RoleResponseDto(
-              w.role.id,
-              w.role.code,
-              w.role.role,
-              w.role.type,
-            ),
-            avatar,
-          );
-        },
-      ) || [];
+        return new UserWorkerResponseDto(
+          w.id,
+          w.name,
+          w.email,
+          w.phone,
+          w.roleId,
+          w.userId,
+          w.isActive,
+          new RoleResponseDto(w.role.id, w.role.code, w.role.role, w.role.type),
+          avatar,
+        );
+      }) || [];
 
     // Локации
     const maps =

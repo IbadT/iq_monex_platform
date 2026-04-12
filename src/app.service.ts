@@ -43,8 +43,7 @@ export class AppService {
           select: {
             id: true,
             url: true,
-            
-          }
+          },
         },
       },
     });

@@ -12,6 +12,7 @@ export class Specification {
     return new SpecificationResponseDto(
       this.id,
       this.name[lang] || this.name['ru'],
+      false, // глобальная характеристика
     );
   }
 

@@ -162,7 +162,8 @@ export class UserDto {
   activities: ActivityDto[];
 
   @ApiProperty({
-    description: 'Добавлен ли пользователь в избранное (всегда true для этого списка)',
+    description:
+      'Добавлен ли пользователь в избранное (всегда true для этого списка)',
     example: true,
     type: 'boolean',
   })

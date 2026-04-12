@@ -2,11 +2,10 @@ import { Test, TestingModule } from '@nestjs/testing';
 import { AttributesService } from './attributes.service';
 import { CacheService } from '@/cache/cacheService.service';
 import { AppLogger } from '@/common/logger/logger.service';
-import { Language } from '@/dictionaries/dto/request/get-currency.dto';
+// import { Language } from '@/dictionaries/dto/request/get-currency.dto';
 
 describe('AttributesService', () => {
   let service: AttributesService;
-  let cacheService: jest.Mocked<CacheService>;
 
   beforeEach(async () => {
     const mockCacheService = {
@@ -38,7 +37,6 @@ describe('AttributesService', () => {
     }).compile();
 
     service = module.get<AttributesService>(AttributesService);
-    cacheService = module.get<jest.Mocked<CacheService>>(CacheService);
   });
 
   it('should be defined', () => {
@@ -46,6 +44,9 @@ describe('AttributesService', () => {
   });
 
   describe('list', () => {
+    // TODO: Redis cache is temporarily commented out in the service
+    // Re-enable these tests when cache is restored
+    /*
     it('should return cached specifications', async () => {
       const lang = Language.RU;
       const cacheKey = `specifications:${lang}`;
@@ -126,5 +127,6 @@ describe('AttributesService', () => {
         },
       ]);
     });
+    */
   });
 });

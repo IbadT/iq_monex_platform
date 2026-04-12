@@ -7,7 +7,8 @@ export function ApiCreateUserSuggestionDocs() {
   return applyDecorators(
     ApiOperation({
       summary: 'Создание нового предложения пользователя',
-      description: 'Создает предложение пользователя с текстом и опциональными фотографиями (до 3 шт.)',
+      description:
+        'Создает предложение пользователя с текстом и опциональными фотографиями (до 3 шт.)',
     }),
     ApiBody({
       description: 'Данные для создания предложения',

@@ -25,7 +25,8 @@ export class FavoriteUserMapper {
     // Map activities
     const activities =
       favorite.targetUser?.userActivities?.map(
-        (ua: any) => new ActivityDto(ua.activity?.id || 0, ua.activity?.name || ''),
+        (ua: any) =>
+          new ActivityDto(ua.activity?.id || 0, ua.activity?.name || ''),
       ) || [];
 
     // Get city and country from locations

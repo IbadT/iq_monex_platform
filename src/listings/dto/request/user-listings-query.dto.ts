@@ -1,10 +1,4 @@
-import {
-  IsOptional,
-  IsNumber,
-  IsEnum,
-  Min,
-  Max,
-} from 'class-validator';
+import { IsOptional, IsNumber, IsEnum, Min, Max } from 'class-validator';
 import { Type } from 'class-transformer';
 import { ApiPropertyOptional } from '@nestjs/swagger';
 import { ListingStatus } from '../../enums/listing-status.enum';
