@@ -26,7 +26,10 @@ export const ApiDeleteListingFavoriteDocs = () => {
         type: 'object',
         properties: {
           success: { type: 'boolean', example: false },
-          message: { type: 'string', example: 'Объявление не найдено в избранном' },
+          message: {
+            type: 'string',
+            example: 'Объявление не найдено в избранном',
+          },
           error: { type: 'string', example: 'Not Found' },
           statusCode: { type: 'number', example: 404 },
         },

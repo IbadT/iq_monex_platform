@@ -21,11 +21,7 @@ export class NoteEmbeddedDto {
   })
   targetId: string;
 
-  constructor(
-    id: string,
-    targetType: NoteTargetType,
-    targetId: string,
-  ) {
+  constructor(id: string, targetType: NoteTargetType, targetId: string) {
     this.id = id;
     this.targetType = targetType;
     this.targetId = targetId;

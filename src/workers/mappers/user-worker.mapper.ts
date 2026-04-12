@@ -16,6 +16,12 @@ export class UserWorkerMapper {
         roleEntity.type,
       );
 
+      // Получаем аватар из files (если есть)
+      const avatarFile = worker.files?.find(
+        (file) => file.kind === 'AVATAR',
+      );
+      const avatar = avatarFile?.url || null;
+
       return new UserWorkerResponseDto(
         worker.id,
         worker.name,
@@ -25,6 +31,7 @@ export class UserWorkerMapper {
         worker.userId,
         worker.isActive,
         role,
+        avatar,
       );
     });
   };

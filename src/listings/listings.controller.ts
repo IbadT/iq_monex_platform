@@ -13,6 +13,7 @@ import {
 } from '@nestjs/common';
 import { ListingsService } from './listings.service';
 import { ListingQueryDto } from './dto/request/listing-query.dto';
+import { UserListingsQueryDto } from './dto/request/user-listings-query.dto';
 import { CreateListingDto } from './dto/request/create-listing.dto';
 import { UpdateListingDto } from './dto/request/update-listing.dto';
 import { Protected } from '@/common/decorators/protected.decorator';
@@ -52,10 +53,6 @@ export class ListingsController {
   ): Promise<ListingListResponseDto> {
     // Если есть поисковый запрос, используем Elasticsearch
     return await this.listingsService.searchListings(query);
-    // if (query.search) {
-    // }
-    // // Иначе используем обычный поиск из БД
-    // return await this.listingsService.listingList(query);
   }
 
   @Get(':id')
@@ -67,6 +64,18 @@ export class ListingsController {
     @CurrentUser() user?: JwtPayload,
   ): Promise<ListingResposeDto> {
     return await this.listingsService.listingById(id, query, user?.id);
+  }
+
+  @Get('accountNumber/:accountNumber')
+  @UseGuards(OptionalJwtAuthGuard)
+  async listingByAccountNumber(
+    @Param('accountNumber') accountNumber: string,
+    @CurrentUser() user?: JwtPayload,
+  ): Promise<ListingResposeDto> {
+    return await this.listingsService.listingByAccountNumber(
+      accountNumber,
+      user?.id,
+    );
   }
 
   @Get(':listingId/recomends')
@@ -82,8 +91,9 @@ export class ListingsController {
   @ApiGetUserListingsDocs()
   async listingsByUserId(
     @Param('user_id', ParseUUIDPipe) user_id: string,
-  ): Promise<ListingResposeDto[]> {
-    return await this.listingsService.listingsByUserId(user_id);
+    @Query() query: UserListingsQueryDto,
+  ): Promise<ListingListResponseDto> {
+    return await this.listingsService.listingsByUserId(user_id, query);
   }
 
   // добавить specifications

@@ -27,13 +27,16 @@ import { RabbitmqService } from '@/rabbitmq/rabbitmq.service';
 import { ComplaintType } from '@/users/enums/complaint-type.enum';
 import { MakeComplaintToListing } from './dto/request/make-complaint-to-listing.dto';
 import { GetRecomentQueryDto } from './dto/request/get-recoment-query.dto';
+import { UserListingsQueryDto } from './dto/request/user-listings-query.dto';
 import { FORBIDDEN_WORDS } from './forbidden-words/forbidden-words';
+import { randomInt } from 'crypto';
 import { CategoriesService } from '@/categories/categories.service';
 import { DictionariesService } from '@/dictionaries/dictionaries.service';
 import { MapLocationsService } from '@/map_locations/map_locations.service';
 import { IListing } from './interfaces/listing.interface';
 import { Prisma } from 'prisma/generated/client';
 import { ListingResposeDto } from './dto/response/listing-response.dto';
+import { ListingListResponseDto } from './dto/response/listing-list-response.dto';
 import { ListingMapper } from './mappers/listing.mapper';
 import { CreateListingResponseDto } from './dto/response/create-listing-response.dto';
 import { ChangeStatusResponseDto } from './dto/response/change-status-response.dto';
@@ -275,9 +278,15 @@ export class ListingsService {
   }
 
   /**
-   * Поиск объявлений через Elasticsearch
+   * Поиск объявлений - временно отключен Elasticsearch, всегда используем БД
    */
   async searchListings(query: ListingQueryDto) {
+    // Временно отключен Elasticsearch, всегда используем БД
+    return await this.listingList(query);
+  }
+
+  /*
+  async searchListingsES(query: ListingQueryDto) {
     const startTime = Date.now();
     const {
       limit = 20,
@@ -516,6 +525,7 @@ export class ListingsService {
       return await this.listingList(query);
     }
   }
+  */
 
   async listingList(query: ListingQueryDto) {
     const {
@@ -905,10 +915,10 @@ export class ListingsService {
                   select: {
                     id: true,
                     data: true,
-                  }
-                }
-              }
-            }
+                  },
+                },
+              },
+            },
           },
         },
         listingSlot: {
@@ -937,7 +947,7 @@ export class ListingsService {
     // Проверяем, добавлено ли объявление в избранное (если userId предоставлен)
     let isFavorite = false;
     let isUserFavorite = false;
-    let note
+    let note;
     // Определяем, является ли объявление собственностью текущего пользователя
     const mine = userId ? listing.userId === userId : false;
     if (userId) {
@@ -945,6 +955,7 @@ export class ListingsService {
         where: {
           userId,
           listingId: id,
+          type: 'LISTING',
         },
       });
       isFavorite = !!favorite;
@@ -960,7 +971,9 @@ export class ListingsService {
       isUserFavorite = !!userFavorite;
 
       // Получаем заметку пользователя об объявлении
-      this.logger.log(`[DEBUG] Looking for note: authorId=${userId}, targetListingId=${id}`);
+      this.logger.log(
+        `[DEBUG] Looking for note: authorId=${userId}, targetListingId=${id}`,
+      );
       const userNote = await prisma.userNote.findFirst({
         where: {
           authorId: userId,
@@ -970,7 +983,11 @@ export class ListingsService {
       });
       this.logger.log(`[DEBUG] Found note: ${userNote ? userNote.id : 'null'}`);
       note = userNote
-        ? ListingMapper.buildNoteEmbeddedDto(userNote.id, NoteTargetType.LISTING, id)
+        ? ListingMapper.buildNoteEmbeddedDto(
+            userNote.id,
+            NoteTargetType.LISTING,
+            id,
+          )
         : null;
     }
 
@@ -985,15 +1002,151 @@ export class ListingsService {
     );
   }
 
-  async listingsByUserId(userId: string): Promise<ListingResposeDto[]> {
+  async listingByAccountNumber(
+    accountNumber: string,
+    userId?: string,
+  ): Promise<ListingResposeDto> {
+    this.logger.log(
+      `Listing AccountNumber: ${accountNumber}, Status: ${ListingStatus.PUBLISHED}, UserID: ${userId || 'undefined (anonymous)'}`,
+    );
+    const listing = await prisma.listing.findFirst({
+      where: { accountNumber, status: ListingStatus.PUBLISHED },
+      include: {
+        category: true,
+        subcategory: true,
+        subsubcategory: true,
+        currency: true,
+        priceUnit: true,
+        files: true,
+        locations: true,
+        specifications: {
+          include: {
+            specification: true,
+          },
+        },
+        user: {
+          select: {
+            id: true,
+            name: true,
+            files: {
+              where: { kind: 'AVATAR' },
+              select: { url: true },
+            },
+            profile: {
+              select: {
+                legalEntityType: {
+                  select: {
+                    id: true,
+                    data: true,
+                  },
+                },
+              },
+            },
+          },
+        },
+        listingSlot: {
+          include: {
+            userSlot: true,
+          },
+        },
+      },
+    });
+
+    if (!listing) {
+      throw new NotFoundException(
+        `Listing with account number ${accountNumber} and status ${ListingStatus.PUBLISHED || 'any'} not found`,
+      );
+    }
+
+    // Получаем данные контакта если указаны
+    const contactData = await this.getContactData(
+      listing.contactId,
+      listing.contactType,
+    );
+
+    // Получаем данные о подписке пользователя
+    const promoData = await this.getPromoData(listing.userId);
+
+    // Проверяем, добавлено ли объявление в избранное (если userId предоставлен)
+    let isFavorite = false;
+    let isUserFavorite = false;
+    let note;
+    // Определяем, является ли объявление собственностью текущего пользователя
+    const mine = userId ? listing.userId === userId : false;
+    if (userId) {
+      const favorite = await prisma.favorite.findFirst({
+        where: {
+          userId,
+          listingId: listing.id,
+          type: 'LISTING',
+        },
+      });
+      isFavorite = !!favorite;
+
+      // Проверяем, находится ли владелец объявления в избранном пользователя
+      const userFavorite = await prisma.favorite.findFirst({
+        where: {
+          userId,
+          targetUserId: listing.userId,
+          type: 'USER',
+        },
+      });
+      isUserFavorite = !!userFavorite;
+
+      // Получаем заметку пользователя об объявлении
+      const userNote = await prisma.userNote.findFirst({
+        where: {
+          authorId: userId,
+          targetType: 'LISTING',
+          targetListingId: listing.id,
+        },
+      });
+      note = userNote
+        ? ListingMapper.buildNoteEmbeddedDto(
+            userNote.id,
+            NoteTargetType.LISTING,
+            listing.id,
+          )
+        : null;
+    }
+
+    return ListingMapper.toResponse(
+      listing,
+      contactData,
+      promoData,
+      isFavorite,
+      note,
+      isUserFavorite,
+      mine,
+    );
+  }
+
+  async listingsByUserId(
+    userId: string,
+    query: UserListingsQueryDto,
+  ): Promise<ListingListResponseDto> {
     // const cacheKey = `listings:userId:${userId}`;
     // const cachedListings = await this.cacheSevice.get<ListingResposeDto[]>(cacheKey);
     // if (cachedListings) return cachedListings;
 
-    this.logger.log(`User ID: ${userId}`);
+    const { limit = 20, offset = 0, status } = query;
+
+    this.logger.log(`User ID: ${userId}, limit: ${limit}, offset: ${offset}, status: ${status}`);
+
+    // Создаем условия фильтрации
+    const where: any = { userId };
+
+    if (status) {
+      where.status = status;
+    }
+
+    // Получаем общее количество записей для пагинации
+    const total = await prisma.listing.count({ where });
 
     const listings = await prisma.listing.findMany({
-      where: { userId },
+      where,
+      take: limit,
+      skip: offset,
       include: {
         category: true,
         subcategory: true,
@@ -1038,9 +1191,19 @@ export class ListingsService {
     // Загружаем контакты для всех объявлений (batch запросы)
     const contactDataMap = await this.getContactsForListings(listings);
 
-    return listings.map((listing) =>
+    const rows = listings.map((listing) =>
       ListingMapper.toResponse(listing, contactDataMap.get(listing.id) || null),
     );
+
+    return {
+      rows,
+      pagination: {
+        total,
+        limit,
+        offset,
+        hasMore: offset + limit < total,
+      },
+    };
   }
 
   async createListing(
@@ -1447,6 +1610,9 @@ export class ListingsService {
       ...listingData
     } = listing;
 
+    // Генерируем уникальный accountNumber
+    const accountNumber = await this.generateUniqueListingAccountNumber();
+
     return prisma.listing.create({
       data: {
         ...listingData,
@@ -1458,12 +1624,25 @@ export class ListingsService {
         status,
         price: listing.price ? new Decimal(listing.price) : null,
         userId,
+        accountNumber,
         ...(status === ListingStatus.ARCHIVED && {
           archivedAt: new Date(),
           autoDeleteAt: this.calculateAutoDeleteDate(),
         }),
       },
     });
+  }
+
+  private async generateUniqueListingAccountNumber(): Promise<string> {
+    const accountNumber = randomInt(10_000_000, 100_000_000).toString();
+    const exists = await prisma.listing.findUnique({
+      where: { accountNumber },
+    });
+    if (exists) {
+      return this.generateUniqueListingAccountNumber();
+    }
+
+    return accountNumber;
   }
 
   async deleteListingById(
@@ -1654,9 +1833,7 @@ export class ListingsService {
    * @param userId ID пользователя
    * @returns Объект с датой начала подписки и датой окончания акции
    */
-  private async getPromoData(
-    userId: string,
-  ): Promise<{
+  private async getPromoData(userId: string): Promise<{
     subscriptionStartDate: Date | null;
     promoEndDate: Date | null;
   }> {

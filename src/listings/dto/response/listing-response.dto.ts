@@ -20,6 +20,13 @@ export class ListingResposeDto {
   id: string;
 
   @ApiProperty({
+    description: 'Номер объявления (8 цифр)',
+    example: '12345678',
+    type: 'string',
+  })
+  accountNumber: string;
+
+  @ApiProperty({
     description: 'Заголовок объявления',
     example: 'iPhone 13 Pro Max',
     type: 'string',
@@ -196,6 +203,7 @@ export class ListingResposeDto {
 
   constructor(
     id: string,
+    accountNumber: string,
     title: string | null,
     description: string | null,
     price: Decimal | null,
@@ -223,6 +231,7 @@ export class ListingResposeDto {
     mine: boolean,
   ) {
     this.id = id;
+    this.accountNumber = accountNumber;
     this.title = title;
     this.description = description;
     this.price = price;

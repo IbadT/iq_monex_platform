@@ -3,6 +3,7 @@ import { AppController } from './app.controller';
 import { AppService } from './app.service';
 import { S3Service } from './s3/s3.service';
 import { JwtTokenService } from '@/auth/jwt/jwt.service';
+import { RabbitmqService } from '@/rabbitmq/rabbitmq.service';
 import { Reflector } from '@nestjs/core';
 
 interface MulterFile {
@@ -44,6 +45,10 @@ describe('AppController', () => {
       customEndpoint: 'https://storage.clo.ru',
     } as any;
 
+    const mockRabbitmqService = {
+      sendMessage: jest.fn(),
+    };
+
     const app: TestingModule = await Test.createTestingModule({
       controllers: [AppController],
       providers: [
@@ -59,6 +64,10 @@ describe('AppController', () => {
         {
           provide: Reflector,
           useValue: mockReflector,
+        },
+        {
+          provide: RabbitmqService,
+          useValue: mockRabbitmqService,
         },
       ],
     }).compile();

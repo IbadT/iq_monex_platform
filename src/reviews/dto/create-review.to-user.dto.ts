@@ -50,7 +50,12 @@ export class CreateReviewToUserDto {
   @ArrayMaxSize(5)
   photos?: string[];
 
-  constructor(userId: string, content: string, rating: number, photos?: string[]) {
+  constructor(
+    userId: string,
+    content: string,
+    rating: number,
+    photos?: string[],
+  ) {
     this.userId = userId;
     this.content = content;
     this.rating = rating;

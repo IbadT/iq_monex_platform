@@ -1,5 +1,66 @@
-мне теперь нужно, чтобы ты написал документацию для роутов activities.controller.ts, которая будет находиться в activities/decorators, с помощью applyDecorators, но сначала нужно, чтобы ты проанализировал логику сервисного слоя и передаваймые параметры, для полноценной документации, с полным описанием
-а так же, для переиспользования еще можно использовать переиспользуемые декораторы из common/decorators
+1) сделай две ручки для банерров для дестопа и для телефона 
+desktop: 1200x90, 1200x120 или 1440x120
+mobile: 360x160, 390x160, 430x180
+
+
+
+
+
+
+
+
+✅ проверить маппер получения telegram, siteUrl, email, telegram, description после patch для профиля
+✅ для профиля исправить преобразование name (получение профиля)
+✅ для workers добавить параметр avatar или null
+✅ для /api/v1/listings/users/{user_id} добавить status и пагинацию
+✅ suggestions - Создание нового предложения пользователя 3 опциональных картинки чтобы можно ююыло щас только текст берет
+и там бывают статус отклонено или внимание и для обоих причина
+баг с isFavorite
+✅ добавить accountNumber для объявления и пользователя
+
+
+
+
+
+
+
+
+
+рефреш токен ручка
+
+
+
+
+
+
+при создании attributes(specifications, добавил новую таблицу и в body добавить параметр PRIVATE) - для отдельного пользователя в бд
++ так же и получение этих новых характеристик с новой таблицы
+
+
+
+
+
+помжно ли перенести все данные в s3(чаты, тк их будет очень много) и s3 только для картинок и файлов?
+
+
+
+
+
+
+
+
+
+СКИДКА ПОЖИЗНЕННАЯ ИЛИ НЕТ?
+
+ЕСЛИ КАРТИНКА ИЛИ ФАЙЛ ПУСТАЯ СТРОКА, ТО ПРОПУСКАТЬ
+
+УДАЛИТЬ TITLE из REVIEWS
+
+
+
+
+
+
 
 
 
@@ -9,7 +70,142 @@
 в url не открываются файлы, а только скачиваются
 
 
+ПРИ ПОЛУЧЕНИИ ВСЕХ listings не получаются images, при получении listings по id все ОК 
+
+
+
 в patch users не создается photos
+
+БЭКАПЫ
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+PORT=8000
+#NODE_ENV=development
+NODE_ENV=production
+# DATABASE_URL="prisma+postgres://localhost:51213/?api_key=eyJkYXRhYmFzZVVybCI6InBvc3RncmVzOi8vcG9zdGdyZXM6cG9zdGdyZXNAbG9jYWxob3N0OjUxMjE0L3RlbXBsYXRlMT9zc2xtb2RlPWRpc2FibGUmY29ubmVjdGlvbl9saW1pdD0xJmNvbm5lY3RfdGltZW91dD0wJm1heF9pZGxlX2Nvbm5lY3Rpb25fbGlmZXRpbWU9MCZwb29sX3RpbWVvdXQ9MCZzaW5nbGVfdXNlX2Nvbm5lY3Rpb25zPXRydWUmc29ja2V0X3RpbWVvdXQ9MCIsIm5hbWUiOiJkZWZhdWx0Iiwic2hhZG93RGF0YWJhc2VVcmwiOiJwb3N0Z3JlczovL3Bvc3RncmVzOnBvc3RncmVzQGxvY2FsaG9zdDo1MTIxNS90ZW1wbGF0ZTE_c3NsbW9kZT1kaXNhYmxlJmNvbm5lY3Rpb25fbGltaXQ9MSZjb25uZWN0X3RpbWVvdXQ9MCZtYXhfaWRsZV9jb25uZWN0aW9uX2xpZmV0aW1lPTAmcG9vbF90aW1lb3V0PTAmc2luZ2xlX3VzZV9jb25uZWN0aW9ucz10cnVlJnNvY2tldF90aW1lb3V0PTAifQ"
+
+# DATABASE_URL="postgresql://postgres:postgres@postgres:5432/iq_monex_dev"
+#DATABASE_URL="postgresql://postgres:postgres@postgres:5432/iq_monex"
+# DATABASE_URL="postgresql://postgres:postgres@localhost:5432/iq_monex_dev?schema=public"
+
+DB_USER=iqmonex_user
+DB_PASSWORD=AKRdfurwli323498cF2fScg029fdSjghJjUinvFwy
+DB_NAME=iqmonex
+DATABASE_URL=postgresql://${DB_USER}:${DB_PASSWORD}@postgres:5432/${DB_NAME}
+
+
+SECRET_TOKEN="super_secret_word"
+JWT_EXPIRES_IN=15m
+JWT_REFRESH_EXPIRES_IN=7d
+
+REDIS_URL="redis://redis:6379"
+
+# Logger configuration
+LOG_CONSOLE_ENABLED=true
+LOG_FILE_ENABLED=false
+LOG_LEVEL=log
+LOG_DIR=logs
+LOG_COLORS_ENABLED=true
+
+# AWS S3 configuration
+AWS_REGION=us-east-1
+AWS_ACCESS_KEY_ID=1EWT1GN0AYD2NMZQIBPG
+AWS_SECRET_ACCESS_KEY=jZnRgrF6A7dPW9yPvqAwunE9i9a6FAhhNofR42hm
+S3_BUCKET_NAME=adverts
+S3_PORT=443
+S3_DOMAIN_STYLE=https://adverts.storage.clo.ru
+S3_PATH_STYLE=https://storage.clo.ru/adverts
+S3_USER_NAME=s3-user-881e2d
+
+
+YOOKASSA_SHOP_ID="1101313"
+YOOKASSA_SECRET_KEY="test_CVtT3ILdVKAVB4JJo1OP2stZM3dScFp-UvtDoRRlBSM"
+
+BANK_API_URL="https://www.cbr-xml-daily.ru/daily_json.js"
+
+SENTRY_DSN="https://273f6a65f0400e7721659a51b377c19f@o4510934909714432.ingest.us.sentry.io/4511067353317376"
+
+# YOOKASSA
+# test
+# SHOP_ID = "1101313"
+# SECRET_KEY = "test_CVtT3ILdVKAVB4JJo1OP2stZM3dScFp-UvtDoRRlBSM"
+
+# SHOP_ID = "1061013"
+# SECRET_KEY = "live_wKhCfWWoe7SYQ0WQIpO9ujmLRE3p8aNccBVj4vDPT74"
+
+# sbp (origin)
+# SHOP_ID = "1140312"
+# SECRET_KEY = "live_psHUs0J8GFvKCM2xFhLMXQ_ZvayPY9xSERseNyhEoYI"
+
+
+# Elasticsearch configuration
+ELASTICSEARCH_NODE="http://elasticsearch:9200"
+ELASTICSEARCH_USERNAME=elastic
+ELASTICSEARCH_PASSWORD=changeme
+
+# INFO_EMAIL="info@iqmonex.ru"
+# INFO_PASSWORD="urio30@!srCE\J"
+
+# NOREPLY SMTP (автоматические рассылки)
+SMTP_NOREPLY_HOST=smtp.timeweb.ru
+SMTP_NOREPLY_PORT=2525
+SMTP_NOREPLY_SECURE=false
+SMTP_NOREPLY_USER="info@iqmonex.ru"
+SMTP_NOREPLY_PASS="urio30@!srCE\J"
+EMAIL_NOREPLY_NAME="IQMONEX"
+
+# SUPPORT SMTP (поддержка и общение)
+SMTP_SUPPORT_HOST=smtp.timeweb.ru
+SMTP_SUPPORT_PORT=2525
+SMTP_SUPPORT_SECURE=false
+SMTP_SUPPORT_USER="support@iqmonex.ru"
+SMTP_SUPPORT_PASS=".h0(9=csrbR%%q"
+EMAIL_SUPPORT_NAME="Support IQMONEX Team"
+
+# Общие настройки
+SUPPORT_EMAIL="support@iqmonex.ru"
+APP_URL=https://iqmonex.ru
+
+RABBITMQ_URL='amqp://admin:admin123@rabbitmq:5672'
+
+
+SUPER_ADMIN_PASSWORD="superAdmin2026"
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
 
 
 

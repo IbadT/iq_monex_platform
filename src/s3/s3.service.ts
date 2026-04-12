@@ -96,8 +96,16 @@ export class S3Service {
     return `complaints/${complaintId}/photos/photo_${index}.jpg`;
   }
 
+  generateSuggestionPhotoKey(suggestionId: number, index: number): string {
+    return `suggestions/${suggestionId}/photos/photo_${index}.jpg`;
+  }
+
   generateAvatarKey(userId: string): string {
     return `users/${userId}/avatar/avatar.jpg`;
+  }
+
+  generateWorkerAvatarKey(workerId: string): string {
+    return `workers/${workerId}/avatar/avatar.jpg`;
   }
 
   generateUserPhotoKey(userId: string, index: number): string {

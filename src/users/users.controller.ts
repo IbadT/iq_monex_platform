@@ -52,12 +52,7 @@ export class UsersController {
   async getProfiles(
     @Query() query: GetProfilesDto,
   ): Promise<GetAllProfilesResponseDto> {
-    // Если есть поисковый запрос, используем Elasticsearch
     return await this.usersService.searchProfiles(query);
-    // if (query.query || query.ratingMin !== null || query.activityIds) {
-    // }
-    // // Иначе используем обычный поиск из БД
-    // return await this.usersService.getProfilesFromDB(query);
   }
 
   // получить свой профиль

@@ -1,5 +1,11 @@
 import { ApiProperty } from '@nestjs/swagger';
-import { IsEnum, IsNotEmpty, IsString, IsUUID, MaxLength } from 'class-validator';
+import {
+  IsEnum,
+  IsNotEmpty,
+  IsString,
+  IsUUID,
+  MaxLength,
+} from 'class-validator';
 import { NoteTargetType } from '../enums/note-target-type.enum';
 
 export class CreateNoteDto {
@@ -14,7 +20,8 @@ export class CreateNoteDto {
 
   @ApiProperty({
     example: '123e4567-e89b-12d3-a456-426614174000',
-    description: 'ID цели (пользователя или объявления, в зависимости от targetType)',
+    description:
+      'ID цели (пользователя или объявления, в зависимости от targetType)',
   })
   @IsUUID()
   @IsNotEmpty()

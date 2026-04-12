@@ -15,6 +15,7 @@ import { NoteEmbeddedDto } from '@/notes/dto/note-embedded.dto';
 import { ListingFileResponseDto } from '@/listings/dto/response/listing-file-response.dto';
 import { MapLocationResponseDto } from '@/map_locations/dto/response/map-enterprice.response.dto';
 import { NoteTargetType } from '@/notes';
+import { BanResponseDto } from '../dto/response/ban-response.dto';
 
 interface UserActivityWithActivity {
   activity: {
@@ -51,11 +52,20 @@ export class ProfileMapper {
 
     // Формируем имя из legalEntityType (code + name) или используем user.name
     const displayName = legalEntityType
-      ? `${legalEntityType.code} ${legalEntityType.name}`
+      // ? `${legalEntityType.code} ${legalEntityType.name}`
+      ? `${legalEntityType.code} ${profile.user?.name}`
       : profile.user?.name || '';
+
+    // Бан информация
+    const ban = new BanResponseDto(
+      profile.user?.isBanned ?? false,
+      profile.user?.banReason || null,
+    );
 
     return new ProfileResponseDto(
       profile.id,
+      profile.user?.id || '',
+      profile.user?.accountNumber || '',
       displayName,
       profile.avatarUrl,
       profile.phone,
@@ -68,6 +78,7 @@ export class ProfileMapper {
       activities,
       rating,
       commentsCount,
+      ban,
     );
   }
 
@@ -109,7 +120,8 @@ export class ProfileMapper {
 
     // Формируем имя из legalEntityType (code + name) или используем user.name
     const displayName = legalEntityType
-      ? `${legalEntityType.code} ${legalEntityType.name}`
+      // ? `${legalEntityType.code} ${legalEntityType.name}`
+      ? `${legalEntityType.code} ${user.name}`
       : user.name || '';
 
     // Валюта (опциональное поле)
@@ -123,9 +135,11 @@ export class ProfileMapper {
       : null;
 
     // Файлы и изображения
-    const avatar = user.files?.find(
+    // Аватар берем из profile.avatarUrl в приоритете, иначе из files
+    const avatarFromFiles = user.files?.find(
       (f: any) => f.kind === 'AVATAR' && f.ownerType === 'USER',
     );
+    const avatarUrl = user.profile?.avatarUrl || avatarFromFiles?.url || null;
 
     const images: ListingFileResponseDto[] =
       user.files
@@ -163,8 +177,14 @@ export class ProfileMapper {
     // Сотрудники
     const workers =
       user.workers?.map(
-        (w: any) =>
-          new UserWorkerResponseDto(
+        (w: any) => {
+          // Получаем аватар из files
+          const avatarFile = w.files?.find(
+            (f: any) => f.kind === 'AVATAR',
+          );
+          const avatar = avatarFile?.url || null;
+
+          return new UserWorkerResponseDto(
             w.id,
             w.name,
             w.email,
@@ -178,7 +198,9 @@ export class ProfileMapper {
               w.role.role,
               w.role.type,
             ),
-          ),
+            avatar,
+          );
+        },
       ) || [];
 
     // Локации
@@ -208,10 +230,18 @@ export class ProfileMapper {
         : currentUserId && user.favorites && user.favorites.length > 0;
     console.log('[DEBUG Mapper] isFavorite result:', isFavorite);
 
+    // Бан информация
+    const ban = new BanResponseDto(
+      user.isBanned ?? false,
+      user.banReason || null,
+    );
+
     return new FullProfileResponseDto(
+      user.profile?.id || user.id,
       user.id,
+      user.accountNumber || '',
       displayName,
-      avatar?.url || null,
+      avatarUrl,
       user.profile?.phone || null,
       user.profile?.email || null,
       user.profile?.telegram || null,
@@ -228,6 +258,7 @@ export class ProfileMapper {
       workers,
       maps,
       note ?? null,
+      ban,
     );
   }
 

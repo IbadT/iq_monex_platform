@@ -16,10 +16,7 @@ export class NotesService {
    * Создать заметку
    * Бросает ошибку если заметка уже существует для данного автора и цели
    */
-  async create(
-    authorId: string,
-    dto: CreateNoteDto,
-  ): Promise<NoteResponseDto> {
+  async create(authorId: string, dto: CreateNoteDto): Promise<NoteResponseDto> {
     const { targetType, targetId, content } = dto;
 
     // Валидация существования цели и создание в одной транзакции
@@ -48,13 +45,27 @@ export class NotesService {
         }
       }
 
+      // Получаем userId для пользователя (если это заметка о пользователе)
+      let targetUserId: string | null = null;
+      if (targetType === NoteTargetType.USER) {
+        const profile = await tx.profile.findUnique({
+          where: { id: targetId },
+          select: { userId: true },
+        });
+        if (!profile) {
+          throw new NotFoundException('Профиль не найден');
+        }
+        targetUserId = profile.userId;
+      }
+
       // Проверяем существование заметки
       const existingNote = await tx.userNote.findFirst({
         where: {
           authorId,
           targetType,
-          targetUserId: targetType === NoteTargetType.USER ? targetId : null,
-          targetListingId: targetType === NoteTargetType.LISTING ? targetId : null,
+          targetUserId: targetType === NoteTargetType.USER ? targetUserId : null,
+          targetListingId:
+            targetType === NoteTargetType.LISTING ? targetId : null,
         },
       });
 
@@ -67,8 +78,9 @@ export class NotesService {
         data: {
           authorId,
           targetType,
-          targetUserId: targetType === NoteTargetType.USER ? targetId : null,
-          targetListingId: targetType === NoteTargetType.LISTING ? targetId : null,
+          targetUserId: targetType === NoteTargetType.USER ? targetUserId : null,
+          targetListingId:
+            targetType === NoteTargetType.LISTING ? targetId : null,
           content,
         },
       });
@@ -140,13 +152,26 @@ export class NotesService {
     targetType: NoteTargetType,
     targetId: string,
   ): Promise<NoteResponseDto> {
+    // Получаем userId для пользователя (если это заметка о пользователе)
+    let targetUserId: string | null = null;
+    if (targetType === NoteTargetType.USER) {
+      const profile = await prisma.profile.findUnique({
+        where: { id: targetId },
+        select: { userId: true },
+      });
+      if (!profile) {
+        throw new NotFoundException('Профиль не найден');
+      }
+      targetUserId = profile.userId;
+    }
+
     const where: any = {
       authorId,
       targetType,
     };
 
     if (targetType === NoteTargetType.USER) {
-      where.targetUserId = targetId;
+      where.targetUserId = targetUserId;
     } else {
       where.targetListingId = targetId;
     }
@@ -164,9 +189,10 @@ export class NotesService {
    * Маппинг Prisma модели в DTO
    */
   private mapToResponse(note: any): NoteResponseDto {
-    const targetId = note.targetType === NoteTargetType.USER
-      ? note.targetUserId
-      : note.targetListingId;
+    const targetId =
+      note.targetType === NoteTargetType.USER
+        ? note.targetUserId
+        : note.targetListingId;
 
     return new NoteResponseDto(
       note.id,

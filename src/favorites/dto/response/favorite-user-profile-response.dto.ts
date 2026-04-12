@@ -98,6 +98,27 @@ export class UserProfileDto {
   }
 }
 
+export class ActivityDto {
+  @ApiProperty({
+    description: 'ID активности',
+    example: 1,
+    type: 'integer',
+  })
+  id: number;
+
+  @ApiProperty({
+    description: 'Название активности',
+    example: 'Строительство',
+    type: 'string',
+  })
+  name: string;
+
+  constructor(id: number, name: string) {
+    this.id = id;
+    this.name = name;
+  }
+}
+
 export class UserDto {
   @ApiProperty({
     description: 'UUID пользователя',
@@ -134,18 +155,53 @@ export class UserDto {
   })
   profile: UserProfileDto | null;
 
+  @ApiProperty({
+    description: 'Активности пользователя',
+    type: [ActivityDto],
+  })
+  activities: ActivityDto[];
+
+  @ApiProperty({
+    description: 'Добавлен ли пользователь в избранное (всегда true для этого списка)',
+    example: true,
+    type: 'boolean',
+  })
+  isFavorite: boolean;
+
+  @ApiProperty({
+    description: 'Город',
+    example: 'Алматы',
+    type: 'string',
+  })
+  city: string | null;
+
+  @ApiProperty({
+    description: 'Страна',
+    example: 'Казахстан',
+    type: 'string',
+  })
+  country: string | null;
+
   constructor(
     id: string,
     name: string,
     rating: number | null,
     reviewsCount: number,
     profile: UserProfileDto | null,
+    activities: ActivityDto[],
+    isFavorite: boolean,
+    city: string | null,
+    country: string | null,
   ) {
     this.id = id;
     this.name = name;
     this.rating = rating;
     this.reviewsCount = reviewsCount;
     this.profile = profile;
+    this.activities = activities;
+    this.isFavorite = isFavorite;
+    this.city = city;
+    this.country = country;
   }
 }
 

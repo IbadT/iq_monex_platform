@@ -12,6 +12,7 @@ export class WorkerEntity {
   updatedAt: Date;
 
   role: RoleEntity;
+  files?: any[];
 
   constructor(
     id: string,
@@ -25,6 +26,7 @@ export class WorkerEntity {
     updatedAt: Date,
 
     role: RoleEntity,
+    files?: any[],
   ) {
     this.id = id;
     this.name = name;
@@ -37,5 +39,8 @@ export class WorkerEntity {
     this.updatedAt = updatedAt;
 
     this.role = role;
+    if (files) {
+      this.files = files;
+    }
   }
 }
