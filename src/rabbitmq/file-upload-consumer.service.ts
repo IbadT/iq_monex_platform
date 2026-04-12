@@ -340,7 +340,13 @@ export class FileUploadConsumerService
       s3Key,
     } = message;
 
-    const owner = this.resolveOwner({ listingId, userId, complaintId, workerId, suggestionId });
+    const owner = this.resolveOwner({
+      listingId,
+      userId,
+      complaintId,
+      workerId,
+      suggestionId,
+    });
     const kind = this.resolveKind(fileType);
 
     this.logger.log(

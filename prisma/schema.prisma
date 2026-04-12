@@ -77,6 +77,9 @@ model User {
   authoredNotes UserNote[] @relation("AuthoredNotes")
   // receivedNotes UserNote[] @relation("ReceivedNotes")
 
+  // Пользовательские характеристики
+  userSpecifications UserSpecification[]
+
   @@map("users")
 }
 
@@ -450,6 +453,7 @@ model Listing {
   files          File[]
   locations      MapLocation[]          @relation("ListingLocations")
   specifications ListingSpecification[]
+  userSpecifications ListingUserSpecification[]
 
   listingSlot ListingSlot?
 
@@ -494,6 +498,40 @@ model ListingSpecification {
 
   @@unique([listingId, specificationId])
   @@map("listing_specifications")
+}
+
+// ================ USER SPECIFICATIONS (пользовательские характеристики) ================
+
+model UserSpecification {
+  id    Int  @id @default(autoincrement())
+  name  Json
+  userId String @map("user_id") @db.Uuid
+  user   User   @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  listingUserSpecifications ListingUserSpecification[]
+
+  createdAt DateTime @default(now()) @map("created_at")
+  updatedAt DateTime @updatedAt @map("updated_at")
+
+  @@map("user_specifications")
+}
+
+// Связь объявления с пользовательскими характеристиками
+model ListingUserSpecification {
+  id        String @id @default(uuid()) @db.Uuid
+  listingId String @map("listing_id") @db.Uuid
+
+  userSpecificationId Int    @map("user_specification_id")
+  value               String
+
+  unitId     Int?    @map("unit_id")
+  isRequired Boolean @default(true) @map("is_required")
+
+  listing           Listing           @relation(fields: [listingId], references: [id], onDelete: Cascade)
+  userSpecification UserSpecification @relation(fields: [userSpecificationId], references: [id])
+
+  @@unique([listingId, userSpecificationId])
+  @@map("listing_user_specifications")
 }
 
 // ================ LOCATIONS (отдельная таблица) ================

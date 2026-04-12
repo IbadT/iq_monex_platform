@@ -161,6 +161,7 @@ describe('ListingsService', () => {
           ],
           locations: [{ id: 'loc-1', city: 'Moscow' }],
           specifications: [{ id: 'spec-1', name: 'Color', value: 'Black' }],
+          userSpecifications: [],
           listingSlot: { id: 'slot-1', userSlot: { id: 'user-slot-1' } },
           user: { id: 'user-1', name: 'Test User', files: [] },
           createdAt: new Date(),
@@ -179,6 +180,7 @@ describe('ListingsService', () => {
           files: [{ id: 'file-3', kind: 'PHOTO', url: 'photo2.jpg' }],
           locations: [{ id: 'loc-2', city: 'St. Petersburg' }],
           specifications: [{ id: 'spec-2', name: 'Author', value: 'John Doe' }],
+          userSpecifications: [],
           listingSlot: { id: 'slot-2', userSlot: { id: 'user-slot-2' } },
           user: { id: 'user-2', name: 'Test User 2', files: [] },
           createdAt: new Date(),
@@ -216,6 +218,11 @@ describe('ListingsService', () => {
           specifications: {
             include: {
               specification: true,
+            },
+          },
+          userSpecifications: {
+            include: {
+              userSpecification: true,
             },
           },
           listingSlot: {
@@ -282,6 +289,7 @@ describe('ListingsService', () => {
           files: [],
           locations: [],
           specifications: [],
+          userSpecifications: [],
           listingSlot: { id: 'slot-1', userSlot: { id: 'user-slot-1' } },
           user: { id: 'user-1', name: 'Test User', files: [] },
           createdAt: new Date(),

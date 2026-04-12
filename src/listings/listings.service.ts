@@ -141,6 +141,11 @@ export class ListingsService {
         files: true,
         locations: true,
         specifications: true,
+        userSpecifications: {
+          include: {
+            userSpecification: true,
+          },
+        },
         user: {
           select: {
             id: true,
@@ -432,6 +437,11 @@ export class ListingsService {
           files: true,
           locations: true,
           specifications: true,
+          userSpecifications: {
+            include: {
+              userSpecification: true,
+            },
+          },
           user: {
             select: {
               id: true,
@@ -578,6 +588,11 @@ export class ListingsService {
         specifications: {
           include: {
             specification: true,
+          },
+        },
+        userSpecifications: {
+          include: {
+            userSpecification: true,
           },
         },
         user: {
@@ -901,6 +916,11 @@ export class ListingsService {
             specification: true,
           },
         },
+        userSpecifications: {
+          include: {
+            userSpecification: true,
+          },
+        },
         user: {
           select: {
             id: true,
@@ -1024,6 +1044,11 @@ export class ListingsService {
             specification: true,
           },
         },
+        userSpecifications: {
+          include: {
+            userSpecification: true,
+          },
+        },
         user: {
           select: {
             id: true,
@@ -1131,7 +1156,9 @@ export class ListingsService {
 
     const { limit = 20, offset = 0, status } = query;
 
-    this.logger.log(`User ID: ${userId}, limit: ${limit}, offset: ${offset}, status: ${status}`);
+    this.logger.log(
+      `User ID: ${userId}, limit: ${limit}, offset: ${offset}, status: ${status}`,
+    );
 
     // Создаем условия фильтрации
     const where: any = { userId };
@@ -1158,6 +1185,11 @@ export class ListingsService {
         specifications: {
           include: {
             specification: true,
+          },
+        },
+        userSpecifications: {
+          include: {
+            userSpecification: true,
           },
         },
         user: {
@@ -1235,17 +1267,40 @@ export class ListingsService {
 
     // Проверка существования specificationId если переданы спецификации
     if (specifications?.length) {
-      const specIds = specifications.map((s) => s.specificationId);
-      const existingSpecs = await prisma.specification.findMany({
-        where: { id: { in: specIds } },
-        select: { id: true },
-      });
-      const existingIds = new Set(existingSpecs.map((s) => s.id));
-      const invalidIds = specIds.filter((id) => !existingIds.has(id));
-      if (invalidIds.length) {
-        throw new BadRequestException(
-          `Характеристики с ID [${invalidIds.join(', ')}] не найдены`,
-        );
+      // Разделяем по флагу isCustom
+      const globalSpecs = specifications.filter((s) => !s.isCustom);
+      const userSpecs = specifications.filter((s) => s.isCustom);
+
+      // Проверяем глобальные характеристики
+      if (globalSpecs.length) {
+        const globalSpecIds = globalSpecs.map((s) => s.specificationId);
+        const existingGlobalSpecs = await prisma.specification.findMany({
+          where: { id: { in: globalSpecIds } },
+          select: { id: true },
+        });
+        const existingGlobalIds = new Set(existingGlobalSpecs.map((s) => s.id));
+        const invalidGlobalIds = globalSpecIds.filter((id) => !existingGlobalIds.has(id));
+        if (invalidGlobalIds.length) {
+          throw new BadRequestException(
+            `Характеристики с ID [${invalidGlobalIds.join(', ')}] не найдены`,
+          );
+        }
+      }
+
+      // Проверяем пользовательские характеристики
+      if (userSpecs.length) {
+        const userSpecIds = userSpecs.map((s) => s.specificationId);
+        const existingUserSpecs = await prisma.userSpecification.findMany({
+          where: { id: { in: userSpecIds }, userId },
+          select: { id: true },
+        });
+        const existingUserIds = new Set(existingUserSpecs.map((s) => s.id));
+        const invalidUserIds = userSpecIds.filter((id) => !existingUserIds.has(id));
+        if (invalidUserIds.length) {
+          throw new BadRequestException(
+            `Пользовательские характеристики с ID [${invalidUserIds.join(', ')}] не найдены`,
+          );
+        }
       }
     }
 
@@ -1307,15 +1362,35 @@ export class ListingsService {
             )
           : [];
 
-        // Спецификации (характеристики)
+        // Спецификации (характеристики) - разделяем глобальные и пользовательские
         if (specifications?.length) {
-          await tx.listingSpecification.createMany({
-            data: specifications.map((spec) => ({
+          const globalSpecsData = specifications
+            .filter((s) => !s.isCustom)
+            .map((spec) => ({
               listingId: newListing.id,
               specificationId: spec.specificationId,
               value: spec.value,
-            })),
-          });
+            }));
+
+          const userSpecsData = specifications
+            .filter((s) => s.isCustom)
+            .map((spec) => ({
+              listingId: newListing.id,
+              userSpecificationId: spec.specificationId,
+              value: spec.value,
+            }));
+
+          if (globalSpecsData.length) {
+            await tx.listingSpecification.createMany({
+              data: globalSpecsData,
+            });
+          }
+
+          if (userSpecsData.length) {
+            await tx.listingUserSpecification.createMany({
+              data: userSpecsData,
+            });
+          }
         }
 
         return {
@@ -1412,17 +1487,40 @@ export class ListingsService {
 
     // Проверка существования specificationId если переданы спецификации
     if (specifications?.length) {
-      const specIds = specifications.map((s) => s.specificationId);
-      const existingSpecs = await prisma.specification.findMany({
-        where: { id: { in: specIds } },
-        select: { id: true },
-      });
-      const existingIds = new Set(existingSpecs.map((s) => s.id));
-      const invalidIds = specIds.filter((id) => !existingIds.has(id));
-      if (invalidIds.length) {
-        throw new BadRequestException(
-          `Характеристики с ID [${invalidIds.join(', ')}] не найдены`,
-        );
+      // Разделяем по флагу isCustom
+      const globalSpecs = specifications.filter((s) => !s.isCustom);
+      const userSpecs = specifications.filter((s) => s.isCustom);
+
+      // Проверяем глобальные характеристики
+      if (globalSpecs.length) {
+        const globalSpecIds = globalSpecs.map((s) => s.specificationId);
+        const existingGlobalSpecs = await prisma.specification.findMany({
+          where: { id: { in: globalSpecIds } },
+          select: { id: true },
+        });
+        const existingGlobalIds = new Set(existingGlobalSpecs.map((s) => s.id));
+        const invalidGlobalIds = globalSpecIds.filter((id) => !existingGlobalIds.has(id));
+        if (invalidGlobalIds.length) {
+          throw new BadRequestException(
+            `Характеристики с ID [${invalidGlobalIds.join(', ')}] не найдены`,
+          );
+        }
+      }
+
+      // Проверяем пользовательские характеристики
+      if (userSpecs.length) {
+        const userSpecIds = userSpecs.map((s) => s.specificationId);
+        const existingUserSpecs = await prisma.userSpecification.findMany({
+          where: { id: { in: userSpecIds }, userId: user.id },
+          select: { id: true },
+        });
+        const existingUserIds = new Set(existingUserSpecs.map((s) => s.id));
+        const invalidUserIds = userSpecIds.filter((id) => !existingUserIds.has(id));
+        if (invalidUserIds.length) {
+          throw new BadRequestException(
+            `Пользовательские характеристики с ID [${invalidUserIds.join(', ')}] не найдены`,
+          );
+        }
       }
     }
 
@@ -1463,6 +1561,11 @@ export class ListingsService {
             files: true,
             locations: true,
             specifications: true,
+            userSpecifications: {
+              include: {
+                userSpecification: true,
+              },
+            },
             user: {
               select: {
                 id: true,
@@ -1519,19 +1622,45 @@ export class ListingsService {
 
         // Обновляем спецификации если переданы
         if (specifications !== undefined) {
-          // Удаляем старые
-          await tx.listingSpecification.deleteMany({
-            where: { listingId: id },
-          });
-          // Создаем новые
+          // Удаляем старые из обеих таблиц
+          await Promise.all([
+            tx.listingSpecification.deleteMany({
+              where: { listingId: id },
+            }),
+            tx.listingUserSpecification.deleteMany({
+              where: { listingId: id },
+            }),
+          ]);
+
+          // Создаем новые - разделяем глобальные и пользовательские по флагу isCustom
           if (specifications.length) {
-            await tx.listingSpecification.createMany({
-              data: specifications.map((spec) => ({
+            const globalSpecsData = specifications
+              .filter((s) => !s.isCustom)
+              .map((spec) => ({
                 listingId: id,
                 specificationId: spec.specificationId,
                 value: spec.value,
-              })),
-            });
+              }));
+
+            const userSpecsData = specifications
+              .filter((s) => s.isCustom)
+              .map((spec) => ({
+                listingId: id,
+                userSpecificationId: spec.specificationId,
+                value: spec.value,
+              }));
+
+            if (globalSpecsData.length) {
+              await tx.listingSpecification.createMany({
+                data: globalSpecsData,
+              });
+            }
+
+            if (userSpecsData.length) {
+              await tx.listingUserSpecification.createMany({
+                data: userSpecsData,
+              });
+            }
           }
         }
 
@@ -1691,19 +1820,27 @@ export class ListingsService {
         where: { id: listing.id },
         include: {
           category: true,
+          subcategory: true,
+          subsubcategory: true,
           currency: true,
           priceUnit: true,
+          files: true,
           locations: true,
           specifications: true,
+          userSpecifications: {
+            include: {
+              userSpecification: true,
+            },
+          },
+          user: true,
         },
       });
 
       if (!listingWithRelations) {
-        this.logger.error(`Listing not found for indexing: ${listing.id}`);
+        this.logger.warn(`Listing ${listing.id} not found for indexing`);
         return;
       }
 
-      // Получаем данные контакта для индексации
       const contactData = await this.getContactData(
         listingWithRelations.contactId,
         listingWithRelations.contactType,

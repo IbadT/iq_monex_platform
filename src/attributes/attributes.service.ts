@@ -1,4 +1,4 @@
-import { Injectable } from '@nestjs/common';
+import { Injectable, NotFoundException } from '@nestjs/common';
 import { Language } from '@/dictionaries/dto/request/get-currency.dto';
 import { prisma } from '@/lib/prisma';
 import { Specification } from './entities/specification.entity';
@@ -6,7 +6,9 @@ import { CacheService } from '@/cache/cacheService.service';
 import { AppLogger } from '@/common/logger/logger.service';
 import { specificationsData } from './default/specificaitonsData';
 import { SpecificationResponseDto } from './dto/response/specification.dto';
+import { UserSpecificationResponseDto } from './dto/response/user-specification.dto';
 import { CreateSpecificationDto } from './dto/request/createSpecification.dto';
+import { CreateUserSpecificationDto } from './dto/request/create-user-specification.dto';
 import { UpdateSpecificationDto } from './dto/request/updateSpecification.dto';
 
 interface MyMemoryResponse {
@@ -27,13 +29,13 @@ export class AttributesService {
     private readonly cacheService: CacheService,
     private readonly logger: AppLogger,
   ) {}
-  async list(lang: Language): Promise<SpecificationResponseDto[]> {
-    const cachekey = `specifications:${lang}`;
+  async list(lang: Language, userId?: string): Promise<SpecificationResponseDto[]> {
+    // const cachekey = `specifications:${lang}`;
 
-    // получаем из redis
-    const cachedSpecifications =
-      await this.cacheService.get<SpecificationResponseDto[]>(cachekey);
-    if (cachedSpecifications) return cachedSpecifications;
+    // // получаем из redis
+    // const cachedSpecifications =
+    //   await this.cacheService.get<SpecificationResponseDto[]>(cachekey);
+    // if (cachedSpecifications) return cachedSpecifications;
 
     const specifications = await prisma.specification.findMany();
 
@@ -41,13 +43,34 @@ export class AttributesService {
       Specification.fromPrisma(spec).toResponse(lang),
     );
 
-    if (response) {
-      await this.cacheService.set({
-        baseKey: cachekey,
-        ttl: 3600,
-        value: response,
+    // Если пользователь авторизован, добавляем его персональные характеристики
+    if (userId) {
+      const userSpecifications = await prisma.userSpecification.findMany({
+        where: { userId },
+        orderBy: { createdAt: 'desc' },
       });
+
+      const userSpecsResponse = userSpecifications.map((spec) =>
+        new SpecificationResponseDto(
+          spec.id,
+          (spec.name as Record<string, string>)[lang] ||
+            (spec.name as Record<string, string>)['ru'] ||
+            Object.values(spec.name as Record<string, string>)[0] ||
+            '',
+          true, // пользовательская характеристика
+        ),
+      );
+
+      response.push(...userSpecsResponse);
     }
+
+    // if (response) {
+    //   await this.cacheService.set({
+    //     baseKey: cachekey,
+    //     ttl: 3600,
+    //     value: response,
+    //   });
+    // }
 
     return response;
   }
@@ -246,5 +269,80 @@ export class AttributesService {
       }
       throw error;
     }
+  }
+
+  // ============ USER SPECIFICATIONS (пользовательские характеристики) ============
+
+  async listUserSpecifications(
+    userId: string,
+    lang: Language,
+  ): Promise<UserSpecificationResponseDto[]> {
+    const userSpecifications = await prisma.userSpecification.findMany({
+      where: { userId },
+      orderBy: { createdAt: 'desc' },
+    });
+
+    return userSpecifications.map((spec) =>
+      UserSpecificationResponseDto.fromPrisma(
+        spec as { id: number; name: Record<string, string>; },
+        lang,
+      ),
+    );
+  }
+
+  async createUserSpecification(
+    userId: string,
+    body: CreateUserSpecificationDto,
+  ): Promise<{ id: number }> {
+    const translations = await this.translateToMultipleLanguages(body.name);
+
+    // Получаем максимальные ID из обеих таблиц
+    const [maxSpec, maxUserSpec] = await Promise.all([
+      prisma.specification.aggregate({ _max: { id: true } }),
+      prisma.userSpecification.aggregate({ _max: { id: true } }),
+    ]);
+
+    const maxId = Math.max(
+      maxSpec._max.id ?? 0,
+      maxUserSpec._max.id ?? 0,
+    );
+
+    const result = await prisma.userSpecification.create({
+      data: {
+        id: maxId + 1,
+        name: translations,
+        userId,
+      },
+      select: {
+        id: true,
+      },
+    });
+
+    return result;
+  }
+
+  async deleteUserSpecification(
+    userId: string,
+    id: number,
+  ): Promise<{ id: number }> {
+    const spec = await prisma.userSpecification.findFirst({
+      where: { id, userId },
+    });
+
+    if (!spec) {
+      throw new NotFoundException(`Характеристика с ID ${id} не найдена или у вас нет прав на её удаление`);
+    }
+
+    // Удаляем связи с объявлениями
+    await prisma.listingUserSpecification.deleteMany({
+      where: { userSpecificationId: id },
+    });
+
+    // Удаляем саму характеристику
+    await prisma.userSpecification.delete({
+      where: { id },
+    });
+
+    return { id };
   }
 }

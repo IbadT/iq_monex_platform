@@ -7,6 +7,7 @@ export * from './rate-limit.decorator';
 export * from './api-key.decorator';
 export * from './composite.decorator';
 export * from './api-response.decorator';
+export * from './current-user.decorator';
 
 // Экспорт констант для guards
 export { IS_PUBLIC_KEY } from './public.decorator';

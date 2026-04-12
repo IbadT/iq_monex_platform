@@ -17,9 +17,7 @@ export class UserWorkerMapper {
       );
 
       // Получаем аватар из files (если есть)
-      const avatarFile = worker.files?.find(
-        (file) => file.kind === 'AVATAR',
-      );
+      const avatarFile = worker.files?.find((file) => file.kind === 'AVATAR');
       const avatar = avatarFile?.url || null;
 
       return new UserWorkerResponseDto(

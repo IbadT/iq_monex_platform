@@ -15,8 +15,16 @@ export class SpecificationResponseDto {
   })
   name: string;
 
-  constructor(id: number, name: string) {
+  @ApiProperty({
+    description: 'Пользовательская характеристика (true) или глобальная (false)',
+    example: false,
+    type: 'boolean',
+  })
+  isCustom: boolean;
+
+  constructor(id: number, name: string, isCustom: boolean = false) {
     this.id = id;
     this.name = name;
+    this.isCustom = isCustom;
   }
 }

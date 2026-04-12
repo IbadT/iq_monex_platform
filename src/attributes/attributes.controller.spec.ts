@@ -2,6 +2,7 @@ import { Test, TestingModule } from '@nestjs/testing';
 import { AttributesController } from './attributes.controller';
 import { AttributesService } from './attributes.service';
 import { Language } from '@/dictionaries/dto/request/get-currency.dto';
+import { JwtTokenService } from '@/auth/jwt/jwt.service';
 
 describe('AttributesController', () => {
   let controller: AttributesController;
@@ -13,12 +14,22 @@ describe('AttributesController', () => {
       seedSpecifications: jest.fn(),
     };
 
+    const mockJwtTokenService = {
+      issueTokens: jest.fn(),
+      verifyToken: jest.fn(),
+      decodeToken: jest.fn(),
+    };
+
     const module: TestingModule = await Test.createTestingModule({
       controllers: [AttributesController],
       providers: [
         {
           provide: AttributesService,
           useValue: mockAttributeService,
+        },
+        {
+          provide: JwtTokenService,
+          useValue: mockJwtTokenService,
         },
       ],
     }).compile();
@@ -40,6 +51,7 @@ describe('AttributesController', () => {
         {
           id: 1,
           name: 'Название',
+          isCustom: false,
         },
       ];
 

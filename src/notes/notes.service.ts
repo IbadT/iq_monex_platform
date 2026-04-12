@@ -63,7 +63,8 @@ export class NotesService {
         where: {
           authorId,
           targetType,
-          targetUserId: targetType === NoteTargetType.USER ? targetUserId : null,
+          targetUserId:
+            targetType === NoteTargetType.USER ? targetUserId : null,
           targetListingId:
             targetType === NoteTargetType.LISTING ? targetId : null,
         },
@@ -78,7 +79,8 @@ export class NotesService {
         data: {
           authorId,
           targetType,
-          targetUserId: targetType === NoteTargetType.USER ? targetUserId : null,
+          targetUserId:
+            targetType === NoteTargetType.USER ? targetUserId : null,
           targetListingId:
             targetType === NoteTargetType.LISTING ? targetId : null,
           content,

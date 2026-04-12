@@ -1,5 +1,11 @@
 import { ApiProperty } from '@nestjs/swagger';
-import { ArrayMaxSize, IsArray, IsNotEmpty, IsOptional, IsString } from 'class-validator';
+import {
+  ArrayMaxSize,
+  IsArray,
+  IsNotEmpty,
+  IsOptional,
+  IsString,
+} from 'class-validator';
 
 export class CreateUserSuggestionDto {
   @ApiProperty({
@@ -20,7 +26,10 @@ export class CreateUserSuggestionDto {
   })
   @IsOptional()
   @IsArray({ message: 'Фотографии должны быть массивом' })
-  @IsString({ each: true, message: 'Каждая фотография должна быть строкой base64' })
+  @IsString({
+    each: true,
+    message: 'Каждая фотография должна быть строкой base64',
+  })
   @ArrayMaxSize(3, { message: 'Максимум 3 фотографии' })
   photos: string[] = [];
 
