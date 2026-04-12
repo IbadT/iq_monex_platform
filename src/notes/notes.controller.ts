@@ -19,9 +19,7 @@ import { JwtPayload } from '@/common/interfaces/jwt-payload.interface';
 @ApiTags('Notes')
 @Controller('notes')
 export class NotesController {
-  constructor(
-    private readonly notesService: NotesService
-  ) {}
+  constructor(private readonly notesService: NotesService) {}
 
   @Post()
   @Protected()
@@ -31,7 +29,10 @@ export class NotesController {
     description: 'Заметка создана',
     type: NoteResponseDto,
   })
-  @ApiResponse({ status: 400, description: 'Некорректные данные или заметка уже существует' })
+  @ApiResponse({
+    status: 400,
+    description: 'Некорректные данные или заметка уже существует',
+  })
   @ApiResponse({ status: 404, description: 'Цель не найдена' })
   async create(
     @CurrentUser() user: JwtPayload,

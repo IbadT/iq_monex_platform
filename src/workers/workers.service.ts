@@ -18,16 +18,23 @@ import {
 import { CreateWorkerResponseDto } from './dto/response/create-worker.dto';
 import { ChangeWorkerStatusResponseDto } from './dto/response/change-status.dto';
 import { UpdateWorkerResponseDto } from './dto/response/update-worker.dto';
+import { S3Service } from '@/s3/s3.service';
+import { RabbitmqService } from '@/rabbitmq/rabbitmq.service';
+import { FileOwnerType, FileKind } from '../../prisma/generated/enums';
 
 @Injectable()
 export class WorkersService {
-  constructor() {}
+  constructor(
+    private readonly s3Service: S3Service,
+    private readonly rabbitmqService: RabbitmqService,
+  ) {}
 
   async getWorkerById(id: string) {
     return prisma.worker.findUnique({
       where: { id },
       include: {
         role: true,
+        files: true,
       },
     });
   }
@@ -40,6 +47,7 @@ export class WorkersService {
       },
       include: {
         role: true,
+        files: true,
       },
     });
 
@@ -161,7 +169,7 @@ export class WorkersService {
       );
     }
 
-    return await db.worker.create({
+    const createdWorker = await db.worker.create({
       data: {
         name: worker.name,
         email: worker.email,
@@ -174,6 +182,13 @@ export class WorkersService {
         role: true,
       },
     });
+
+    // Обрабатываем аватар если передан (fire-and-forget, не ждем завершения)
+    if (worker.avatar && worker.avatar !== null) {
+      this.handleWorkerAvatar(createdWorker.id, userId, worker.avatar, db);
+    }
+
+    return createdWorker;
   }
 
   private async handleUpdateWorker(
@@ -185,7 +200,7 @@ export class WorkersService {
       throw new BadRequestException('Worker ID is required for UPDATE action');
     }
 
-    return await db.worker.update({
+    const updatedWorker = await db.worker.update({
       where: { id: worker.id, userId: userId },
       data: {
         name: worker.name,
@@ -197,6 +212,19 @@ export class WorkersService {
         role: true,
       },
     });
+
+    // Обрабатываем аватар если передан
+    if (worker.avatar !== undefined) {
+      if (worker.avatar === null) {
+        // Удаляем существующий аватар
+        await this.deleteWorkerAvatar(worker.id, db);
+      } else {
+        // Создаем или обновляем аватар (fire-and-forget, не ждем завершения)
+        this.handleWorkerAvatar(worker.id, userId, worker.avatar, db);
+      }
+    }
+
+    return updatedWorker;
   }
 
   private async handleDeleteWorker(
@@ -352,5 +380,99 @@ export class WorkersService {
     return prisma.role.create({
       data: body,
     });
+  }
+
+  /**
+   * Обработка аватара сотрудника (создание или обновление)
+   */
+  private async handleWorkerAvatar(
+    workerId: string,
+    userId: string,
+    avatarBase64: string,
+    db: PrismaClient,
+  ): Promise<void> {
+    const fileName = this.s3Service.generateFileNameFromBase64(
+      avatarBase64,
+      0,
+      'avatar',
+    );
+    const s3Key = this.s3Service.generateWorkerAvatarKey(workerId);
+    const contentType = this.s3Service.getContentTypeFromBase64(avatarBase64);
+    const fileSize = this.s3Service.getFileSizeFromBase64(avatarBase64);
+
+    // Проверяем существующий аватар
+    const existingAvatar = await db.file.findFirst({
+      where: {
+        workerId,
+        kind: FileKind.AVATAR,
+      },
+    });
+
+    if (existingAvatar) {
+      // Обновляем существующий аватар
+      await db.file.update({
+        where: { id: existingAvatar.id },
+        data: {
+          url: avatarBase64,
+          fileType: contentType,
+          fileName,
+          fileSize,
+          s3Key,
+          s3Bucket: '',
+          uploadStatus: 'pending',
+        },
+      });
+    } else {
+      // Создаем новый аватар
+      await db.file.create({
+        data: {
+          ownerType: FileOwnerType.WORKER,
+          workerId,
+          url: avatarBase64,
+          fileType: contentType,
+          fileName,
+          fileSize,
+          kind: FileKind.AVATAR,
+          sortOrder: 0,
+          s3Key,
+          s3Bucket: '',
+          uploadStatus: 'pending',
+        },
+      });
+    }
+
+    // Отправляем задачу в RabbitMQ для асинхронной загрузки в S3
+    await this.rabbitmqService.sendFileUpload({
+      workerId,
+      userId,
+      fileType: 'avatar',
+      fileIndex: 0,
+      fileData: avatarBase64,
+      fileName,
+      contentType,
+      fileSize,
+      s3Key,
+    });
+  }
+
+  /**
+   * Удаление аватара сотрудника
+   */
+  private async deleteWorkerAvatar(
+    workerId: string,
+    db: PrismaClient,
+  ): Promise<void> {
+    const existingAvatar = await db.file.findFirst({
+      where: {
+        workerId,
+        kind: FileKind.AVATAR,
+      },
+    });
+
+    if (existingAvatar) {
+      await db.file.delete({
+        where: { id: existingAvatar.id },
+      });
+    }
   }
 }

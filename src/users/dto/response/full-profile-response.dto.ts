@@ -7,6 +7,7 @@ import { CurrenciesResponseDto } from '@/dictionaries/dto/response/currencies-re
 import { ApiProperty } from '@nestjs/swagger';
 import { ListingFileResponseDto } from '@/listings/dto/response/listing-file-response.dto';
 import { NoteEmbeddedDto } from '@/notes/dto/note-embedded.dto';
+import { BanResponseDto } from './ban-response.dto';
 
 export class FullProfileResponseDto extends ProfileResponseDto {
   @ApiProperty({
@@ -75,8 +76,16 @@ export class FullProfileResponseDto extends ProfileResponseDto {
   })
   note: NoteEmbeddedDto | null;
 
+  @ApiProperty({
+    description: 'Информация о бане пользователя',
+    type: () => BanResponseDto,
+  })
+  ban: BanResponseDto;
+
   constructor(
     id: string,
+    userId: string,
+    accountNumber: string,
     name: string,
     avatarUrl: string | null,
     phone: string | null,
@@ -95,9 +104,12 @@ export class FullProfileResponseDto extends ProfileResponseDto {
     workers: UserWorkerResponseDto[],
     maps: MapLocationResponseDto[],
     note: NoteEmbeddedDto | null,
+    ban: BanResponseDto,
   ) {
     super(
       id,
+      userId,
+      accountNumber,
       name,
       avatarUrl,
       phone,
@@ -110,6 +122,7 @@ export class FullProfileResponseDto extends ProfileResponseDto {
       activities,
       rating,
       commentsCount,
+      ban,
     );
     this.activities = activities;
     this.files = files;
@@ -120,5 +133,6 @@ export class FullProfileResponseDto extends ProfileResponseDto {
     this.workers = workers;
     this.maps = maps;
     this.note = note;
+    this.ban = ban;
   }
 }

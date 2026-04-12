@@ -170,6 +170,8 @@ model Worker {
   userId String @map("user_id") @db.Uuid
   user   User   @relation(fields: [userId], references: [id])
 
+  files File[]
+
   createdAt DateTime @default(now()) @map("created_at")
   updatedAt DateTime @updatedAt @map("updated_at")
 
@@ -454,6 +456,9 @@ model Listing {
   // Жалобы на объявление
   complaints Complaint[] @relation("ListingComplaints")
 
+  // Уникальный номер объявления (8 цифр)
+  accountNumber String @unique @map("account_number") @default("")
+
   createdAt DateTime @default(now()) @map("created_at")
   updatedAt DateTime @updatedAt @map("updated_at")
 
@@ -562,26 +567,36 @@ model File {
   createdAt DateTime @default(now()) @map("created_at")
   updatedAt DateTime @updatedAt @map("updated_at")
 
-  userId      String? @map("user_id") @db.Uuid
-  listingId   String? @map("listing_id") @db.Uuid
-  complaintId String? @map("complaint_id") @db.Uuid
+  userId       String? @map("user_id") @db.Uuid
+  listingId    String? @map("listing_id") @db.Uuid
+  complaintId  String? @map("complaint_id") @db.Uuid
+  workerId     String? @map("worker_id") @db.Uuid
+  suggestionId Int?    @map("suggestion_id")
 
   // Relations (опциональные, т.к. ownerId универсальный)
-  user      User?      @relation(fields: [userId], references: [id], map: "file_user_fk", onDelete: Cascade)
-  listing   Listing?   @relation(fields: [listingId], references: [id], map: "file_listing_fk", onDelete: Cascade)
-  complaint Complaint? @relation(fields: [complaintId], references: [id], map: "file_complaint_fk", onDelete: Cascade)
+  user       User?           @relation(fields: [userId], references: [id], map: "file_user_fk", onDelete: Cascade)
+  listing    Listing?        @relation(fields: [listingId], references: [id], map: "file_listing_fk", onDelete: Cascade)
+  complaint  Complaint?      @relation(fields: [complaintId], references: [id], map: "file_complaint_fk", onDelete: Cascade)
+  worker     Worker?         @relation(fields: [workerId], references: [id], map: "file_worker_fk", onDelete: Cascade)
+  suggestion UserSuggestion? @relation(fields: [suggestionId], references: [id], map: "file_suggestion_fk", onDelete: Cascade)
 
   // TODO: один аватар у одного ползователя
   // @@unique([userId, kind])
   @@index([userId])
   @@index([listingId])
   @@index([complaintId])
+  @@index([workerId])
+  @@index([suggestionId])
   @@index([ownerType, userId])
   @@index([ownerType, listingId])
   @@index([ownerType, complaintId])
+  @@index([ownerType, workerId])
+  @@index([ownerType, suggestionId])
   @@index([ownerType, userId, kind])
   @@index([ownerType, listingId, kind])
   @@index([ownerType, complaintId, kind])
+  @@index([ownerType, workerId, kind])
+  @@index([ownerType, suggestionId, kind])
   @@index([uploadStatus, expiresAt])
   @@index([listingId, kind, sortOrder]) // Для фото объявлений с сортировкой
   @@map("files")
@@ -631,7 +646,6 @@ model Review {
 
   // Содержание
   rating  Int // 1-5 звёзд
-  title   String? @db.VarChar(255) // Заголовок отзыва
   content String  @db.VarChar(2000) // Текст отзыва
 
   // Модерация
@@ -1085,6 +1099,8 @@ model UserSuggestion {
   id   Int    @id @default(autoincrement())
   text String
 
+  files File[]
+
   createdAt DateTime @default(now()) @map("created_at")
   updatedAt DateTime @updatedAt @map("updated_at")
 
@@ -1150,8 +1166,10 @@ enum MapLocationType {
 
 enum FileOwnerType {
   USER // Файлы пользователя
+  WORKER // Файл работника
   LISTING // Файлы объявления
   COMPLAINT // Файлы жалоб
+  SUGGESTION // Файлы предложений
 
   @@map("file_owner_type")
 }

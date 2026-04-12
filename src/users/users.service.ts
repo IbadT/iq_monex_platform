@@ -36,7 +36,7 @@ import { GetProfilesDto } from './dto/get-profiles.dto';
 import { MakeComplaintToUserDto } from './dto/make-complaint-to-user.dto';
 import {
   GetAllProfilesResponseDto,
-  PaginationResponseDto,
+  // PaginationResponseDto,
 } from './dto/response/profile-response.dto';
 import { ProfileMapper } from './mappers/profile.mapper';
 import { FullProfileResponseDto } from './dto/response/full-profile-response.dto';
@@ -87,6 +87,14 @@ export class UsersService {
   }
 
   async searchProfiles(
+    query: GetProfilesDto,
+  ): Promise<GetAllProfilesResponseDto> {
+    // Временно отключен Elasticsearch, всегда используем БД
+    return await this.getProfilesFromDB(query);
+  }
+
+  /*
+  async searchProfilesES(
     query: GetProfilesDto,
   ): Promise<GetAllProfilesResponseDto> {
     const startTime = Date.now();
@@ -208,6 +216,12 @@ export class UsersService {
         },
         include: {
           user: {
+            select: {
+              accountNumber: true,
+              reviewsCount: true,
+              isBanned: true,
+              banReason: true,
+            },
             include: {
               userActivities: {
                 include: {
@@ -264,6 +278,7 @@ export class UsersService {
       return await this.getProfilesFromDB(query);
     }
   }
+  */
 
   async getProfilesFromDB(
     query: GetProfilesDto,
@@ -391,57 +406,72 @@ export class UsersService {
     currentUserId: string | undefined,
     id: string,
   ): Promise<FullProfileResponseDto> {
-    // Строим include динамически с явным типом
-    const include = {
-      profile: {
-        select: {
-          id: true,
-          legalEntityType: true,
-          currency: true,
-        },
-      },
-      userActivities: {
-        include: {
-          activity: true,
-        },
-      },
-      files: {
-        where: {
-          ownerType: 'USER',
-          uploadStatus: 'completed',
-        },
-        orderBy: {
-          sortOrder: 'asc',
-        },
-      },
-      workers: {
-        where: { isActive: true },
-        include: { role: true },
-      },
-      locations: true,
-      receivedReviews: {
-        where: { status: 'APPROVED' },
-        select: { rating: true, createdAt: true },
-        orderBy: { createdAt: 'desc' },
-      },
-    } as const;
-
+    // Строим include для relations, скалярные поля включены по умолчанию
     const user = await prisma.user.findUnique({
       where: { id },
-      include,
+      include: {
+        profile: {
+          select: {
+            id: true,
+            avatarUrl: true,
+            phone: true,
+            email: true,
+            telegram: true,
+            siteUrl: true,
+            description: true,
+            legalEntityType: true,
+            currency: true,
+          },
+        },
+        userActivities: {
+          include: {
+            activity: true,
+          },
+        },
+        files: {
+          where: {
+            ownerType: 'USER',
+            uploadStatus: 'completed',
+          },
+          orderBy: {
+            sortOrder: 'asc',
+          },
+        },
+        workers: {
+          where: { isActive: true },
+          include: {
+            role: true,
+            files: true,
+          },
+        },
+        locations: true,
+        receivedReviews: {
+          where: { status: 'APPROVED' },
+          select: { rating: true, createdAt: true },
+          orderBy: { createdAt: 'desc' },
+        },
+      },
     });
+
+    if (!user) {
+      throw new NotFoundException(`Пользователь с id: ${id} не найден`);
+    }
 
     // Проверяем избранное отдельным запросом
     let isFavorite = false;
     let note;
-    console.log('[DEBUG Service] Looking for note: authorId=', currentUserId, 'targetUserId=', user?.profile?.id);
-    if (currentUserId && user?.profile?.id) {
-      const profileId = user.profile.id;
-
+    console.log(
+      '[DEBUG Service] Looking for note: authorId=',
+      currentUserId,
+      'targetUserId=',
+      id,
+    );
+    if (currentUserId && id) {
+      const profileId = user.profile?.id ?? '';
       const favorite = await prisma.favorite.findFirst({
         where: {
           userId: currentUserId,
-          targetUserId: profileId,
+          targetUserId: id,
           type: FavoriteType.USER,
         },
       });
@@ -451,34 +481,37 @@ export class UsersService {
       const userNote = await prisma.userNote.findFirst({
         where: {
           authorId: currentUserId,
-            targetType: NoteTargetType.USER,
-          targetUserId: profileId,
+          targetType: NoteTargetType.USER,
+          targetUserId: id,
         },
       });
-      console.log('[DEBUG Service] Found note:', userNote ? userNote.id : 'null');
+      console.log(
+        '[DEBUG Service] Found note:',
+        userNote ? userNote.id : 'null',
+      );
       note = userNote
-        ? ProfileMapper.buildNoteEmbeddedDto(userNote.id, NoteTargetType.USER, profileId)
+        ? ProfileMapper.buildNoteEmbeddedDto(
+            userNote.id,
+            NoteTargetType.USER,
+            profileId,
+          )
         : null;
     }
 
-    if (!user) {
-      throw new NotFoundException(`Пользователь с id: ${id} не найден`);
-    }
-
     // Если профиль отсутствует — создаём "пустой" объект,
-    // чтобы маппер не упал
-    if (!user.profile) {
-      user.profile = {
-        id: null,
-        phone: null,
-        email: null,
-        telegram: null,
-        siteUrl: null,
-        description: null,
-        legalEntityType: null,
-        currency: null,
-      } as any;
-    }
+    // // чтобы маппер не упал
+    // if (!user.profile) {
+    //   user.profile = {
+    //     id: null,
+    //     phone: null,
+    //     email: null,
+    //     telegram: null,
+    //     siteUrl: null,
+    //     description: null,
+    //     legalEntityType: null,
+    //     currency: null,
+    //   } as any;
+    // }
 
     return ProfileMapper.toFullResponse(user, currentUserId, isFavorite, note);
   }
@@ -1052,11 +1085,8 @@ export class UsersService {
     this.logger.log('============');
 
     // ВНЕ транзакции — внешние системы
-    await this.searchService.indexProfileWithoutTx(result.profile);
-
-    // await this.fileService.enqueueAvatarUploadIfNeeded(result.avatar);
-    // await this.fileService.enqueueFilesUpload(result.photos);
-    // await this.fileService.enqueueFilesUpload(result.files);
+    // TODO: нужно раскоментировать для прода
+    // await this.searchService.indexProfileWithoutTx(result.profile);
 
     await Promise.all([
       this.fileService.enqueueAvatarUploadIfNeeded(result.avatar),

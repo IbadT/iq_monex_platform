@@ -259,8 +259,6 @@ export class ReviewsService {
             listingId: review.listingId,
             targetType: ReviewTargetType.LISTING,
             rating: review.rating,
-            // title: review.title,
-            title: "",
             content: review.content,
           },
         });

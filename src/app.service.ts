@@ -9,13 +9,19 @@ import {
 import { specificationsData } from './attributes/default/specificaitonsData';
 import { tariffData } from './tariffs/default/tariffData';
 import { S3Service } from './s3/s3.service';
+import { RabbitmqService } from './rabbitmq/rabbitmq.service';
 import { PromoCampaignStatus } from './promo/enums/promo-status.enum';
+import { FileOwnerType, FileKind } from '../prisma/generated/enums';
+import { CreateUserSuggestionDto } from './app/dto/create-user-suggestion.dto';
 
 @Injectable()
 export class AppService {
   private readonly logger = new Logger(AppService.name);
 
-  constructor(private readonly s3Service: S3Service) {}
+  constructor(
+    private readonly s3Service: S3Service,
+    private readonly rabbitmqService: RabbitmqService,
+  ) {}
 
   ping(): string {
     return 'Pong';
@@ -25,12 +31,93 @@ export class AppService {
     return await prisma.userSuggestion.findMany({
       take: limit,
       skip: offset,
+      include: {
+        files: {
+          where: {
+            ownerType: 'SUGGESTION',
+            uploadStatus: 'completed',
+          },
+          orderBy: {
+            sortOrder: 'asc',
+          },
+          select: {
+            id: true,
+            url: true,
+            
+          }
+        },
+      },
     });
   }
 
-  async createUserSuggestion(text: string) {
-    return await prisma.userSuggestion.create({
-      data: { text },
+  async createUserSuggestion(body: CreateUserSuggestionDto) {
+    return await prisma.$transaction(async (tx) => {
+      // Создаем предложение
+      const createdSuggestion = await tx.userSuggestion.create({
+        data: { text: body.text },
+        select: {
+          id: true,
+          text: true,
+          createdAt: true,
+          updatedAt: true,
+        },
+      });
+
+      // Создаем фото если указаны
+      if (body.photos && body.photos.length > 0) {
+        const photoRecords = body.photos.map((photoData, index) => {
+          const fileName = this.s3Service.generateFileNameFromBase64(
+            photoData,
+            index,
+            'photo',
+          );
+          const s3Key = this.s3Service.generateSuggestionPhotoKey(
+            createdSuggestion.id,
+            index,
+          );
+          const contentType =
+            this.s3Service.getContentTypeFromBase64(photoData);
+          const fileSize = this.s3Service.getFileSizeFromBase64(photoData);
+
+          return {
+            ownerType: FileOwnerType.SUGGESTION,
+            suggestionId: createdSuggestion.id,
+            url: photoData,
+            fileType: contentType,
+            fileName,
+            fileSize,
+            kind: FileKind.PHOTO,
+            sortOrder: index,
+            s3Key,
+            s3Bucket: '',
+            uploadStatus: 'pending',
+          };
+        });
+
+        // Сохраняем фото в БД
+        await tx.file.createMany({
+          data: photoRecords,
+        });
+
+        // Отправляем задачи в RabbitMQ для асинхронной загрузки в S3
+        await Promise.all(
+          body.photos.map(async (photoData, index) => {
+            const photoRecord = photoRecords[index];
+            return this.rabbitmqService.sendFileUpload({
+              suggestionId: createdSuggestion.id,
+              fileType: 'photo',
+              fileIndex: index,
+              fileData: photoData,
+              fileName: photoRecord.fileName,
+              contentType: photoRecord.fileType,
+              fileSize: photoRecord.fileSize,
+              s3Key: photoRecord.s3Key,
+            });
+          }),
+        );
+      }
+
+      return createdSuggestion;
     });
   }
 

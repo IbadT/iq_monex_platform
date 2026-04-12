@@ -60,6 +60,14 @@ export class UserWorkerResponseDto {
   })
   role: RoleResponseDto;
 
+  @ApiProperty({
+    description: 'URL аватара сотрудника',
+    example: 'https://s3.example.com/workers/123/avatar/avatar.jpg',
+    type: 'string',
+    nullable: true,
+  })
+  avatar: string | null;
+
   constructor(
     id: string,
     name: string,
@@ -69,6 +77,7 @@ export class UserWorkerResponseDto {
     userId: string,
     isActive: boolean,
     role: RoleResponseDto,
+    avatar?: string | null,
   ) {
     this.id = id;
     this.name = name;
@@ -78,5 +87,6 @@ export class UserWorkerResponseDto {
     this.userId = userId;
     this.isActitve = isActive;
     this.role = role;
+    this.avatar = avatar ?? null;
   }
 }

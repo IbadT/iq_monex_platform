@@ -35,6 +35,16 @@ export class FavoriteService {
         targetUser: {
           include: {
             profile: true,
+            userActivities: {
+              include: {
+                activity: true,
+              },
+            },
+            locations: {
+              where: {
+                type: 'OFFICE',
+              },
+            },
           },
         },
       },
@@ -271,6 +281,23 @@ export class FavoriteService {
     body: CreateFavoriteDto,
   ): Promise<CreateFavoriteResponseDto> {
     const cacheKey = `favorites/userId:${userId}`;
+
+    // Получаем объявление для проверки владельца
+    const listing = await prisma.listing.findUnique({
+      where: { id: body.listingId },
+      select: { userId: true },
+    });
+
+    if (!listing) {
+      throw new BadRequestException('Объявление не найдено');
+    }
+
+    // Проверяем, что пользователь не добавляет свое собственное объявление
+    if (listing.userId === userId) {
+      throw new BadRequestException(
+        'Нельзя добавить в избранное собственное объявление',
+      );
+    }
 
     // Проверяем, не добавлено ли уже в избранное
     const existingFavorite = await prisma.favorite.findFirst({

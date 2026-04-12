@@ -1,6 +1,8 @@
 import { Test, TestingModule } from '@nestjs/testing';
 import { WorkersService } from './workers.service';
 import { CreateWorkerDto, WorkerAction } from './dto/create-worker.dto';
+import { S3Service } from '@/s3/s3.service';
+import { RabbitmqService } from '@/rabbitmq/rabbitmq.service';
 
 describe('WorkersService', () => {
   let service: WorkersService;
@@ -22,8 +24,27 @@ describe('WorkersService', () => {
       findFirst: jest.fn(),
     };
 
+    const mockS3Service = {
+      upload: jest.fn(),
+      deleteObject: jest.fn(),
+    };
+
+    const mockRabbitmqService = {
+      sendMessage: jest.fn(),
+    };
+
     const module: TestingModule = await Test.createTestingModule({
-      providers: [WorkersService],
+      providers: [
+        WorkersService,
+        {
+          provide: S3Service,
+          useValue: mockS3Service,
+        },
+        {
+          provide: RabbitmqService,
+          useValue: mockRabbitmqService,
+        },
+      ],
     }).compile();
 
     service = module.get<WorkersService>(WorkersService);

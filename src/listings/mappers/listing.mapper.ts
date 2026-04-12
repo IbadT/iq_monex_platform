@@ -103,7 +103,10 @@ export class ListingMapper {
             new ListingFileResponseDto(f.id, f.url, f.fileType, false),
         ) || [];
 
-    const user = ListingMapper.userListingToResponse(listing.user, isUserFavorite);
+    const user = ListingMapper.userListingToResponse(
+      listing.user,
+      isUserFavorite,
+    );
 
     // Формируем контакты для объявления (данные приходят из отдельного запроса)
     let contacts: ListingContactResponseDto | null = null;
@@ -126,6 +129,7 @@ export class ListingMapper {
 
     return new ListingResposeDto(
       listing.id,
+      listing.accountNumber,
       listing.title,
       listing.description,
       listing.price,
@@ -167,7 +171,10 @@ export class ListingMapper {
     return listings.map((l) => this.toResponse(l));
   }
 
-  static userListingToResponse(user: any, isUserFavorite: boolean = false): UserListingResponseDto {
+  static userListingToResponse(
+    user: any,
+    isUserFavorite: boolean = false,
+  ): UserListingResponseDto {
     // Формируем имя из legalEntityType через маппер с дефолтным языком RU
     let displayName = user.name;
     if (user.profile?.legalEntityType) {

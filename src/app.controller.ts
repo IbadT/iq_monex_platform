@@ -24,6 +24,8 @@ import {
   UploadImageResponseDto,
   UploadImageErrorDto,
 } from './common/dto/upload-image-response.dto';
+import { ApiCreateUserSuggestionDocs } from './app/decorators/api-create-user-suggestion-docs.decorator';
+import { CreateUserSuggestionDto } from './app/dto/create-user-suggestion.dto';
 
 export interface MulterFile {
   fieldname: string;
@@ -133,21 +135,9 @@ export class AppController {
   }
 
   @Post('suggestions')
-  @ApiOperation({ summary: 'Создание нового предложения пользователя' })
-  @ApiBody({
-    schema: {
-      type: 'object',
-      properties: {
-        text: {
-          type: 'string',
-          description: 'Текст предложения пользователя',
-        },
-      },
-    },
-  })
-  @ApiResponse({ status: 201, description: 'Предложение успешно создано' })
-  async createUserSuggestion(@Body() body: { text: string }) {
-    return await this.appService.createUserSuggestion(body.text);
+  @ApiCreateUserSuggestionDocs()
+  async createUserSuggestion(@Body() body: CreateUserSuggestionDto) {
+    return await this.appService.createUserSuggestion(body);
   }
 
   @Get('banners/:key')

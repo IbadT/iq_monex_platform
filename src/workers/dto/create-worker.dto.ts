@@ -85,6 +85,17 @@ export class CreateWorkerDto {
   })
   action: WorkerAction;
 
+  @ApiProperty({
+    description: 'Аватар сотрудника (base64 строка или null)',
+    example: 'data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAA...',
+    required: true,
+    type: 'string',
+    nullable: true,
+  })
+  @IsOptional()
+  @IsString()
+  avatar?: string | null;
+
   constructor(
     id: string | null,
     name: string,
@@ -92,6 +103,7 @@ export class CreateWorkerDto {
     phone: string,
     roleId: string,
     action: WorkerAction,
+    avatar?: string | null,
   ) {
     this.id = id;
     this.name = name;
@@ -99,5 +111,6 @@ export class CreateWorkerDto {
     this.phone = phone;
     this.roleId = roleId;
     this.action = action;
+    this.avatar = avatar ?? null;
   }
 }

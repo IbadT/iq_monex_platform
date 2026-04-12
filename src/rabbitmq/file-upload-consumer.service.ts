@@ -310,6 +310,8 @@ export class FileUploadConsumerService
           listingId: message.listingId,
           userId: message.userId,
           complaintId: message.complaintId,
+          workerId: message.workerId,
+          suggestionId: message.suggestionId,
         });
 
         const kind = this.resolveKind(message.fileType);
@@ -329,6 +331,8 @@ export class FileUploadConsumerService
       listingId,
       userId,
       complaintId,
+      workerId,
+      suggestionId,
       fileType,
       fileIndex,
       fileData,
@@ -336,7 +340,7 @@ export class FileUploadConsumerService
       s3Key,
     } = message;
 
-    const owner = this.resolveOwner({ listingId, userId, complaintId });
+    const owner = this.resolveOwner({ listingId, userId, complaintId, workerId, suggestionId });
     const kind = this.resolveKind(fileType);
 
     this.logger.log(
@@ -370,8 +374,10 @@ export class FileUploadConsumerService
     listingId?: string | undefined;
     userId?: string | undefined;
     complaintId?: string | undefined;
+    workerId?: string | undefined;
+    suggestionId?: number | undefined;
   }) {
-    const { listingId, userId, complaintId } = params;
+    const { listingId, userId, complaintId, workerId, suggestionId } = params;
 
     if (complaintId) {
       return { id: complaintId, ownerType: FileOwnerType.COMPLAINT };
@@ -379,6 +385,14 @@ export class FileUploadConsumerService
 
     if (listingId) {
       return { id: listingId, ownerType: FileOwnerType.LISTING };
+    }
+
+    if (workerId) {
+      return { id: workerId, ownerType: FileOwnerType.WORKER };
+    }
+
+    if (suggestionId) {
+      return { id: suggestionId, ownerType: FileOwnerType.SUGGESTION };
     }
 
     return { id: userId!, ownerType: FileOwnerType.USER };
@@ -409,6 +423,9 @@ export class FileUploadConsumerService
     if (owner.ownerType === FileOwnerType.LISTING) where.listingId = owner.id;
     if (owner.ownerType === FileOwnerType.COMPLAINT)
       where.complaintId = owner.id;
+    if (owner.ownerType === FileOwnerType.WORKER) where.workerId = owner.id;
+    if (owner.ownerType === FileOwnerType.SUGGESTION)
+      where.suggestionId = owner.id;
 
     return where;
   }

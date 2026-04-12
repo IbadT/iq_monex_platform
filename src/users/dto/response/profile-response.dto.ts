@@ -3,6 +3,7 @@ import { LegalEntityResponseDto } from '@/categories/dto/response/legal-entity.r
 import { PaginationDto } from '@/common/dto/pagintation.dto';
 import { CurrenciesResponseDto } from '@/dictionaries/dto/response/currencies-response.dto';
 import { ApiProperty } from '@nestjs/swagger';
+import { BanResponseDto } from './ban-response.dto';
 
 export class ProfileResponseDto {
   @ApiProperty({
@@ -12,6 +13,21 @@ export class ProfileResponseDto {
     format: 'uuid',
   })
   id: string;
+
+  @ApiProperty({
+    description: 'ID пользователя',
+    example: 'bcea00ce-0a3b-4063-9289-1fd63662cbd3',
+    type: 'string',
+    format: 'uuid',
+  })
+  userId: string;
+
+  @ApiProperty({
+    description: 'Номер аккаунта',
+    example: '12345678',
+    type: 'string',
+  })
+  accountNumber: string;
 
   @ApiProperty({
     description: 'Название профиля (из legalEntityType)',
@@ -96,8 +112,16 @@ export class ProfileResponseDto {
   })
   commentsCount: number;
 
+  @ApiProperty({
+    description: 'Информация о бане пользователя',
+    type: () => BanResponseDto,
+  })
+  ban: BanResponseDto;
+
   constructor(
     id: string,
+    userId: string,
+    accountNumber: string,
     name: string,
     avatarUrl: string | null,
     phone: string | null,
@@ -110,8 +134,11 @@ export class ProfileResponseDto {
     activities: ActivityResponseDto[],
     rating: number,
     commentsCount: number,
+    ban: BanResponseDto,
   ) {
     this.id = id;
+    this.userId = userId;
+    this.accountNumber = accountNumber;
     this.name = name;
     this.avatarUrl = avatarUrl;
     this.phone = phone;
@@ -124,6 +151,7 @@ export class ProfileResponseDto {
     this.activities = activities;
     this.rating = rating;
     this.commentsCount = commentsCount;
+    this.ban = ban;
   }
 }
 
