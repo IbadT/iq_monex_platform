@@ -1,4 +1,10 @@
-import { IsNumber, IsString, MinLength, MaxLength, IsBoolean } from 'class-validator';
+import {
+  IsNumber,
+  IsString,
+  MinLength,
+  MaxLength,
+  IsBoolean,
+} from 'class-validator';
 import { ApiProperty } from '@nestjs/swagger';
 
 export class CreateListingSpecificationDto {
@@ -21,7 +27,8 @@ export class CreateListingSpecificationDto {
   value: string;
 
   @ApiProperty({
-    description: 'Пользовательская характеристика (true) или глобальная (false)',
+    description:
+      'Пользовательская характеристика (true) или глобальная (false)',
     example: false,
     required: true,
     default: false,
