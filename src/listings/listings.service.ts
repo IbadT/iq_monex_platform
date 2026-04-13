@@ -1279,7 +1279,9 @@ export class ListingsService {
           select: { id: true },
         });
         const existingGlobalIds = new Set(existingGlobalSpecs.map((s) => s.id));
-        const invalidGlobalIds = globalSpecIds.filter((id) => !existingGlobalIds.has(id));
+        const invalidGlobalIds = globalSpecIds.filter(
+          (id) => !existingGlobalIds.has(id),
+        );
         if (invalidGlobalIds.length) {
           throw new BadRequestException(
             `Характеристики с ID [${invalidGlobalIds.join(', ')}] не найдены`,
@@ -1295,7 +1297,9 @@ export class ListingsService {
           select: { id: true },
         });
         const existingUserIds = new Set(existingUserSpecs.map((s) => s.id));
-        const invalidUserIds = userSpecIds.filter((id) => !existingUserIds.has(id));
+        const invalidUserIds = userSpecIds.filter(
+          (id) => !existingUserIds.has(id),
+        );
         if (invalidUserIds.length) {
           throw new BadRequestException(
             `Пользовательские характеристики с ID [${invalidUserIds.join(', ')}] не найдены`,
@@ -1499,7 +1503,9 @@ export class ListingsService {
           select: { id: true },
         });
         const existingGlobalIds = new Set(existingGlobalSpecs.map((s) => s.id));
-        const invalidGlobalIds = globalSpecIds.filter((id) => !existingGlobalIds.has(id));
+        const invalidGlobalIds = globalSpecIds.filter(
+          (id) => !existingGlobalIds.has(id),
+        );
         if (invalidGlobalIds.length) {
           throw new BadRequestException(
             `Характеристики с ID [${invalidGlobalIds.join(', ')}] не найдены`,
@@ -1515,7 +1521,9 @@ export class ListingsService {
           select: { id: true },
         });
         const existingUserIds = new Set(existingUserSpecs.map((s) => s.id));
-        const invalidUserIds = userSpecIds.filter((id) => !existingUserIds.has(id));
+        const invalidUserIds = userSpecIds.filter(
+          (id) => !existingUserIds.has(id),
+        );
         if (invalidUserIds.length) {
           throw new BadRequestException(
             `Пользовательские характеристики с ID [${invalidUserIds.join(', ')}] не найдены`,

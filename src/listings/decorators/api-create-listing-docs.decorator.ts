@@ -81,7 +81,11 @@ export function CreateListingApiDocs() {
               { specificationId: 2, value: '128 ГБ', isCustom: false },
               { specificationId: 3, value: 'iPhone 13', isCustom: false },
               { specificationId: 4, value: 'Отличное', isCustom: false },
-              { specificationId: 5, value: '6 месяцев использования', isCustom: false },
+              {
+                specificationId: 5,
+                value: '6 месяцев использования',
+                isCustom: false,
+              },
             ],
           },
         },
@@ -159,10 +163,26 @@ export function CreateListingApiDocs() {
             specifications: [
               { specificationId: 1, value: 'Белый', isCustom: false },
               { specificationId: 2, value: '256 ГБ', isCustom: false },
-              { specificationId: 3, value: 'iPhone 13 Pro Max', isCustom: false },
-              { specificationId: 4, value: 'Отличное состояние', isCustom: false },
-              { specificationId: 5, value: '6 месяцев использования', isCustom: false },
-              { specificationId: 6, value: 'Оригинальная коробка', isCustom: false },
+              {
+                specificationId: 3,
+                value: 'iPhone 13 Pro Max',
+                isCustom: false,
+              },
+              {
+                specificationId: 4,
+                value: 'Отличное состояние',
+                isCustom: false,
+              },
+              {
+                specificationId: 5,
+                value: '6 месяцев использования',
+                isCustom: false,
+              },
+              {
+                specificationId: 6,
+                value: 'Оригинальная коробка',
+                isCustom: false,
+              },
             ],
             contacts: {
               id: '123e4567-e89b-12d3-a456-426614174000',

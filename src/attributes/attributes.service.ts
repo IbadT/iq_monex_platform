@@ -29,7 +29,10 @@ export class AttributesService {
     private readonly cacheService: CacheService,
     private readonly logger: AppLogger,
   ) {}
-  async list(lang: Language, userId?: string): Promise<SpecificationResponseDto[]> {
+  async list(
+    lang: Language,
+    userId?: string,
+  ): Promise<SpecificationResponseDto[]> {
     // const cachekey = `specifications:${lang}`;
 
     // // получаем из redis
@@ -50,15 +53,16 @@ export class AttributesService {
         orderBy: { createdAt: 'desc' },
       });
 
-      const userSpecsResponse = userSpecifications.map((spec) =>
-        new SpecificationResponseDto(
-          spec.id,
-          (spec.name as Record<string, string>)[lang] ||
-            (spec.name as Record<string, string>)['ru'] ||
-            Object.values(spec.name as Record<string, string>)[0] ||
-            '',
-          true, // пользовательская характеристика
-        ),
+      const userSpecsResponse = userSpecifications.map(
+        (spec) =>
+          new SpecificationResponseDto(
+            spec.id,
+            (spec.name as Record<string, string>)[lang] ||
+              (spec.name as Record<string, string>)['ru'] ||
+              Object.values(spec.name as Record<string, string>)[0] ||
+              '',
+            true, // пользовательская характеристика
+          ),
       );
 
       response.push(...userSpecsResponse);
@@ -284,7 +288,7 @@ export class AttributesService {
 
     return userSpecifications.map((spec) =>
       UserSpecificationResponseDto.fromPrisma(
-        spec as { id: number; name: Record<string, string>; },
+        spec as { id: number; name: Record<string, string> },
         lang,
       ),
     );
@@ -302,10 +306,7 @@ export class AttributesService {
       prisma.userSpecification.aggregate({ _max: { id: true } }),
     ]);
 
-    const maxId = Math.max(
-      maxSpec._max.id ?? 0,
-      maxUserSpec._max.id ?? 0,
-    );
+    const maxId = Math.max(maxSpec._max.id ?? 0, maxUserSpec._max.id ?? 0);
 
     const result = await prisma.userSpecification.create({
       data: {
@@ -330,7 +331,9 @@ export class AttributesService {
     });
 
     if (!spec) {
-      throw new NotFoundException(`Характеристика с ID ${id} не найдена или у вас нет прав на её удаление`);
+      throw new NotFoundException(
+        `Характеристика с ID ${id} не найдена или у вас нет прав на её удаление`,
+      );
     }
 
     // Удаляем связи с объявлениями

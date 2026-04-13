@@ -136,26 +136,41 @@ export class EmailConsumerService implements OnModuleInit, OnModuleDestroy {
 
   private async handleEmailMessage(message: EmailMessage) {
     try {
+      const frontendUrl = this.configService.get('FRONTEND_URL') || 'http://localhost:5173';
       const verificationCode = message.data?.verificationCode || 'DEFAULT';
 
-      // Текстовая версия должна быть расширенной, а не просто "Ваш код"
+      // Определяем тип письма: сброс пароля или подтверждение регистрации
+      const isPasswordReset = message.template === 'reset-password' || message.subject?.includes('Сброс пароля');
+
+      // Формируем ссылку в зависимости от типа письма
+      const confirmUrl = isPasswordReset
+        ? `${frontendUrl}/auth/reset-password?code=${verificationCode}`
+        : `${frontendUrl}/auth/confirm-email?code=${verificationCode}`;
+
+      const buttonText = isPasswordReset ? 'Перейти на сайт' : 'Подтвердить email';
+      const emailTitle = isPasswordReset ? 'Сброс пароля' : 'Подтверждение регистрации';
+      const emailDescription = isPasswordReset
+        ? 'Вы запросили сброс пароля. Нажмите кнопку ниже:'
+        : 'Для завершения регистрации нажмите кнопку ниже:';
+
+      // Текстовая версия
       const textVersion = `
 Добрый день!
 
-Вы запросили код подтверждения для входа в систему.
+${emailDescription}
 
-Ваш код подтверждения: ${verificationCode}
+Ссылка: ${confirmUrl}
 
-Этот код действителен в течение 5 минут.
+${isPasswordReset ? 'Ссылка действительна 5 минут.' : 'Ссылка действительна 5 минут.'}
 
-Если вы не запрашивали этот код, просто проигнорируйте данное письмо.
--- 
+Если вы не запрашивали это письмо, просто проигнорируйте его.
+--
 С уважением,
 Команда поддержки
 ${this.configService.get('SMTP_SUPPORT_USER')}
     `.trim();
 
-      // HTML версия
+      // HTML версия с кнопкой
       const htmlTemplate = `
       <!DOCTYPE html>
       <html>
@@ -167,12 +182,12 @@ ${this.configService.get('SMTP_SUPPORT_USER')}
         <body style="margin: 0; padding: 0; font-family: Arial, sans-serif; background-color: #f4f4f4;">
           <div style="max-width: 600px; margin: 0 auto; background-color: #ffffff; border-radius: 10px; box-shadow: 0 2px 8px rgba(0,0,0,0.05);">
             <div style="padding: 40px 30px; text-align: center;">
-              <h1 style="margin: 0 0 20px; font-size: 28px; color: #222222;">Код подтверждения</h1>
-              <div style="background: #f0f3f7; padding: 24px; border-radius: 12px; margin: 20px 0; font-size: 40px; font-weight: bold; color: #1a1a1a; border: 1px solid #e0e6ed;">
-                ${verificationCode}
-              </div>
-              <p style="font-size: 18px; margin: 20px 0; color: #333333;">Введите этот 6-значный код в форме подтверждения.</p>
-              <p style="font-size: 15px; margin: 20px 0; color: #666666;">⏱️ Код действителен в течение 5 минут. Если вы не запрашивали код, проигнорируйте это письмо.</p>
+              <h1 style="margin: 0 0 20px; font-size: 28px; color: #222222;">${emailTitle}</h1>
+              <p style="font-size: 16px; margin: 20px 0; color: #333333;">${emailDescription}</p>
+              <a href="${confirmUrl}" style="display: inline-block; background: ${isPasswordReset ? '#dc2626' : '#16a34a'}; color: #ffffff; padding: 14px 32px; text-decoration: none; border-radius: 6px; font-size: 16px; font-weight: 600; margin: 20px 0;">
+                ${buttonText}
+              </a>
+              <p style="font-size: 15px; margin: 20px 0; color: #666666;">⏱️ ${isPasswordReset ? 'Ссылка действительна 5 минут.' : 'Ссылка действительна 5 минут.'} Если вы не запрашивали это письмо, проигнорируйте его.</p>
               <hr style="border: none; border-top: 2px solid #eaeef2; margin: 30px 0;">
               <p style="font-size: 13px; color: #888888; margin: 0 0 10px;">Нужна помощь? Напишите нам:</p>
               <a href="mailto:${this.configService.get('SMTP_SUPPORT_USER')}" style="font-size: 14px; color: #1a73e8; text-decoration: underline; word-break: break-all;">${this.configService.get('SMTP_SUPPORT_USER')}</a>

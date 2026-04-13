@@ -16,7 +16,8 @@ export class SpecificationResponseDto {
   name: string;
 
   @ApiProperty({
-    description: 'Пользовательская характеристика (true) или глобальная (false)',
+    description:
+      'Пользовательская характеристика (true) или глобальная (false)',
     example: false,
     type: 'boolean',
   })

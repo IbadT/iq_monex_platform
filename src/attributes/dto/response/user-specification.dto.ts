@@ -20,7 +20,7 @@ export class UserSpecificationResponseDto {
   }
 
   static fromPrisma(
-    spec: { id: number; name: Record<string, string>; },
+    spec: { id: number; name: Record<string, string> },
     lang: Language,
   ): UserSpecificationResponseDto {
     return new UserSpecificationResponseDto(

@@ -101,7 +101,10 @@ export class AttributesController {
     @CurrentUser() user: JwtPayload,
     @Param('id') id: number,
   ): Promise<{ success: boolean; data: { id: number } }> {
-    const result = await this.attributesService.deleteUserSpecification(user.id, id);
+    const result = await this.attributesService.deleteUserSpecification(
+      user.id,
+      id,
+    );
     return {
       success: true,
       data: result,
