@@ -1,7 +1,7 @@
 import { Injectable } from '@nestjs/common';
 import { ElasticsearchService } from '@nestjs/elasticsearch';
 import { AppLogger } from '@/common/logger/logger.service';
-import { PrismaClient } from 'prisma/generated/client';
+import { PrismaClient } from '../../prisma/generated/client';
 import { prisma } from '@/lib/prisma';
 
 // Строгие типы для Elasticsearch

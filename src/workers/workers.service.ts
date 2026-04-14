@@ -8,7 +8,7 @@ import { CreateWorkerDto, WorkerAction } from './dto/create-worker.dto';
 import { CreateRoleDto } from './dto/create-role.dto';
 import { RoleType } from '@/users/enums/role-type.enum';
 import { UpdateWorkerDto } from './dto/update-worker.dto';
-import { PrismaClient } from 'prisma/generated/client';
+import { PrismaClient } from '../../prisma/generated/client';
 import { UserWorkerResponseDto } from './dto/response/worker-response.dto';
 import { UserWorkerMapper } from './mappers/user-worker.mapper';
 import {

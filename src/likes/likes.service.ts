@@ -5,7 +5,7 @@ import {
   Injectable,
   NotFoundException,
 } from '@nestjs/common';
-import { TransactionClient } from 'prisma/generated/internal/prismaNamespace';
+import { TransactionClient } from '../../prisma/generated/internal/prismaNamespace';
 import { ToggleLikeResponseDto } from './dto/response/toggle-like-response.dto';
 import { GetLikesResponseDto } from './dto/response/get-likes-response.dto';
 

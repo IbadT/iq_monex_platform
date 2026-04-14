@@ -1200,8 +1200,10 @@ enum ListingCondition {
 }
 
 enum MapLocationType {
+  MAIN_OFFICE
   OFFICE
   WAREHOUSE
+  DEAL
 
   @@map("map_location_type")
 }

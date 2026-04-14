@@ -101,6 +101,14 @@ export const ApiUpdateUserDocs = () =>
               "action": "UPDATE"
             },
             {
+              "id": "789e0123-e89b-12d3-a456-426614174222",
+              "type": "MAIN_OFFICE",
+              "latitude": 55.7558,
+              "longitude": 37.6173,
+              "address": "г. Москва, ул. Тверская, д. 1",
+              "action": "UPDATE"
+            }
+            {
               "type": "WAREHOUSE",
               "latitude": 55.7600,
               "longitude": 37.6200,

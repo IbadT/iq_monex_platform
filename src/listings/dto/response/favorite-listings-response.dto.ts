@@ -1,5 +1,5 @@
 import { ApiProperty } from '@nestjs/swagger';
-import { Listing } from 'prisma/generated/browser';
+import { Listing } from '../../../../prisma/generated/browser';
 
 export class FavoriteListingsResponseDto {
   @ApiProperty({

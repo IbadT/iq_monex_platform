@@ -10,8 +10,10 @@ import {
 } from 'class-validator';
 
 export enum MapLocationType {
+  MAIN_OFFICE = 'MAIN_OFFICE',
   OFFICE = 'OFFICE',
   WAREHOUSE = 'WAREHOUSE',
+  DEAL = 'DEAL',
 }
 
 export enum LocationAction {

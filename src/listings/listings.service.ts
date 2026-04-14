@@ -43,6 +43,7 @@ import { ChangeStatusResponseDto } from './dto/response/change-status-response.d
 import { BulkRestoreResponseDto } from './dto/response/bulk-restore-response.dto';
 import { CreateListingComplaintResponseDto } from './dto/response/create-listing-complaint-response.dto';
 import { FileService } from '@/s3/file.service';
+import { MapLocationType } from './dto/request/create-map-location.dto';
 import { PromoParticipantService } from '@/promo/promo_participant.service';
 import { NoteTargetType } from '@/notes';
 
@@ -180,7 +181,9 @@ export class ListingsService {
     // Если не найдено похожих объявлений, загружаем любые опубликованные
     let finalListings = listings;
     if (listings.length === 0) {
-      this.logger.log(`[Recommendations] No similar listings found for ${listingId}, fetching random listings`);
+      this.logger.log(
+        `[Recommendations] No similar listings found for ${listingId}, fetching random listings`,
+      );
       finalListings = await prisma.listing.findMany({
         where: {
           id: { not: listingId },
@@ -1481,6 +1484,18 @@ export class ListingsService {
 
     const { maps, photos, files, specifications, ...listing } = body;
 
+    // Проверка: MAIN_OFFICE может быть только один
+    if (maps?.length) {
+      const mainOfficeCount = maps.filter(
+        (m) => m.type === MapLocationType.MAIN_OFFICE,
+      ).length;
+      if (mainOfficeCount > 1) {
+        throw new BadRequestException(
+          'Может быть только один основной офис (MAIN_OFFICE)',
+        );
+      }
+    }
+
     // Проверки справочников
     if (listing.categoryId) {
       await this.categoriesService.checkCategoryById(listing.categoryId);
@@ -1710,6 +1725,18 @@ export class ListingsService {
       contacts,
       ...listingData
     } = body;
+
+    // Проверка: MAIN_OFFICE может быть только один
+    if (maps?.length) {
+      const mainOfficeCount = maps.filter(
+        (m) => m.type === MapLocationType.MAIN_OFFICE,
+      ).length;
+      if (mainOfficeCount > 1) {
+        throw new BadRequestException(
+          'Может быть только один основной офис (MAIN_OFFICE)',
+        );
+      }
+    }
 
     // Проверяем существование объявления и права доступа
     const existingListing = await prisma.listing.findFirst({

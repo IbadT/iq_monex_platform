@@ -7,7 +7,7 @@ import { PromoCompaignService } from './promo_compaign.service';
 //   // PromoCampaignStatus,
 //   // SlotSource,
 // } from 'prisma/generated/enums';
-import { PromoCampaign } from 'prisma/generated/client';
+import { PromoCampaign } from '../../prisma/generated/client';
 import {
   PromoCampaignStatus,
   PromoParticipantStatus,
