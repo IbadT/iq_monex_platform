@@ -21,8 +21,8 @@ import { SubscriptionService } from '@/subscription/subscription.service';
 import { ChangeListingStatusDto } from './dto/request/change-listing-status.dto';
 import { UpdateListingDto } from './dto/request/update-listing.dto';
 import { JwtPayload } from '@/common/interfaces/jwt-payload.interface';
-import { SearchService } from '@/search/search.service';
-import { ListingDocument } from '@/search/interfaces/listing.interface';
+// import { SearchService } from '@/search/search.service';
+// import { ListingDocument } from '@/search/interfaces/listing.interface';
 import { RabbitmqService } from '@/rabbitmq/rabbitmq.service';
 import { ComplaintType } from '@/users/enums/complaint-type.enum';
 import { MakeComplaintToListing } from './dto/request/make-complaint-to-listing.dto';
@@ -55,7 +55,7 @@ export class ListingsService {
     private readonly subscriptionService: SubscriptionService,
     private readonly cacheSevice: CacheService,
     private readonly s3Service: S3Service,
-    private readonly searchService: SearchService,
+    // private readonly searchService: SearchService,
     private readonly rabbitmqService: RabbitmqService,
     private readonly categoriesService: CategoriesService,
     private readonly dictionariesService: DictionariesService,
@@ -1663,7 +1663,7 @@ export class ListingsService {
     await this.cacheSevice.del('listings');
 
     // Индексация в Elasticsearch
-    await this.indexListingInElasticsearch(createdListing.listing);
+    // await this.indexListingInElasticsearch(createdListing.listing);
 
     // Проверяем условия акции для пользователя (10 активных объявлений)
     // Запускаем асинхронно, чтобы не блокировать ответ
@@ -1869,8 +1869,11 @@ export class ListingsService {
         }
 
         // Обновляем файлы если переданы
+        let createdFiles: any[] = [];
+        let createdPhotos: any[] = [];
+
         if (files !== undefined) {
-          await this.fileService.replaceListingFilesArray(
+          createdFiles = await this.fileService.replaceListingFilesArray(
             id,
             files,
             FileKind.DOCUMENT,
@@ -1880,7 +1883,7 @@ export class ListingsService {
 
         // Обновляем фото если переданы
         if (photos !== undefined) {
-          await this.fileService.replaceListingFilesArray(
+          createdPhotos = await this.fileService.replaceListingFilesArray(
             id,
             photos,
             FileKind.PHOTO,
@@ -1934,27 +1937,33 @@ export class ListingsService {
           }
         }
 
-        return updated;
+        return { updated, createdFiles, createdPhotos };
       },
     );
+
+    // ВНЕ транзакции — асинхронная загрузка в S3
+    await Promise.all([
+      this.fileService.enqueueFilesUpload(updatedListing.createdFiles),
+      this.fileService.enqueueFilesUpload(updatedListing.createdPhotos),
+    ]);
 
     // Инвалидируем кэш
     await this.cacheSevice.del('listings');
     await this.cacheSevice.del(`listings:${id}`);
 
     // Обновляем в Elasticsearch
-    await this.indexListingInElasticsearch(updatedListing);
+    // await this.indexListingInElasticsearch(updatedListing);
 
     // Получаем данные контакта
     const contactData = await this.getContactData(
-      updatedListing.contactId,
-      updatedListing.contactType,
+      updatedListing.updated.contactId,
+      updatedListing.updated.contactType,
     );
 
     // Получаем данные о подписке
-    const promoData = await this.getPromoData(updatedListing.userId);
+    const promoData = await this.getPromoData(updatedListing.updated.userId);
 
-    return ListingMapper.toResponse(updatedListing, contactData, promoData);
+    return ListingMapper.toResponse(updatedListing.updated, contactData, promoData);
   }
 
   async createListingByStatus(userId: string, listing: IListing) {
@@ -2083,80 +2092,81 @@ export class ListingsService {
   /**
    * Индексация объявления в Elasticsearch
    */
-  private async indexListingInElasticsearch(listing: any) {
-    try {
-      // Получаем связанные данные для полноты индекса
-      const listingWithRelations = await prisma.listing.findUnique({
-        where: { id: listing.id },
-        include: {
-          category: true,
-          subcategory: true,
-          subsubcategory: true,
-          currency: true,
-          priceUnit: true,
-          files: true,
-          locations: true,
-          specifications: true,
-          userSpecifications: {
-            include: {
-              userSpecification: true,
-            },
-          },
-          user: true,
-        },
-      });
+  // TODO: раскомментировать для прода
+  // private async indexListingInElasticsearch(listing: any) {
+  //   try {
+  //     // Получаем связанные данные для полноты индекса
+  //     const listingWithRelations = await prisma.listing.findUnique({
+  //       where: { id: listing.id },
+  //       include: {
+  //         category: true,
+  //         subcategory: true,
+  //         subsubcategory: true,
+  //         currency: true,
+  //         priceUnit: true,
+  //         files: true,
+  //         locations: true,
+  //         specifications: true,
+  //         userSpecifications: {
+  //           include: {
+  //             userSpecification: true,
+  //           },
+  //         },
+  //         user: true,
+  //       },
+  //     });
 
-      if (!listingWithRelations) {
-        this.logger.warn(`Listing ${listing.id} not found for indexing`);
-        return;
-      }
+  //     if (!listingWithRelations) {
+  //       this.logger.warn(`Listing ${listing.id} not found for indexing`);
+  //       return;
+  //     }
 
-      const contactData = await this.getContactData(
-        listingWithRelations.contactId,
-        listingWithRelations.contactType,
-      );
+  //     const contactData = await this.getContactData(
+  //       listingWithRelations.contactId,
+  //       listingWithRelations.contactType,
+  //     );
 
-      // Преобразуем данные для Elasticsearch
-      const document: ListingDocument = {
-        ...listingWithRelations,
-        categoryId: listingWithRelations.categoryId ?? null,
-        subcategoryId: listingWithRelations.subcategoryId ?? null,
-        subsubcategoryId: listingWithRelations.subsubcategoryId ?? null,
-        price: listingWithRelations.price
-          ? Number(listingWithRelations.price)
-          : null,
-        rating: listingWithRelations.rating
-          ? Number(listingWithRelations.rating)
-          : null,
-        locations: listingWithRelations.locations.map((loc: any) => ({
-          ...loc,
-          latitude: Number(loc.latitude),
-          longitude: Number(loc.longitude),
-        })),
-        contacts:
-          listingWithRelations.contactId && listingWithRelations.contactType
-            ? {
-                id: listingWithRelations.contactId,
-                phone: contactData?.phone ?? null,
-                email: contactData?.email ?? null,
-                type: listingWithRelations.contactType,
-              }
-            : null,
-      };
+  //     // Преобразуем данные для Elasticsearch
+  //     const document: ListingDocument = {
+  //       ...listingWithRelations,
+  //       categoryId: listingWithRelations.categoryId ?? null,
+  //       subcategoryId: listingWithRelations.subcategoryId ?? null,
+  //       subsubcategoryId: listingWithRelations.subsubcategoryId ?? null,
+  //       price: listingWithRelations.price
+  //         ? Number(listingWithRelations.price)
+  //         : null,
+  //       rating: listingWithRelations.rating
+  //         ? Number(listingWithRelations.rating)
+  //         : null,
+  //       locations: listingWithRelations.locations.map((loc: any) => ({
+  //         ...loc,
+  //         latitude: Number(loc.latitude),
+  //         longitude: Number(loc.longitude),
+  //       })),
+  //       contacts:
+  //         listingWithRelations.contactId && listingWithRelations.contactType
+  //           ? {
+  //               id: listingWithRelations.contactId,
+  //               phone: contactData?.phone ?? null,
+  //               email: contactData?.email ?? null,
+  //               type: listingWithRelations.contactType,
+  //             }
+  //           : null,
+  //     };
 
-      // Индексируем в Elasticsearch
-      await this.searchService.indexDocument<ListingDocument>(
-        'listings',
-        listing.id,
-        document,
-      );
+  //     // Индексируем в Elasticsearch
+  //     await this.searchService.indexDocument<ListingDocument>(
+  //       'listings',
+  //       listing.id,
+  //       document,
+  //     );
 
-      this.logger.log(`Listing indexed in Elasticsearch: ${listing.id}`);
-    } catch (error) {
-      this.logger.error(`Error indexing listing ${listing.id}:`, error);
-      // Не прерываем создание объявления из-за ошибки индексации
-    }
-  }
+  //     this.logger.log(`Listing indexed in Elasticsearch: ${listing.id}`);
+  //   } catch (error) {
+  //     this.logger.error(`Error indexing listing ${listing.id}:`, error);
+  //     // Не прерываем создание объявления из-за ошибки индексации
+  //   }
+  // }
 
   /**
    * Проверяет текст на наличие запрещенных слов

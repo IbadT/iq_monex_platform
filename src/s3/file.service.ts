@@ -358,13 +358,13 @@ export class FileService {
     }
 
     // Удаляем старые файлы
-    // await tx.file.deleteMany({
-    //   where: {
-    //     ownerType: FileOwnerType.LISTING,
-    //     listingId,
-    //     kind,
-    //   },
-    // });
+    await tx.file.deleteMany({
+      where: {
+        ownerType: FileOwnerType.LISTING,
+        listingId,
+        kind,
+      },
+    });
 
     const created: any[] = [];
 
