@@ -55,10 +55,10 @@ export class ProfileMapper {
     const commentsCount = profile.user.reviewsCount;
 
     // Формируем имя из legalEntityType (code + name) или используем user.name
-    const displayName = legalEntityType
-      ? // ? `${legalEntityType.code} ${legalEntityType.name}`
-        `${legalEntityType.code} ${profile.user?.name}`
-      : profile.user?.name || '';
+    // const displayName = legalEntityType
+    //   ? // ? `${legalEntityType.code} ${legalEntityType.name}`
+    //     `${legalEntityType.code} ${profile.user?.name}`
+    //   : profile.user?.name || '';
 
     // Бан информация
     const ban = new BanResponseDto(
@@ -66,11 +66,28 @@ export class ProfileMapper {
       profile.user?.banReason || null,
     );
 
+    // Локации/адреса
+    const maps =
+      profile.user?.locations?.map(
+        (l: any) =>
+          new MapLocationResponseDto(
+            l.id,
+            l.type,
+            l.address,
+            l.latitude,
+            l.longitude,
+            l.country,
+            l.city,
+            l.userId,
+            l.listingId,
+          ),
+      ) || [];
+
     return new ProfileResponseDto(
       profile.id,
       profile.user?.id || '',
       profile.user?.accountNumber || '',
-      displayName,
+      profile.user?.name || "",
       profile.avatarUrl,
       profile.phone,
       profile.email,
@@ -83,6 +100,7 @@ export class ProfileMapper {
       rating,
       commentsCount,
       ban,
+      maps,
     );
   }
 
@@ -123,10 +141,10 @@ export class ProfileMapper {
       : null;
 
     // Формируем имя из legalEntityType (code + name) или используем user.name
-    const displayName = legalEntityType
-      ? // ? `${legalEntityType.code} ${legalEntityType.name}`
-        `${legalEntityType.code} ${user.name}`
-      : user.name || '';
+    // const displayName = legalEntityType
+    //   ? // ? `${legalEntityType.code} ${legalEntityType.name}`
+    //     `${legalEntityType.code} ${user.name}`
+    //   : user.name || '';
 
     // Валюта (опциональное поле)
     const currency = user.profile?.currency
@@ -139,11 +157,8 @@ export class ProfileMapper {
       : null;
 
     // Файлы и изображения
-    // Аватар берем из profile.avatarUrl в приоритете, иначе из files
-    const avatarFromFiles = user.files?.find(
-      (f: any) => f.kind === 'AVATAR' && f.ownerType === 'USER',
-    );
-    const avatarUrl = user.profile?.avatarUrl || avatarFromFiles?.url || null;
+    // Аватар берем только из profile.avatarUrl (единый источник истины)
+    const avatarUrl = user.profile?.avatarUrl || null;
 
     const images: ListingFileResponseDto[] =
       user.files
@@ -235,7 +250,8 @@ export class ProfileMapper {
       user.profile?.id || user.id,
       user.id,
       user.accountNumber || '',
-      displayName,
+      // displayName,
+      user.name || "",
       avatarUrl,
       user.profile?.phone || null,
       user.profile?.email || null,

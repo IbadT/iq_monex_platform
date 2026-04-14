@@ -474,7 +474,7 @@ export class FileUploadConsumerService
       // Update profile avatar_url for user avatars in the same transaction
       if (owner.ownerType === FileOwnerType.USER && kind === FileKind.AVATAR) {
         this.logger.log(`Updating profile avatar_url for user ${owner.id}`);
-        await tx.profile.updateMany({
+        await tx.profile.update({
           where: { userId: owner.id },
           data: { avatarUrl: s3Url },
         });

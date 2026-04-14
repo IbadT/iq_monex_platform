@@ -77,10 +77,19 @@ export class FavoriteService {
     });
 
     // проверка, что этот пользователь не добавляет самого себя
-    if (userId === existFavorite?.targetUserId) {
+    if (userId === body.userId) {
       throw new BadRequestException(
         'Пользователь не может добавить в избранное сам себя',
       );
+    }
+
+    // проверяем что целевой пользователь существует
+    const targetUser = await prisma.user.findUnique({
+      where: { id: body.userId },
+    });
+
+    if (!targetUser) {
+      throw new BadRequestException('Пользователь не найден');
     }
 
     // если существует, то убрать из избранного
@@ -319,6 +328,13 @@ export class FavoriteService {
         type: FavoriteType.LISTING,
       },
     });
+
+    // Инкрементируем счетчик избранного у объявления
+    await prisma.listing.update({
+      where: { id: body.listingId },
+      data: { favoritesCount: { increment: 1 } },
+    });
+
     await this.cacheService.del(cacheKey);
 
     return createdFavorite;
@@ -338,6 +354,12 @@ export class FavoriteService {
     }
 
     await this.cacheService.del(`favorites/userId:${userId}`);
+
+    // Декрементируем счетчик избранного у объявления
+    await prisma.listing.update({
+      where: { id: listingId },
+      data: { favoritesCount: { decrement: 1 } },
+    });
 
     return await prisma.favorite.delete({
       where: { id: favorite.id },

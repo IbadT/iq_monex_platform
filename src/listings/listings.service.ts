@@ -285,9 +285,9 @@ export class ListingsService {
   /**
    * Поиск объявлений - временно отключен Elasticsearch, всегда используем БД
    */
-  async searchListings(query: ListingQueryDto) {
+  async searchListings(query: ListingQueryDto, currentUserId?: string) {
     // Временно отключен Elasticsearch, всегда используем БД
-    return await this.listingList(query);
+    return await this.listingList(query, currentUserId);
   }
 
   /*
@@ -537,7 +537,7 @@ export class ListingsService {
   }
   */
 
-  async listingList(query: ListingQueryDto) {
+  async listingList(query: ListingQueryDto, currentUserId?: string) {
     const {
       limit = 20,
       offset = 0,
@@ -581,6 +581,8 @@ export class ListingsService {
       where,
       include: {
         category: true,
+        subcategory: true,
+        subsubcategory: true,
         currency: true,
         priceUnit: true,
         files: true,
@@ -628,33 +630,96 @@ export class ListingsService {
       skip: offset,
     });
 
-    // Разделяем файлы на фотографии и документы и мапим через ListingMapper
-    const processedListings = await Promise.all(
-      listings.map(async (listing: any) => {
-        const listingWithSeparatedFiles = {
-          ...listing,
-          photos: listing.files.filter(
-            (file: any) => file.kind === FileKind.PHOTO,
-          ),
-          files: listing.files.filter(
-            (file: any) => file.kind === FileKind.DOCUMENT,
-          ),
-        };
+    // Загружаем контакты для всех объявлений (batch запросы)
+    const contactDataMap = await this.getContactsForListings(listings);
 
-        // Получаем данные контакта и подписки как в listingById
-        const contactData = await this.getContactData(
-          listing.contactId,
-          listing.contactType,
-        );
-        const promoData = await this.getPromoData(listing.userId);
-
-        return ListingMapper.toResponse(
-          listingWithSeparatedFiles,
-          contactData,
-          promoData,
-        );
+    // Получаем promoData для всех уникальных пользователей
+    const uniqueUserIds = [...new Set(listings.map((l) => l.userId))];
+    const promoDataMap = new Map<string, { subscriptionStartDate: Date | null; promoEndDate: Date | null }>();
+    await Promise.all(
+      uniqueUserIds.map(async (uid) => {
+        const promoData = await this.getPromoData(uid);
+        promoDataMap.set(uid, promoData);
       }),
     );
+
+    // Получаем данные избранного, заметок и isUserFavorite если есть currentUserId
+    let favoritesSet = new Set<string>();
+    let userFavoritesSet = new Set<string>();
+    let notesMap = new Map<string, { id: string; targetType: string; targetId: string }>();
+
+    if (currentUserId) {
+      const listingIds = listings.map((l) => l.id);
+      const targetUserIds = [...new Set(listings.map((l) => l.userId))];
+
+      const [favorites, userFavorites, notes] = await Promise.all([
+        prisma.favorite.findMany({
+          where: {
+            userId: currentUserId,
+            listingId: { in: listingIds },
+            type: 'LISTING',
+          },
+          select: { listingId: true },
+        }),
+        prisma.favorite.findMany({
+          where: {
+            userId: currentUserId,
+            targetUserId: { in: targetUserIds },
+            type: 'USER',
+          },
+          select: { targetUserId: true },
+        }),
+        prisma.userNote.findMany({
+          where: {
+            authorId: currentUserId,
+            targetType: 'LISTING',
+            targetListingId: { in: listingIds },
+          },
+          select: { id: true, targetListingId: true },
+        }),
+      ]);
+
+      favoritesSet = new Set(favorites.map((f) => f.listingId!));
+      userFavoritesSet = new Set(userFavorites.map((f) => f.targetUserId!));
+      notes.forEach((n) => {
+        notesMap.set(n.targetListingId!, {
+          id: n.id,
+          targetType: NoteTargetType.LISTING,
+          targetId: n.targetListingId!,
+        });
+      });
+    }
+
+    // Разделяем файлы на фотографии и документы и мапим через ListingMapper
+    const processedListings = listings.map((listing: any) => {
+      const listingWithSeparatedFiles = {
+        ...listing,
+        photos: listing.files.filter(
+          (file: any) => file.kind === FileKind.PHOTO,
+        ),
+        files: listing.files.filter(
+          (file: any) => file.kind === FileKind.DOCUMENT,
+        ),
+      };
+
+      const mine = currentUserId ? listing.userId === currentUserId : false;
+      const isFavorite = currentUserId ? favoritesSet.has(listing.id) : false;
+      const isUserFavorite = currentUserId ? userFavoritesSet.has(listing.userId) : false;
+      const noteData = notesMap.get(listing.id);
+      const note = noteData
+        ? ListingMapper.buildNoteEmbeddedDto(noteData.id, NoteTargetType.LISTING, noteData.targetId)
+        : null;
+
+      return ListingMapper.toResponse(
+        listingWithSeparatedFiles,
+        contactDataMap.get(listing.id) || null,
+        promoDataMap.get(listing.userId) || null,
+        isFavorite,
+        note,
+        isUserFavorite,
+        mine,
+      );
+    });
 
     return {
       rows: processedListings,
@@ -955,6 +1020,14 @@ export class ListingsService {
       );
     }
 
+    // Инкрементируем счетчик просмотров (асинхронно, не блокируем ответ)
+    prisma.listing.update({
+      where: { id },
+      data: { viewsCount: { increment: 1 } },
+    }).catch((err) => {
+      this.logger.error(`Failed to increment viewsCount for listing ${id}:`, err);
+    });
+
     // Получаем данные контакта если указаны
     const contactData = await this.getContactData(
       listing.contactId,
@@ -1149,6 +1222,7 @@ export class ListingsService {
   async listingsByUserId(
     userId: string,
     query: UserListingsQueryDto,
+    currentUserId?: string,
   ): Promise<ListingListResponseDto> {
     // const cacheKey = `listings:userId:${userId}`;
     // const cachedListings = await this.cacheSevice.get<ListingResposeDto[]>(cacheKey);
@@ -1223,9 +1297,82 @@ export class ListingsService {
     // Загружаем контакты для всех объявлений (batch запросы)
     const contactDataMap = await this.getContactsForListings(listings);
 
-    const rows = listings.map((listing) =>
-      ListingMapper.toResponse(listing, contactDataMap.get(listing.id) || null),
+    // Получаем promoData для всех уникальных пользователей
+    const uniqueUserIds = [...new Set(listings.map((l) => l.userId))];
+    const promoDataMap = new Map<string, { subscriptionStartDate: Date | null; promoEndDate: Date | null }>();
+    await Promise.all(
+      uniqueUserIds.map(async (uid) => {
+        const promoData = await this.getPromoData(uid);
+        promoDataMap.set(uid, promoData);
+      }),
     );
+
+    // Получаем данные избранного, заметок и isUserFavorite если есть currentUserId
+    let favoritesSet = new Set<string>();
+    let userFavoritesSet = new Set<string>();
+    let notesMap = new Map<string, { id: string; targetType: string; targetId: string }>();
+
+    if (currentUserId) {
+      const listingIds = listings.map((l) => l.id);
+      const targetUserIds = [...new Set(listings.map((l) => l.userId))];
+
+      const [favorites, userFavorites, notes] = await Promise.all([
+        prisma.favorite.findMany({
+          where: {
+            userId: currentUserId,
+            listingId: { in: listingIds },
+            type: 'LISTING',
+          },
+          select: { listingId: true },
+        }),
+        prisma.favorite.findMany({
+          where: {
+            userId: currentUserId,
+            targetUserId: { in: targetUserIds },
+            type: 'USER',
+          },
+          select: { targetUserId: true },
+        }),
+        prisma.userNote.findMany({
+          where: {
+            authorId: currentUserId,
+            targetType: 'LISTING',
+            targetListingId: { in: listingIds },
+          },
+          select: { id: true, targetListingId: true },
+        }),
+      ]);
+
+      favoritesSet = new Set(favorites.map((f) => f.listingId!));
+      userFavoritesSet = new Set(userFavorites.map((f) => f.targetUserId!));
+      notes.forEach((n) => {
+        notesMap.set(n.targetListingId!, {
+          id: n.id,
+          targetType: NoteTargetType.LISTING,
+          targetId: n.targetListingId!,
+        });
+      });
+    }
+
+    const rows = listings.map((listing) => {
+      const mine = currentUserId ? listing.userId === currentUserId : false;
+      const isFavorite = currentUserId ? favoritesSet.has(listing.id) : false;
+      const isUserFavorite = currentUserId ? userFavoritesSet.has(listing.userId) : false;
+      const noteData = notesMap.get(listing.id);
+      const note = noteData
+        ? ListingMapper.buildNoteEmbeddedDto(noteData.id, NoteTargetType.LISTING, noteData.targetId)
+        : null;
+
+      return ListingMapper.toResponse(
+        listing,
+        contactDataMap.get(listing.id) || null,
+        promoDataMap.get(listing.userId) || null,
+        isFavorite,
+        note,
+        isUserFavorite,
+        mine,
+      );
+    });
 
     return {
       rows,
@@ -1645,28 +1792,30 @@ export class ListingsService {
             const globalSpecsData = specifications
               .filter((s) => !s.isCustom)
               .map((spec) => ({
-                listingId: id,
-                specificationId: spec.specificationId,
-                value: spec.value,
-              }));
+              listingId: id,
+              specificationId: spec.specificationId,
+              value: spec.value,
+            }));
 
             const userSpecsData = specifications
               .filter((s) => s.isCustom)
               .map((spec) => ({
-                listingId: id,
-                userSpecificationId: spec.specificationId,
-                value: spec.value,
-              }));
+              listingId: id,
+              userSpecificationId: spec.specificationId,
+              value: spec.value,
+            }));
 
             if (globalSpecsData.length) {
               await tx.listingSpecification.createMany({
                 data: globalSpecsData,
+                skipDuplicates: true,
               });
             }
 
             if (userSpecsData.length) {
               await tx.listingUserSpecification.createMany({
                 data: userSpecsData,
+                skipDuplicates: true,
               });
             }
           }

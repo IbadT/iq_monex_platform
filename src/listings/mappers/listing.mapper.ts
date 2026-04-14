@@ -9,6 +9,7 @@ import { ListingSubscriptionResponseDto } from '../dto/response/listing-subscrip
 import { UserListingResponseDto } from '../dto/response/user-listing-response.dto';
 import { NoteEmbeddedDto } from '@/notes/dto/note-embedded.dto';
 import { NoteTargetType } from '@/notes/enums/note-target-type.enum';
+import { BanResponseDto } from '@/users/dto/response/ban-response.dto';
 import { LegalEntityType } from '@/categories/entities/legal-entity-type.entity';
 import { Language } from '@/dictionaries/dto/request/get-currency.dto';
 
@@ -99,18 +100,20 @@ export class ListingMapper {
     // Объединяем базовые и пользовательские характеристики
     const specifications = [...baseSpecifications, ...userSpecifications];
 
+    // Используем предварительно отфильтрованные photos если есть, иначе фильтруем files
     const images: ListingFileResponseDto[] =
-      listing.files
-        ?.filter((f: any) => f.kind === 'PHOTO')
-        .map(
-          (f: any) =>
-            new ListingFileResponseDto(
-              f.id,
-              f.url,
-              f.fileType,
-              f.isPrimary || false,
-            ),
-        ) || [];
+      (listing.photos?.length
+        ? listing.photos
+        : listing.files?.filter((f: any) => f.kind === 'PHOTO')
+      )?.map(
+        (f: any) =>
+          new ListingFileResponseDto(
+            f.id,
+            f.url,
+            f.fileType,
+            f.isPrimary || false,
+          ),
+      ) || [];
 
     const files: ListingFileResponseDto[] =
       listing.files
@@ -144,6 +147,12 @@ export class ListingMapper {
         )
       : new ListingSubscriptionResponseDto(null, null);
 
+    // Формируем данные о бане объявления
+    const ban = new BanResponseDto(
+      listing.isBanned ?? false,
+      listing.banReason ?? null,
+    );
+
     return new ListingResposeDto(
       listing.id,
       listing.accountNumber,
@@ -153,7 +162,7 @@ export class ListingMapper {
       listing.condition,
       listing.status,
       listing.rating,
-      listing.commentsCount || 0,
+      listing.reviewsCount || 0,
       listing.viewsCount,
       listing.favoritesCount,
       category,
@@ -172,6 +181,7 @@ export class ListingMapper {
       note ?? null,
       listing.createdAt,
       mine ?? false,
+      ban,
     );
   }
 

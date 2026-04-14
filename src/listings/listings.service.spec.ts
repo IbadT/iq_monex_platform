@@ -211,6 +211,8 @@ describe('ListingsService', () => {
         where: expectedWhere,
         include: {
           category: true,
+          subcategory: true,
+          subsubcategory: true,
           currency: true,
           priceUnit: true,
           files: true,

@@ -414,6 +414,10 @@ model Listing {
   // Шаблон: никогда не удаляется автоматически
   // Архив: авто-удаление через 60 дней
 
+  // ===== БАН =====
+  isBanned  Boolean @default(false) @map("is_banned")
+  banReason String? @map("ban_reason") @db.VarChar(500)
+
   // ===== ЦЕНА =====
   // Для шаблонов — цена может быть null (заполнится позже)
   price      Decimal? @db.Decimal(15, 2)

@@ -47,12 +47,14 @@ export class ListingsController {
   constructor(private readonly listingsService: ListingsService) {}
 
   @Get('')
+  @UseGuards(OptionalJwtAuthGuard)
   @ApiListingQueryDocs()
   async listingList(
     @Query() query: ListingQueryDto,
+    @CurrentUser() user?: JwtPayload,
   ): Promise<ListingListResponseDto> {
     // Если есть поисковый запрос, используем Elasticsearch
-    return await this.listingsService.searchListings(query);
+    return await this.listingsService.searchListings(query, user?.id);
   }
 
   @Get(':id')
@@ -88,12 +90,14 @@ export class ListingsController {
   }
 
   @Get('users/:user_id')
+  @UseGuards(OptionalJwtAuthGuard)
   @ApiGetUserListingsDocs()
   async listingsByUserId(
     @Param('user_id', ParseUUIDPipe) user_id: string,
     @Query() query: UserListingsQueryDto,
+    @CurrentUser() user?: JwtPayload,
   ): Promise<ListingListResponseDto> {
-    return await this.listingsService.listingsByUserId(user_id, query);
+    return await this.listingsService.listingsByUserId(user_id, query, user?.id);
   }
 
   // добавить specifications
