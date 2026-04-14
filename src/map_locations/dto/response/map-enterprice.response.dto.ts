@@ -20,7 +20,8 @@ export class MapLocationResponseDto {
   id: string;
 
   @ApiProperty({
-    description: 'Тип локации: MAIN_OFFICE (основной офис), OFFICE (офис), WAREHOUSE (склад), DEAL (сделка)',
+    description:
+      'Тип локации: MAIN_OFFICE (основной офис), OFFICE (офис), WAREHOUSE (склад), DEAL (сделка)',
     enum: MapLocationType,
     example: 'OFFICE',
   })

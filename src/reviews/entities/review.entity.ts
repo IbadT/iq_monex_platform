@@ -1,4 +1,7 @@
-import { ReviewStatus, ReviewTargetType } from '../../../prisma/generated/enums';
+import {
+  ReviewStatus,
+  ReviewTargetType,
+} from '../../../prisma/generated/enums';
 
 export class Review {
   id: string;

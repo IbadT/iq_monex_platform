@@ -232,7 +232,8 @@ export class MapLocationsService {
       (i) =>
         new MapLocationResponseDto(
           i.id,
-          i.type as 'OFFICE' | 'WAREHOUSE',
+          // i.type as 'OFFICE' | 'WAREHOUSE',
+          i.type as MapLocationType,
           i.address,
           i.latitude,
           i.longitude,
