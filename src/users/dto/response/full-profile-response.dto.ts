@@ -123,6 +123,7 @@ export class FullProfileResponseDto extends ProfileResponseDto {
       rating,
       commentsCount,
       ban,
+      maps,
     );
     this.activities = activities;
     this.files = files;

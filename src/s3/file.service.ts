@@ -31,12 +31,18 @@ export class FileService {
 
     if (avatar === null) {
       this.logger.log(`[Avatar] Deleting avatar for user ${userId}`);
+      // Удаляем аватар из таблицы files
       await tx.file.deleteMany({
         where: {
           ownerType: FileOwnerType.USER,
           userId,
           kind: FileKind.AVATAR,
         },
+      });
+      // Очищаем avatarUrl в профиле
+      await tx.profile.update({
+        where: { userId },
+        data: { avatarUrl: null },
       });
       return null;
     }
@@ -77,6 +83,11 @@ export class FileService {
           sortOrder: 0,
         },
       });
+      // Обновляем avatarUrl в профиле
+      await tx.profile.update({
+        where: { userId },
+        data: { avatarUrl: avatar },
+      });
       this.logger.log(
         `[Avatar] Avatar updated successfully: ${JSON.stringify({ id: updatedAvatar.id, url: updatedAvatar.url?.slice(0, 20) })}`,
       );
@@ -99,6 +110,11 @@ export class FileService {
         s3Bucket,
         uploadStatus: 'pending',
       },
+    });
+    // Обновляем avatarUrl в профиле
+    await tx.profile.update({
+      where: { userId },
+      data: { avatarUrl: avatar },
     });
     this.logger.log(
       `[Avatar] Avatar created successfully: ${JSON.stringify({ id: createdAvatar.id, url: createdAvatar.url?.slice(0, 20) })}`,

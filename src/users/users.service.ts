@@ -296,6 +296,16 @@ export class UsersService {
                 activity: true,
               },
             },
+            files: {
+              where: {
+                ownerType: 'USER',
+                kind: { in: ['PHOTO', 'DOCUMENT'] },
+              },
+              orderBy: {
+                sortOrder: 'asc',
+              },
+            },
+            locations: true,
           },
         },
       },

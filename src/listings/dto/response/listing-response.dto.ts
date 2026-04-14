@@ -9,6 +9,7 @@ import { ListingFileResponseDto } from './listing-file-response.dto';
 import { ListingContactResponseDto } from './listing-contact-response.dto';
 import { ListingSubscriptionResponseDto } from './listing-subscription-response.dto';
 import { NoteEmbeddedDto } from '@/notes/dto/note-embedded.dto';
+import { BanResponseDto } from '@/users/dto/response/ban-response.dto';
 
 export class ListingResposeDto {
   @ApiProperty({
@@ -201,6 +202,12 @@ export class ListingResposeDto {
   })
   mine: boolean;
 
+  @ApiProperty({
+    description: 'Информация о бане объявления',
+    type: () => BanResponseDto,
+  })
+  ban: BanResponseDto;
+
   constructor(
     id: string,
     accountNumber: string,
@@ -229,6 +236,7 @@ export class ListingResposeDto {
     note: NoteEmbeddedDto | null,
     createdAt: Date,
     mine: boolean,
+    ban: BanResponseDto,
   ) {
     this.id = id;
     this.accountNumber = accountNumber;
@@ -257,5 +265,6 @@ export class ListingResposeDto {
     this.note = note;
     this.createdAt = createdAt;
     this.mine = mine;
+    this.ban = ban;
   }
 }

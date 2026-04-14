@@ -2,6 +2,7 @@ import { ActivityResponseDto } from '@/activities/dto/response/activity-response
 import { LegalEntityResponseDto } from '@/categories/dto/response/legal-entity.response.dto';
 import { PaginationDto } from '@/common/dto/pagintation.dto';
 import { CurrenciesResponseDto } from '@/dictionaries/dto/response/currencies-response.dto';
+import { MapLocationResponseDto } from '@/map_locations/dto/response/map-enterprice.response.dto';
 import { ApiProperty } from '@nestjs/swagger';
 import { BanResponseDto } from './ban-response.dto';
 
@@ -118,6 +119,13 @@ export class ProfileResponseDto {
   })
   ban: BanResponseDto;
 
+  @ApiProperty({
+    description: 'Локации/адреса профиля',
+    type: () => [MapLocationResponseDto],
+    isArray: true,
+  })
+  maps: MapLocationResponseDto[];
+
   constructor(
     id: string,
     userId: string,
@@ -135,6 +143,7 @@ export class ProfileResponseDto {
     rating: number,
     commentsCount: number,
     ban: BanResponseDto,
+    maps: MapLocationResponseDto[],
   ) {
     this.id = id;
     this.userId = userId;
@@ -152,6 +161,7 @@ export class ProfileResponseDto {
     this.rating = rating;
     this.commentsCount = commentsCount;
     this.ban = ban;
+    this.maps = maps;
   }
 }
 

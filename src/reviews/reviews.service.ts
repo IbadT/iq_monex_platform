@@ -241,6 +241,13 @@ export class ReviewsService {
       );
     }
 
+    // Проверяем, что пользователь не оставляет отзыв на свое собственное объявление
+    if (hasListing.userId === authorId) {
+      throw new ConflictException(
+        'Нельзя оставить отзыв на собственное объявление',
+      );
+    }
+
     try {
       return await prisma.$transaction(async (tx: TransactionClient) => {
         // Получаем текущее состояние объявления
@@ -478,9 +485,41 @@ export class ReviewsService {
     const cacheKey = `reviews/id:${id}`;
     const cacheKeyList = `reviews`;
 
+    // Получаем отзыв перед удалением для обновления счетчиков
+    const review = await prisma.review.findUnique({
+      where: { id },
+      select: { listingId: true, rating: true },
+    });
+
+    if (!review) {
+      throw new NotFoundException(`Отзыв с ID ${id} не найден`);
+    }
+
     const result = await prisma.review.delete({
       where: { id },
     });
+
+    // Обновляем счетчик отзывов и рейтинг у объявления
+    if (review.listingId) {
+      const currentListing = await prisma.listing.findUnique({
+        where: { id: review.listingId },
+        select: { rating: true, reviewsCount: true },
+      });
+
+      if (currentListing && currentListing.reviewsCount > 0) {
+        const newReviewsCount = currentListing.reviewsCount - 1;
+        const newTotalRating = (currentListing.rating || 0) * currentListing.reviewsCount - review.rating;
+        const newAverageRating = newReviewsCount > 0 ? newTotalRating / newReviewsCount : 0;
+
+        await prisma.listing.update({
+          where: { id: review.listingId },
+          data: {
+            reviewsCount: newReviewsCount,
+            rating: newAverageRating,
+          },
+        });
+      }
+    }
 
     await this.cacheService.del(cacheKey);
     await this.cacheService.del(cacheKeyList);

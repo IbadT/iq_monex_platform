@@ -136,19 +136,26 @@ export class EmailConsumerService implements OnModuleInit, OnModuleDestroy {
 
   private async handleEmailMessage(message: EmailMessage) {
     try {
-      const frontendUrl = this.configService.get('FRONTEND_URL') || 'http://localhost:5173';
+      const frontendUrl =
+        this.configService.get('FRONTEND_URL') || 'http://localhost:5173';
       const verificationCode = message.data?.verificationCode || 'DEFAULT';
 
       // Определяем тип письма: сброс пароля или подтверждение регистрации
-      const isPasswordReset = message.template === 'reset-password' || message.subject?.includes('Сброс пароля');
+      const isPasswordReset =
+        message.template === 'reset-password' ||
+        message.subject?.includes('Сброс пароля');
 
       // Формируем ссылку в зависимости от типа письма
       const confirmUrl = isPasswordReset
         ? `${frontendUrl}/auth/reset-password?code=${verificationCode}`
         : `${frontendUrl}/auth/confirm-email?code=${verificationCode}`;
 
-      const buttonText = isPasswordReset ? 'Перейти на сайт' : 'Подтвердить email';
-      const emailTitle = isPasswordReset ? 'Сброс пароля' : 'Подтверждение регистрации';
+      const buttonText = isPasswordReset
+        ? 'Перейти на сайт'
+        : 'Подтвердить email';
+      const emailTitle = isPasswordReset
+        ? 'Сброс пароля'
+        : 'Подтверждение регистрации';
       const emailDescription = isPasswordReset
         ? 'Вы запросили сброс пароля. Нажмите кнопку ниже:'
         : 'Для завершения регистрации нажмите кнопку ниже:';
