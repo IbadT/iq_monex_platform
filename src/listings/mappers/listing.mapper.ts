@@ -214,7 +214,7 @@ export class ListingMapper {
     return {
       id: user.id,
       name: user.name,
-      code: code ?? "",
+      code: code ?? '',
       avatar: user.files && user.files.length > 0 ? user.files[0].url : null,
       isFavorite: isUserFavorite,
     };

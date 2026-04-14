@@ -42,7 +42,7 @@ export class FavoriteService {
             },
             locations: {
               where: {
-                type: 'OFFICE',
+                type: 'MAIN_OFFICE',
               },
             },
           },
