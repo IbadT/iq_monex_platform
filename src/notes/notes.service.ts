@@ -153,7 +153,7 @@ export class NotesService {
     authorId: string,
     targetType: NoteTargetType,
     targetId: string,
-  ): Promise<NoteResponseDto> {
+  ): Promise<NoteResponseDto | null> {
     // Получаем userId для пользователя (если это заметка о пользователе)
     let targetUserId: string | null = null;
     if (targetType === NoteTargetType.USER) {
@@ -181,7 +181,8 @@ export class NotesService {
     const note = await prisma.userNote.findFirst({ where });
 
     if (!note) {
-      throw new NotFoundException('Заметка не найдена');
+      this.logger.log(`[Notes] Заметка не найдена: authorId=${authorId}, targetType=${targetType}, targetId=${targetId || targetUserId}`);
+      return null;
     }
 
     return this.mapToResponse(note);

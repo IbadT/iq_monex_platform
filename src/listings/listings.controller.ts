@@ -97,7 +97,11 @@ export class ListingsController {
     @Query() query: UserListingsQueryDto,
     @CurrentUser() user?: JwtPayload,
   ): Promise<ListingListResponseDto> {
-    return await this.listingsService.listingsByUserId(user_id, query, user?.id);
+    return await this.listingsService.listingsByUserId(
+      user_id,
+      query,
+      user?.id,
+    );
   }
 
   // добавить specifications
