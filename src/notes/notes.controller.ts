@@ -76,7 +76,7 @@ export class NotesController {
   @ApiOperation({ summary: 'Получить заметку по типу и ID цели' })
   @ApiResponse({
     status: 200,
-    description: 'Заметка найдена',
+    description: 'Заметка найдена или null если не существует',
     type: NoteResponseDto,
   })
   @ApiResponse({ status: 404, description: 'Заметка не найдена' })
@@ -84,7 +84,7 @@ export class NotesController {
     @CurrentUser() user: JwtPayload,
     @Param('targetType') targetType: NoteTargetType,
     @Param('targetId', ParseUUIDPipe) targetId: string,
-  ): Promise<NoteResponseDto> {
+  ): Promise<NoteResponseDto | null> {
     return await this.notesService.get(user.id, targetType, targetId);
   }
 }

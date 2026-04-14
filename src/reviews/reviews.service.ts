@@ -508,8 +508,11 @@ export class ReviewsService {
 
       if (currentListing && currentListing.reviewsCount > 0) {
         const newReviewsCount = currentListing.reviewsCount - 1;
-        const newTotalRating = (currentListing.rating || 0) * currentListing.reviewsCount - review.rating;
-        const newAverageRating = newReviewsCount > 0 ? newTotalRating / newReviewsCount : 0;
+        const newTotalRating =
+          (currentListing.rating || 0) * currentListing.reviewsCount -
+          review.rating;
+        const newAverageRating =
+          newReviewsCount > 0 ? newTotalRating / newReviewsCount : 0;
 
         await prisma.listing.update({
           where: { id: review.listingId },

@@ -177,13 +177,70 @@ export class ListingsService {
       },
     });
 
+    // Если не найдено похожих объявлений, загружаем любые опубликованные
+    let finalListings = listings;
+    if (listings.length === 0) {
+      this.logger.log(`[Recommendations] No similar listings found for ${listingId}, fetching random listings`);
+      finalListings = await prisma.listing.findMany({
+        where: {
+          id: { not: listingId },
+          status: ListingStatus.PUBLISHED,
+        },
+        take: query.limit,
+        skip: query.offset,
+        include: {
+          category: true,
+          subcategory: true,
+          subsubcategory: true,
+          currency: true,
+          priceUnit: true,
+          files: true,
+          locations: true,
+          specifications: true,
+          userSpecifications: {
+            include: {
+              userSpecification: true,
+            },
+          },
+          user: {
+            select: {
+              id: true,
+              name: true,
+              files: {
+                where: { kind: 'AVATAR' },
+                select: { url: true },
+              },
+              profile: {
+                select: {
+                  legalEntityType: {
+                    select: {
+                      id: true,
+                      data: true,
+                    },
+                  },
+                },
+              },
+            },
+          },
+          listingSlot: {
+            include: {
+              userSlot: true,
+            },
+          },
+        },
+        orderBy: {
+          createdAt: 'desc',
+        },
+      });
+    }
+
     // Загружаем контакты для всех объявлений (batch запросы)
-    const contactDataMap = await this.getContactsForListings(listings);
+    const contactDataMap = await this.getContactsForListings(finalListings);
 
     // Загружаем promo данные для всех пользователей (batch запрос)
-    const promoDataMap = await this.getPromoDataForUsers(listings);
+    const promoDataMap = await this.getPromoDataForUsers(finalListings);
 
-    return listings.map((listing) =>
+    return finalListings.map((listing) =>
       ListingMapper.toResponse(
         listing,
         contactDataMap.get(listing.id) || null,
@@ -635,7 +692,10 @@ export class ListingsService {
 
     // Получаем promoData для всех уникальных пользователей
     const uniqueUserIds = [...new Set(listings.map((l) => l.userId))];
-    const promoDataMap = new Map<string, { subscriptionStartDate: Date | null; promoEndDate: Date | null }>();
+    const promoDataMap = new Map<
+      string,
+      { subscriptionStartDate: Date | null; promoEndDate: Date | null }
+    >();
     await Promise.all(
       uniqueUserIds.map(async (uid) => {
         const promoData = await this.getPromoData(uid);
@@ -646,7 +706,10 @@ export class ListingsService {
     // Получаем данные избранного, заметок и isUserFavorite если есть currentUserId
     let favoritesSet = new Set<string>();
     let userFavoritesSet = new Set<string>();
-    let notesMap = new Map<string, { id: string; targetType: string; targetId: string }>();
+    let notesMap = new Map<
+      string,
+      { id: string; targetType: string; targetId: string }
+    >();
 
     if (currentUserId) {
       const listingIds = listings.map((l) => l.id);
@@ -704,10 +767,16 @@ export class ListingsService {
 
       const mine = currentUserId ? listing.userId === currentUserId : false;
       const isFavorite = currentUserId ? favoritesSet.has(listing.id) : false;
-      const isUserFavorite = currentUserId ? userFavoritesSet.has(listing.userId) : false;
+      const isUserFavorite = currentUserId
+        ? userFavoritesSet.has(listing.userId)
+        : false;
       const noteData = notesMap.get(listing.id);
       const note = noteData
-        ? ListingMapper.buildNoteEmbeddedDto(noteData.id, NoteTargetType.LISTING, noteData.targetId)
+        ? ListingMapper.buildNoteEmbeddedDto(
+            noteData.id,
+            NoteTargetType.LISTING,
+            noteData.targetId,
+          )
         : null;
 
       return ListingMapper.toResponse(
@@ -1021,12 +1090,17 @@ export class ListingsService {
     }
 
     // Инкрементируем счетчик просмотров (асинхронно, не блокируем ответ)
-    prisma.listing.update({
-      where: { id },
-      data: { viewsCount: { increment: 1 } },
-    }).catch((err) => {
-      this.logger.error(`Failed to increment viewsCount for listing ${id}:`, err);
-    });
+    prisma.listing
+      .update({
+        where: { id },
+        data: { viewsCount: { increment: 1 } },
+      })
+      .catch((err) => {
+        this.logger.error(
+          `Failed to increment viewsCount for listing ${id}:`,
+          err,
+        );
+      });
 
     // Получаем данные контакта если указаны
     const contactData = await this.getContactData(
@@ -1299,7 +1373,10 @@ export class ListingsService {
 
     // Получаем promoData для всех уникальных пользователей
     const uniqueUserIds = [...new Set(listings.map((l) => l.userId))];
-    const promoDataMap = new Map<string, { subscriptionStartDate: Date | null; promoEndDate: Date | null }>();
+    const promoDataMap = new Map<
+      string,
+      { subscriptionStartDate: Date | null; promoEndDate: Date | null }
+    >();
     await Promise.all(
       uniqueUserIds.map(async (uid) => {
         const promoData = await this.getPromoData(uid);
@@ -1310,7 +1387,10 @@ export class ListingsService {
     // Получаем данные избранного, заметок и isUserFavorite если есть currentUserId
     let favoritesSet = new Set<string>();
     let userFavoritesSet = new Set<string>();
-    let notesMap = new Map<string, { id: string; targetType: string; targetId: string }>();
+    let notesMap = new Map<
+      string,
+      { id: string; targetType: string; targetId: string }
+    >();
 
     if (currentUserId) {
       const listingIds = listings.map((l) => l.id);
@@ -1357,10 +1437,16 @@ export class ListingsService {
     const rows = listings.map((listing) => {
       const mine = currentUserId ? listing.userId === currentUserId : false;
       const isFavorite = currentUserId ? favoritesSet.has(listing.id) : false;
-      const isUserFavorite = currentUserId ? userFavoritesSet.has(listing.userId) : false;
+      const isUserFavorite = currentUserId
+        ? userFavoritesSet.has(listing.userId)
+        : false;
       const noteData = notesMap.get(listing.id);
       const note = noteData
-        ? ListingMapper.buildNoteEmbeddedDto(noteData.id, NoteTargetType.LISTING, noteData.targetId)
+        ? ListingMapper.buildNoteEmbeddedDto(
+            noteData.id,
+            NoteTargetType.LISTING,
+            noteData.targetId,
+          )
         : null;
 
       return ListingMapper.toResponse(
@@ -1792,18 +1878,18 @@ export class ListingsService {
             const globalSpecsData = specifications
               .filter((s) => !s.isCustom)
               .map((spec) => ({
-              listingId: id,
-              specificationId: spec.specificationId,
-              value: spec.value,
-            }));
+                listingId: id,
+                specificationId: spec.specificationId,
+                value: spec.value,
+              }));
 
             const userSpecsData = specifications
               .filter((s) => s.isCustom)
               .map((spec) => ({
-              listingId: id,
-              userSpecificationId: spec.specificationId,
-              value: spec.value,
-            }));
+                listingId: id,
+                userSpecificationId: spec.specificationId,
+                value: spec.value,
+              }));
 
             if (globalSpecsData.length) {
               await tx.listingSpecification.createMany({
