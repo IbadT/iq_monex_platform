@@ -202,19 +202,19 @@ export class ListingMapper {
     user: any,
     isUserFavorite: boolean = false,
   ): UserListingResponseDto {
-    // Формируем имя из legalEntityType через маппер с дефолтным языком RU
-    let displayName = user.name;
+    let code;
     if (user.profile?.legalEntityType) {
       const legalEntity = LegalEntityType.fromPromise({
         id: user.profile.legalEntityType.id,
         data: user.profile.legalEntityType.data,
       }).toResponse(Language.RU);
-      displayName = `${legalEntity.code} ${legalEntity.name}`;
+      code = legalEntity.code;
     }
 
     return {
       id: user.id,
-      name: displayName,
+      name: user.name,
+      code: code ?? "",
       avatar: user.files && user.files.length > 0 ? user.files[0].url : null,
       isFavorite: isUserFavorite,
     };

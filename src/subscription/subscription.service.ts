@@ -2,7 +2,7 @@ import { prisma } from '@/lib/prisma';
 import { Injectable, NotFoundException } from '@nestjs/common';
 import { ChangeListingSlotDto } from './dto/change-listing-slot.dto';
 import { PAYMENT_ITEM_TYPE } from '@/payments/enums/payment-status.enum';
-import { PrismaClient } from 'prisma/generated/client';
+import { PrismaClient } from '../../prisma/generated/client';
 import { ChangeSlotResponseDto } from './dto/response/change-slot-response.dto';
 import { GetAvailableSlotResponseDto } from './dto/response/get-available-slot-response.dto';
 import { SlotMapper } from './mappers/slots.mapper';

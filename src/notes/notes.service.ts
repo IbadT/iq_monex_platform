@@ -181,7 +181,9 @@ export class NotesService {
     const note = await prisma.userNote.findFirst({ where });
 
     if (!note) {
-      this.logger.log(`[Notes] Заметка не найдена: authorId=${authorId}, targetType=${targetType}, targetId=${targetId || targetUserId}`);
+      this.logger.log(
+        `[Notes] Заметка не найдена: authorId=${authorId}, targetType=${targetType}, targetId=${targetId || targetUserId}`,
+      );
       return null;
     }
 

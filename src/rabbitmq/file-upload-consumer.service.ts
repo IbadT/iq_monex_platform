@@ -10,7 +10,7 @@ import { S3Service } from '@/s3/s3.service';
 import { FileUploadMessage } from './interfaces/file-upload-message.interface';
 import { Channel, ChannelModel, ConsumeMessage } from 'amqplib';
 import { prisma } from '@/lib/prisma';
-import { FileOwnerType } from 'prisma/generated/enums';
+import { FileOwnerType } from '../../prisma/generated/enums';
 import { CacheService } from '@/cache/cacheService.service';
 import { SearchService } from '@/search/search.service';
 

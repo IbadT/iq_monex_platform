@@ -3,8 +3,10 @@ import { Decimal } from '@prisma/client/runtime/index-browser';
 
 // Custom mock for MapLocationType
 const MapLocationType = {
+  MAIN_OFFICE: 'MAIN_OFFICE',
   OFFICE: 'OFFICE',
   WAREHOUSE: 'WAREHOUSE',
+  DEAL: 'DEAL',
 } as const;
 
 type MapLocationType = (typeof MapLocationType)[keyof typeof MapLocationType];
@@ -18,7 +20,7 @@ export class MapLocationResponseDto {
   id: string;
 
   @ApiProperty({
-    description: 'Тип локации: OFFICE (офис), WAREHOUSE (склад)',
+    description: 'Тип локации: MAIN_OFFICE (основной офис), OFFICE (офис), WAREHOUSE (склад), DEAL (сделка)',
     enum: MapLocationType,
     example: 'OFFICE',
   })

@@ -5,7 +5,7 @@ import {
 } from '@/listings/dto/request/create-map-location.dto';
 import { MapLocationProcessData } from './interfaces/map-location.interface';
 import { prisma } from '@/lib/prisma';
-import { Prisma } from 'prisma/generated/client';
+import { MapLocationType, Prisma } from '../../prisma/generated/client';
 import { EnterpriceQueryDto } from './dto/request/enterprice-query.dto';
 import * as ngeohash from 'ngeohash';
 import { MapLocationResponseDto } from './dto/response/map-enterprice.response.dto';
@@ -41,6 +41,16 @@ export class MapLocationsService {
 
     if (createMaps.length === 0) {
       return;
+    }
+
+    // Проверка: MAIN_OFFICE может быть только один
+    const mainOfficeCount = createMaps.filter(
+      (map) => map.type === MapLocationType.MAIN_OFFICE,
+    ).length;
+    if (mainOfficeCount > 1) {
+      throw new BadRequestException(
+        'Может быть только один основной офис (MAIN_OFFICE)',
+      );
     }
 
     await tx.mapLocation.createMany({

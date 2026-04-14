@@ -13,7 +13,7 @@ import { CreateDonationDto } from './dto/create-donation.dto';
 import { PAYMENT_ITEM_TYPE, PAYMENT_STATUS } from './enums/payment-status.enum';
 import { TariffsService } from '@/tariffs/tariffs.service';
 import { v4 as uuidv4 } from 'uuid';
-import { PrismaClient } from 'prisma/generated/client';
+import { PrismaClient } from '../../prisma/generated/client';
 import { prisma } from '@/lib/prisma';
 import { convertCurrencyToYookassa } from '@/common/utils/currency.util';
 
