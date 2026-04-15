@@ -13,8 +13,11 @@ async function bootstrap() {
   const app = await NestFactory.create(AppModule);
 
   app.enableCors({
-    // origin: '*',
-    origin: 'http://localhost:5173',
+    origin: [
+      'http://localhost:5173',
+      'https://iqmonex.ru',
+      'https://www.iqmonex.ru',
+    ],
     credentials: true,
   });
 
