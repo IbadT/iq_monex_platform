@@ -4,6 +4,7 @@ import { PaginationDto } from '@/common/dto/pagintation.dto';
 import { CurrenciesResponseDto } from '@/dictionaries/dto/response/currencies-response.dto';
 import { MapLocationResponseDto } from '@/map_locations/dto/response/map-enterprice.response.dto';
 import { ApiProperty } from '@nestjs/swagger';
+import { Expose } from 'class-transformer';
 import { BanResponseDto } from './ban-response.dto';
 
 export class ProfileResponseDto {
@@ -42,6 +43,7 @@ export class ProfileResponseDto {
     example: 'https://example.com/avatar.jpg',
     type: 'string',
   })
+  @Expose({ name: 'avatar' })
   avatarUrl: string | null;
 
   @ApiProperty({
