@@ -606,6 +606,7 @@ export class ListingsService {
       search,
       categoryId,
       subcategoryId,
+      subsubcategoryId,
     } = query;
 
     // Создаем условия фильтрации
@@ -619,11 +620,13 @@ export class ListingsService {
       where.condition = condition;
     }
 
-    // Приоритет subcategoryId над categoryId
-    if (subcategoryId) {
+    // Фильтры по категориям (самый точный приоритет)
+    if (subsubcategoryId) {
+      where.subsubcategoryId = subsubcategoryId;
+    } else if (subcategoryId) {
       where.subcategoryId = subcategoryId;
     } else if (categoryId) {
-      where.subcategoryId = categoryId;
+      where.categoryId = categoryId;
     }
 
     if (search) {
@@ -1963,7 +1966,11 @@ export class ListingsService {
     // Получаем данные о подписке
     const promoData = await this.getPromoData(updatedListing.updated.userId);
 
-    return ListingMapper.toResponse(updatedListing.updated, contactData, promoData);
+    return ListingMapper.toResponse(
+      updatedListing.updated,
+      contactData,
+      promoData,
+    );
   }
 
   async createListingByStatus(userId: string, listing: IListing) {

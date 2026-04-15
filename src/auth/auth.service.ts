@@ -12,7 +12,6 @@ import { VerifyCodeDto, VerifyCodeResponseDto } from './dto/verify-code.dto';
 import { LoginUserDto } from './dto/request/login-user.dto';
 import { UsersService } from '@/users/users.service';
 import { LoginResponseDto } from './dto/response/login-response.dto';
-import { TokensDto } from './dto/tokens.dto';
 import { RefreshTokenDto } from './dto/refresh-token.dto';
 import { ResetPasswordDto } from './dto/reset-password.dto';
 import { ConfirmResetPasswordDto } from './dto/confirm-reset-password.dto';
@@ -382,7 +381,7 @@ export class AuthService {
     };
   }
 
-  async refreshToken(refreshTokenDto: RefreshTokenDto): Promise<TokensDto> {
+  async refreshToken(refreshTokenDto: RefreshTokenDto): Promise<any> {
     const { refreshToken } = refreshTokenDto;
 
     // 1. Проверить что refresh token предоставлен
@@ -423,9 +422,14 @@ export class AuthService {
       userData.email,
     );
 
-    const tokens: TokensDto = {
+    const tokens = {
       accessToken: tokenRecord.accessToken,
       refreshToken: tokenRecord.refreshToken,
+      user: {
+        id: userData.id,
+        name: userData.name,
+        email: userData.email,
+      },
     };
 
     this.logger.logAuth('refresh_token_success', userData.id, userData.email);

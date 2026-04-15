@@ -175,7 +175,11 @@ export class FileService {
         index,
         kind.toLowerCase(),
       );
-      const s3Key = this.s3.generateAvatarKey(userId);
+      // Используем правильный метод генерации ключа в зависимости от типа файла
+      const s3Key =
+        kind === FileKind.AVATAR
+          ? this.s3.generateAvatarKey(userId)
+          : this.s3.generateUserPhotoKey(userId, index);
       const contentType = this.s3.getContentTypeFromBase64(base64);
       const fileSize = this.s3.getFileSizeFromBase64(base64);
       const s3Bucket = process.env.S3_BUCKET_NAME ?? '';
