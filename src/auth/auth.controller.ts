@@ -44,14 +44,16 @@ export class AuthController {
     response.cookie('refreshToken', tokens.refreshToken, {
       // httpOnly: true,
       secure: process.env.NODE_ENV === 'production',
-      sameSite: 'strict',
+      // sameSite: process.env.NODE_ENV === 'production' ? 'none' : 'lax',
+      sameSite: 'none',
       maxAge: 7 * 24 * 60 * 60 * 1000, // 7 дней
     });
 
     response.cookie('accessToken', tokens.accessToken, {
       // httpOnly: true,
       secure: process.env.NODE_ENV === 'production',
-      sameSite: 'strict',
+      // sameSite: process.env.NODE_ENV === 'production' ? 'none' : 'lax',
+      sameSite: 'none',
       maxAge: 25 * 60 * 1000, // 15 минут
     });
 
@@ -117,14 +119,14 @@ export class AuthController {
     response.cookie('refreshToken', tokens.refreshToken, {
       // httpOnly: true,
       secure: process.env.NODE_ENV === 'production',
-      sameSite: 'strict',
+      sameSite: process.env.NODE_ENV === 'production' ? 'none' : 'lax',
       maxAge: 7 * 24 * 60 * 60 * 1000, // 7 дней
     });
 
     response.cookie('accessToken', tokens.accessToken, {
       // httpOnly: true,
       secure: process.env.NODE_ENV === 'production',
-      sameSite: 'strict',
+      sameSite: process.env.NODE_ENV === 'production' ? 'none' : 'lax',
       maxAge: 25 * 60 * 1000, // 25 минут
     });
 

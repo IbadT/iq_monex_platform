@@ -185,7 +185,12 @@ export class WorkersService {
 
     // Обрабатываем аватар если передан
     if (worker.avatar && worker.avatar !== null) {
-      await this.handleWorkerAvatar(createdWorker.id, userId, worker.avatar, db);
+      await this.handleWorkerAvatar(
+        createdWorker.id,
+        userId,
+        worker.avatar,
+        db,
+      );
     }
 
     return createdWorker;
@@ -333,22 +338,19 @@ export class WorkersService {
     userId: string,
     body: UpdateWorkerDto,
   ): Promise<UpdateWorkerResponseDto[]> {
-    return await prisma.$transaction(async (tx) => {
-      // Получаем ID записей до обновления
-      const workers = await tx.worker.findMany({
-        where: { userId },
-        select: { id: true },
-      });
-
-      // Обновляем
-      await tx.worker.updateMany({
-        where: { userId },
-        data: body,
-      });
-
-      // Возвращаем ID
-      return workers;
+    // Получаем ID записей до обработки
+    const workers = await prisma.worker.findMany({
+      where: { userId },
+      select: { id: true },
     });
+
+    // Обрабатываем каждого работника из массива
+    if (body.workers && body.workers.length > 0) {
+      await this.processWorkers(userId, body.workers, prisma);
+    }
+
+    // Возвращаем ID
+    return workers;
   }
 
   async getRoles(): Promise<RoleBriefResponseDto[]> {
