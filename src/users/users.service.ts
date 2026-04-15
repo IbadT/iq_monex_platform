@@ -508,21 +508,6 @@ export class UsersService {
         : null;
     }
 
-    // Если профиль отсутствует — создаём "пустой" объект,
-    // // чтобы маппер не упал
-    // if (!user.profile) {
-    //   user.profile = {
-    //     id: null,
-    //     phone: null,
-    //     email: null,
-    //     telegram: null,
-    //     siteUrl: null,
-    //     description: null,
-    //     legalEntityType: null,
-    //     currency: null,
-    //   } as any;
-    // }
-
     return ProfileMapper.toFullResponse(user, currentUserId, isFavorite, note);
   }
 

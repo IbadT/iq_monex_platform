@@ -114,6 +114,11 @@ describe('AuthController', () => {
       const mockTokens: TokensDto = {
         accessToken: 'new-access-token',
         refreshToken: 'new-refresh-token',
+        user: {
+          id: 'user-id',
+          name: 'Test User',
+          email: 'test@example.com',
+        },
       };
 
       authService.refreshToken.mockResolvedValue(mockTokens);
@@ -125,7 +130,17 @@ describe('AuthController', () => {
       expect(authService.refreshToken).toHaveBeenCalledWith({
         refreshToken: 'refresh-token',
       });
-      expect(result).toEqual(mockTokens);
+      expect(result).toEqual({
+        success: true,
+        message: 'Tokens refreshed successfully',
+        data: {
+          access_token: mockTokens.accessToken,
+          refresh_token: mockTokens.refreshToken,
+          current_user: {
+            id: mockTokens.user!.id,
+          },
+        },
+      });
     });
 
     it('should throw BadRequestException if no refresh token in cookies', async () => {

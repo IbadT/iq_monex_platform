@@ -183,9 +183,9 @@ export class WorkersService {
       },
     });
 
-    // Обрабатываем аватар если передан (fire-and-forget, не ждем завершения)
+    // Обрабатываем аватар если передан
     if (worker.avatar && worker.avatar !== null) {
-      this.handleWorkerAvatar(createdWorker.id, userId, worker.avatar, db);
+      await this.handleWorkerAvatar(createdWorker.id, userId, worker.avatar, db);
     }
 
     return createdWorker;
@@ -219,8 +219,8 @@ export class WorkersService {
         // Удаляем существующий аватар
         await this.deleteWorkerAvatar(worker.id, db);
       } else {
-        // Создаем или обновляем аватар (fire-and-forget, не ждем завершения)
-        this.handleWorkerAvatar(worker.id, userId, worker.avatar, db);
+        // Создаем или обновляем аватар
+        await this.handleWorkerAvatar(worker.id, userId, worker.avatar, db);
       }
     }
 

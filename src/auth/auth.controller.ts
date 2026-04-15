@@ -5,7 +5,6 @@ import { RegisterUserDto } from './dto/request/register-user.dto';
 import { AuthService } from './auth.service';
 import { LoginResponseDto } from './dto/response/login-response.dto';
 import { RegisterResponseDto } from './dto/response/register-response.dto';
-import { TokensDto } from './dto/tokens.dto';
 import { JwtPayload } from '@/common/interfaces/jwt-payload.interface';
 import { CurrentUser } from '@/common/decorators/current-user.decorator';
 import { Protected } from '@/common/decorators/protected.decorator';
@@ -107,7 +106,7 @@ export class AuthController {
   async refreshToken(
     @Req() request: Request,
     @Res({ passthrough: true }) response: Response,
-  ): Promise<TokensDto> {
+  ): Promise<any> {
     const refreshTokenFromCookie = (request as any).cookies?.refreshToken;
 
     const tokens = await this.authService.refreshToken({
@@ -126,10 +125,21 @@ export class AuthController {
       // httpOnly: true,
       secure: process.env.NODE_ENV === 'production',
       sameSite: 'strict',
-      maxAge: 25 * 60 * 1000, // 15 минут
+      maxAge: 25 * 60 * 1000, // 25 минут
     });
 
-    return tokens;
+    // Возвращаем ответ в формате, который ожидает frontend
+    return {
+      success: true,
+      message: 'Tokens refreshed successfully',
+      data: {
+        access_token: tokens.accessToken,
+        refresh_token: tokens.refreshToken,
+        current_user: {
+          id: tokens.user.id,
+        },
+      },
+    };
   }
 
   @Post('sign-out')
