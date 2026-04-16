@@ -17,6 +17,15 @@ export class FileService {
     private readonly rabbit: RabbitmqService,
   ) {}
 
+  /**
+   * Проверяет, является ли значение HTTPS URL (уже загруженным файлом)
+   * или base64 строкой (новый файл для загрузки)
+   */
+  private isHttpsUrl(value: string): boolean {
+    if (!value || typeof value !== 'string') return false;
+    return value.trim().startsWith('https://');
+  }
+
   // ---------- AVATAR ----------
 
   async processUserAvatar(
@@ -29,8 +38,9 @@ export class FileService {
       return null;
     }
 
-    if (avatar === null) {
-      this.logger.log(`[Avatar] Deleting avatar for user ${userId}`);
+    // Пустая строка обрабатывается как null (удаление аватара)
+    if (avatar === null || (typeof avatar === 'string' && avatar.trim() === '')) {
+      this.logger.log(`[Avatar] Deleting avatar for user ${userId} (null or empty string)`);
       // Удаляем аватар из таблицы files
       await tx.file.deleteMany({
         where: {
@@ -47,6 +57,44 @@ export class FileService {
       return null;
     }
 
+    // Если передан HTTPS URL - проверяем, совпадает ли он с существующим
+    if (this.isHttpsUrl(avatar)) {
+      const trimmedUrl = avatar.trim();
+      const existing = await tx.file.findFirst({
+        where: {
+          ownerType: FileOwnerType.USER,
+          userId,
+          kind: FileKind.AVATAR,
+        },
+      });
+
+      // Если URL совпадает с существующим - ничего не меняем
+      if (existing && existing.url === trimmedUrl) {
+        this.logger.log(
+          `[Avatar] HTTPS URL matches existing avatar, no changes needed (id=${existing.id})`,
+        );
+        return existing;
+      }
+
+      // Если URL не совпадает - это ошибка или попытка изменить на другой URL
+      // В этом случае просто возвращаем существующий без изменений
+      // (фронтенд не должен отправлять другой HTTPS URL)
+      if (existing) {
+        this.logger.warn(
+          `[Avatar] Different HTTPS URL provided, keeping existing avatar. Provided: ${trimmedUrl.slice(0, 50)}..., Existing: ${existing.url?.slice(0, 50)}...`,
+        );
+        return existing;
+      }
+
+      // Если аватара нет в БД, но пришел HTTPS URL - это неконсистентное состояние
+      // Логируем warning и возвращаем null (не создаем запись с внешним URL)
+      this.logger.warn(
+        `[Avatar] HTTPS URL provided but no existing avatar in DB: ${trimmedUrl.slice(0, 50)}...`,
+      );
+      return null;
+    }
+
+    // Обработка base64 (новый файл для загрузки)
     const existing = await tx.file.findFirst({
       where: {
         ownerType: FileOwnerType.USER,
@@ -62,7 +110,7 @@ export class FileService {
     const s3Bucket = process.env.S3_BUCKET_NAME ?? '';
 
     this.logger.log(
-      `[Avatar] Processing avatar for user ${userId}: size=${fileSize}, contentType=${contentType}, s3Key=${s3Key}`,
+      `[Avatar] Processing base64 avatar for user ${userId}: size=${fileSize}, contentType=${contentType}, s3Key=${s3Key}`,
     );
 
     if (existing) {
@@ -83,7 +131,7 @@ export class FileService {
           sortOrder: 0,
         },
       });
-      // Обновляем avatarUrl в профиле
+      // Обновляем avatarUrl в профиле (временно base64, потом заменится на S3 URL)
       await tx.profile.update({
         where: { userId },
         data: { avatarUrl: avatar },
@@ -126,16 +174,16 @@ export class FileService {
 
   async replaceUserFilesArray(
     userId: string,
-    base64Array: string[] | undefined,
+    filesArray: string[] | undefined,
     kind: FileKind,
     tx: PrismaClient,
   ) {
     this.logger.log(`[${kind}] ===== START replaceUserFilesArray =====`);
     this.logger.log(
-      `[${kind}] Starting processing ${kind} for user ${userId}, count=${base64Array?.length || 0}`,
+      `[${kind}] Starting processing ${kind} for user ${userId}, count=${filesArray?.length || 0}`,
     );
 
-    if (!base64Array || base64Array.length === 0) {
+    if (!filesArray || filesArray.length === 0) {
       this.logger.log(
         `[${kind}] Array is empty, deleting all ${kind} for user ${userId}`,
       );
@@ -152,40 +200,97 @@ export class FileService {
       return [];
     }
 
-    // Удаляем старые файлы этого типа перед добавлением новых
-    this.logger.log(`[${kind}] Deleting old ${kind} for user ${userId}`);
-    const deleteResult = await tx.file.deleteMany({
+    // Фильтруем пустые строки и разделяем на HTTPS URL (существующие) и base64 (новые)
+    const existingUrls: { url: string; originalIndex: number }[] = [];
+    const newBase64Files: { data: string; originalIndex: number }[] = [];
+
+    filesArray.forEach((item, index) => {
+      // Пропускаем пустые строки
+      if (!item || typeof item !== 'string' || item.trim() === '') {
+        this.logger.warn(
+          `[${kind}] Skipping empty string at index ${index}`,
+        );
+        return;
+      }
+      if (this.isHttpsUrl(item)) {
+        existingUrls.push({ url: item.trim(), originalIndex: index });
+      } else {
+        newBase64Files.push({ data: item, originalIndex: index });
+      }
+    });
+
+    this.logger.log(
+      `[${kind}] Split files: ${existingUrls.length} existing HTTPS URLs, ${newBase64Files.length} new base64 files`,
+    );
+
+    // Получаем текущие файлы из БД
+    const existingDbFiles = await tx.file.findMany({
       where: {
         ownerType: FileOwnerType.USER,
         userId,
         kind,
       },
     });
-    this.logger.log(
-      `[${kind}] Deleted ${deleteResult.count} old ${kind} records`,
+
+    // Определяем какие файлы нужно удалить (те, что есть в БД но не в списке existingUrls)
+    const urlsToKeep = new Set(existingUrls.map((e) => e.url));
+    const filesToDelete = existingDbFiles.filter(
+      (file) => !urlsToKeep.has(file.url),
     );
 
-    const created: any[] = [];
+    // Удаляем файлы, которых нет в новом списке
+    if (filesToDelete.length > 0) {
+      const deleteResult = await tx.file.deleteMany({
+        where: {
+          id: { in: filesToDelete.map((f) => f.id) },
+        },
+      });
+      this.logger.log(
+        `[${kind}] Deleted ${deleteResult.count} old files not present in new array`,
+      );
+    }
 
-    for (let index = 0; index < base64Array.length; index++) {
-      const base64 = base64Array[index];
+    // Обновляем sortOrder для существующих HTTPS файлов
+    const updatedFiles: any[] = [];
+    for (const { url, originalIndex } of existingUrls) {
+      const existingFile = existingDbFiles.find((f) => f.url === url);
+      if (existingFile) {
+        const updated = await tx.file.update({
+          where: { id: existingFile.id },
+          data: {
+            sortOrder: originalIndex,
+            isPrimary: originalIndex === 0,
+          },
+        });
+        updatedFiles.push(updated);
+        this.logger.log(
+          `[${kind}] Updated sortOrder for existing file (id=${updated.id}, sortOrder=${originalIndex})`,
+        );
+      } else {
+        this.logger.warn(
+          `[${kind}] HTTPS URL not found in DB, skipping: ${url.slice(0, 50)}...`,
+        );
+      }
+    }
 
+    // Создаем новые файлы из base64
+    const createdFiles: any[] = [];
+    for (const { data: base64, originalIndex } of newBase64Files) {
       const fileName = this.s3.generateFileNameFromBase64(
         base64,
-        index,
+        originalIndex,
         kind.toLowerCase(),
       );
-      // Используем правильный метод генерации ключа в зависимости от типа файла
       const s3Key =
         kind === FileKind.AVATAR
           ? this.s3.generateAvatarKey(userId)
-          : this.s3.generateUserPhotoKey(userId, index);
+          : this.s3.generateUserPhotoKey(userId, originalIndex);
       const contentType = this.s3.getContentTypeFromBase64(base64);
       const fileSize = this.s3.getFileSizeFromBase64(base64);
       const s3Bucket = process.env.S3_BUCKET_NAME ?? '';
 
       this.logger.log(
-        `[${kind}] Creating file record ${index + 1}/${base64Array.length}: size=${fileSize}, contentType=${contentType}`,
+        `[${kind}] Creating new file record ${createdFiles.length + 1}/${newBase64Files.length}: size=${fileSize}, contentType=${contentType}`,
       );
 
       const file = await tx.file.create({
@@ -197,8 +302,8 @@ export class FileService {
           fileName,
           fileSize,
           kind,
-          sortOrder: index,
-          isPrimary: index === 0,
+          sortOrder: originalIndex,
+          isPrimary: originalIndex === 0,
           s3Key,
           s3Bucket,
           uploadStatus: 'pending',
@@ -206,16 +311,20 @@ export class FileService {
       });
 
       this.logger.log(
-        `[${kind}] ✓ File record created (id=${file.id}, sortOrder=${index}, ownerType=${file.ownerType})`,
+        `[${kind}] ✓ New file record created (id=${file.id}, sortOrder=${originalIndex})`,
       );
-      created.push(file);
+      createdFiles.push(file);
     }
 
-    this.logger.log(
-      `[${kind}] Successfully created ${created.length} ${kind} records for user ${userId}`,
+    // Объединяем результаты в правильном порядке
+    const allFiles = [...updatedFiles, ...createdFiles].sort(
+      (a, b) => a.sortOrder - b.sortOrder,
     );
 
-    // Verify files are still there before returning
+    this.logger.log(
+      `[${kind}] Successfully processed: ${updatedFiles.length} existing + ${createdFiles.length} new = ${allFiles.length} total files`,
+    );
+
     const countAfterCreate = await tx.file.count({
       where: {
         userId,
@@ -224,11 +333,11 @@ export class FileService {
       },
     });
     this.logger.log(
-      `[${kind}] ✓ Verification: ${countAfterCreate} ${kind} files in DB after creation`,
+      `[${kind}] ✓ Verification: ${countAfterCreate} ${kind} files in DB after processing`,
     );
     this.logger.log(`[${kind}] ===== END replaceUserFilesArray =====`);
 
-    return created;
+    return allFiles;
   }
 
   // ---------- ASYNC UPLOAD ----------
@@ -239,9 +348,28 @@ export class FileService {
       return;
     }
 
-    this.logger.log(`[Queue] Enqueueing ${files.length} files for upload`);
+    // Фильтруем только файлы с base64 (новые файлы для загрузки)
+    // Файлы с HTTPS URL уже загружены и не требуют обработки
+    const filesToUpload = files.filter((file) => {
+      const isHttps = this.isHttpsUrl(file.url);
+      if (isHttps) {
+        this.logger.log(
+          `[Queue] Skipping already uploaded file (HTTPS URL): ${file.url?.slice(0, 50)}...`,
+        );
+      }
+      return !isHttps;
+    });
 
-    for (const file of files) {
+    if (filesToUpload.length === 0) {
+      this.logger.log(`[Queue] No new files to upload (all are HTTPS URLs)`);
+      return;
+    }
+
+    this.logger.log(
+      `[Queue] Enqueueing ${filesToUpload.length} of ${files.length} files for upload (skipped ${files.length - filesToUpload.length} HTTPS URLs)`,
+    );
+
+    for (const file of filesToUpload) {
       // Определяем правильный owner ID based на ownerType
       const ownerId =
         file.ownerType === FileOwnerType.LISTING
@@ -276,12 +404,20 @@ export class FileService {
       await this.rabbit.sendFileUpload(message);
     }
 
-    this.logger.log(`[Queue] Successfully enqueued ${files.length} files`);
+    this.logger.log(`[Queue] Successfully enqueued ${filesToUpload.length} files`);
   }
 
   async enqueueAvatarUploadIfNeeded(file: any | null) {
     if (!file) {
       this.logger.debug(`[Queue] No avatar to enqueue`);
+      return;
+    }
+
+    // Проверяем, является ли URL HTTPS (уже загруженный файл)
+    if (this.isHttpsUrl(file.url)) {
+      this.logger.log(
+        `[Queue] Skipping avatar upload - already HTTPS URL: ${file.url?.slice(0, 50)}...`,
+      );
       return;
     }
 
@@ -346,23 +482,59 @@ export class FileService {
 
   async replaceListingFilesArray(
     listingId: string,
-    base64Array: string[],
+    filesArray: string[],
     kind: FileKind,
     tx: Prisma.TransactionClient,
   ) {
-    if (!base64Array || base64Array.length === 0) {
-      await tx.file.deleteMany({
+    this.logger.log(
+      `[${kind}] ===== START replaceListingFilesArray for listing ${listingId} =====`,
+    );
+    this.logger.log(
+      `[${kind}] Starting processing ${kind} for listing ${listingId}, count=${filesArray?.length || 0}`,
+    );
+
+    if (!filesArray || filesArray.length === 0) {
+      this.logger.log(
+        `[${kind}] Array is empty, deleting all ${kind} for listing ${listingId}`,
+      );
+      const deleteResult = await tx.file.deleteMany({
         where: {
           ownerType: FileOwnerType.LISTING,
           listingId,
           kind,
         },
       });
+      this.logger.log(
+        `[${kind}] Deleted ${deleteResult.count} old ${kind} records`,
+      );
       return [];
     }
 
-    // Удаляем старые файлы
-    await tx.file.deleteMany({
+    // Фильтруем пустые строки и разделяем на HTTPS URL (существующие) и base64 (новые)
+    const existingUrls: { url: string; originalIndex: number }[] = [];
+    const newBase64Files: { data: string; originalIndex: number }[] = [];
+
+    filesArray.forEach((item, index) => {
+      // Пропускаем пустые строки
+      if (!item || typeof item !== 'string' || item.trim() === '') {
+        this.logger.warn(
+          `[${kind}] Skipping empty string at index ${index}`,
+        );
+        return;
+      }
+      if (this.isHttpsUrl(item)) {
+        existingUrls.push({ url: item.trim(), originalIndex: index });
+      } else {
+        newBase64Files.push({ data: item, originalIndex: index });
+      }
+    });
+
+    this.logger.log(
+      `[${kind}] Split files: ${existingUrls.length} existing HTTPS URLs, ${newBase64Files.length} new base64 files`,
+    );
+
+    // Получаем текущие файлы из БД
+    const existingDbFiles = await tx.file.findMany({
       where: {
         ownerType: FileOwnerType.LISTING,
         listingId,
@@ -370,24 +542,67 @@ export class FileService {
       },
     });
 
-    const created: any[] = [];
+    // Определяем какие файлы нужно удалить (те, что есть в БД но не в списке existingUrls)
+    const urlsToKeep = new Set(existingUrls.map((e) => e.url));
+    const filesToDelete = existingDbFiles.filter(
+      (file) => !urlsToKeep.has(file.url),
+    );
 
-    for (let index = 0; index < base64Array.length; index++) {
-      const base64 = base64Array[index];
+    // Удаляем файлы, которых нет в новом списке
+    if (filesToDelete.length > 0) {
+      const deleteResult = await tx.file.deleteMany({
+        where: {
+          id: { in: filesToDelete.map((f) => f.id) },
+        },
+      });
+      this.logger.log(
+        `[${kind}] Deleted ${deleteResult.count} old files not present in new array`,
+      );
+    }
 
+    // Обновляем sortOrder для существующих HTTPS файлов
+    const updatedFiles: any[] = [];
+    for (const { url, originalIndex } of existingUrls) {
+      const existingFile = existingDbFiles.find((f) => f.url === url);
+      if (existingFile) {
+        const updated = await tx.file.update({
+          where: { id: existingFile.id },
+          data: {
+            sortOrder: originalIndex,
+            isPrimary: originalIndex === 0,
+          },
+        });
+        updatedFiles.push(updated);
+        this.logger.log(
+          `[${kind}] Updated sortOrder for existing file (id=${updated.id}, sortOrder=${originalIndex})`,
+        );
+      } else {
+        this.logger.warn(
+          `[${kind}] HTTPS URL not found in DB, skipping: ${url.slice(0, 50)}...`,
+        );
+      }
+    }
+
+    // Создаем новые файлы из base64
+    const createdFiles: any[] = [];
+    for (const { data: base64, originalIndex } of newBase64Files) {
       const fileName = this.s3.generateFileNameFromBase64(
         base64,
-        index,
+        originalIndex,
         kind.toLowerCase(),
       );
       const s3Key = this.s3.generateListingFileKey(
         listingId,
-        index,
+        originalIndex,
         kind.toLowerCase(),
       );
       const contentType = this.s3.getContentTypeFromBase64(base64);
       const fileSize = this.s3.getFileSizeFromBase64(base64);
       const s3Bucket = process.env.S3_BUCKET_NAME ?? '';
+
+      this.logger.log(
+        `[${kind}] Creating new file record ${createdFiles.length + 1}/${newBase64Files.length}: size=${fileSize}, contentType=${contentType}`,
+      );
 
       const file = await tx.file.create({
         data: {
@@ -398,17 +613,32 @@ export class FileService {
           fileName,
           fileSize,
           kind,
-          sortOrder: index,
-          isPrimary: index === 0,
+          sortOrder: originalIndex,
+          isPrimary: originalIndex === 0,
           s3Key,
           s3Bucket,
           uploadStatus: 'pending',
         },
       });
 
-      created.push(file);
+      this.logger.log(
+        `[${kind}] ✓ New file record created (id=${file.id}, sortOrder=${originalIndex})`,
+      );
+      createdFiles.push(file);
     }
 
-    return created;
+    // Объединяем результаты в правильном порядке
+    const allFiles = [...updatedFiles, ...createdFiles].sort(
+      (a, b) => a.sortOrder - b.sortOrder,
+    );
+
+    this.logger.log(
+      `[${kind}] Successfully processed: ${updatedFiles.length} existing + ${createdFiles.length} new = ${allFiles.length} total files`,
+    );
+    this.logger.log(
+      `[${kind}] ===== END replaceListingFilesArray for listing ${listingId} =====`,
+    );
+
+    return allFiles;
   }
 }
