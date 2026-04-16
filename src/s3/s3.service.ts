@@ -179,6 +179,11 @@ export class S3Service {
     return Buffer.byteLength(base64Data, 'base64');
   }
 
+  // Проверка, является ли строка URL (http:// или https://)
+  isUrl(str: string): boolean {
+    return str.startsWith('http://') || str.startsWith('https://');
+  }
+
   // Получение списка всех объектов в бакете
   async listObjects(): Promise<string[]> {
     if (!this.s3Client || !this.bucketName) {

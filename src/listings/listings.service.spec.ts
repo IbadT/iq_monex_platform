@@ -236,6 +236,7 @@ describe('ListingsService', () => {
             select: {
               id: true,
               name: true,
+              accountNumber: true,
               files: {
                 select: {
                   url: true,

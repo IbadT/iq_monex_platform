@@ -151,6 +151,7 @@ export class ListingsService {
           select: {
             id: true,
             name: true,
+            accountNumber: true,
             files: {
               where: { kind: 'AVATAR' },
               select: { url: true },
@@ -209,6 +210,7 @@ export class ListingsService {
             select: {
               id: true,
               name: true,
+              accountNumber: true,
               files: {
                 where: { kind: 'AVATAR' },
                 select: { url: true },
@@ -506,6 +508,7 @@ export class ListingsService {
             select: {
               id: true,
               name: true,
+              accountNumber: true,
               files: {
                 where: { kind: 'AVATAR' },
                 select: { url: true },
@@ -664,6 +667,7 @@ export class ListingsService {
           select: {
             id: true,
             name: true,
+            accountNumber: true,
             files: {
               where: { kind: 'AVATAR' },
               select: { url: true },
@@ -1065,6 +1069,7 @@ export class ListingsService {
           select: {
             id: true,
             name: true,
+            accountNumber: true,
             files: {
               where: { kind: 'AVATAR' },
               select: { url: true },
@@ -1206,6 +1211,7 @@ export class ListingsService {
           select: {
             id: true,
             name: true,
+            accountNumber: true,
             files: {
               where: { kind: 'AVATAR' },
               select: { url: true },
@@ -1350,6 +1356,7 @@ export class ListingsService {
           select: {
             id: true,
             name: true,
+            accountNumber: true,
             files: {
               where: { kind: 'AVATAR' },
               select: { url: true },
@@ -1841,6 +1848,7 @@ export class ListingsService {
               select: {
                 id: true,
                 name: true,
+                accountNumber: true,
                 files: {
                   where: { kind: 'AVATAR' },
                   select: { url: true },
