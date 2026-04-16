@@ -29,6 +29,14 @@ export class WorkersService {
     private readonly rabbitmqService: RabbitmqService,
   ) {}
 
+  /**
+   * Проверяет, является ли значение HTTPS URL (уже загруженным файлом)
+   */
+  private isHttpsUrl(value: string): boolean {
+    if (!value || typeof value !== 'string') return false;
+    return value.trim().startsWith('https://');
+  }
+
   async getWorkerById(id: string) {
     return prisma.worker.findUnique({
       where: { id },
@@ -183,8 +191,8 @@ export class WorkersService {
       },
     });
 
-    // Обрабатываем аватар если передан
-    if (worker.avatar && worker.avatar !== null) {
+    // Обрабатываем аватар если передан (не null и не пустая строка)
+    if (worker.avatar && typeof worker.avatar === 'string' && worker.avatar.trim() !== '') {
       await this.handleWorkerAvatar(
         createdWorker.id,
         userId,
@@ -220,7 +228,8 @@ export class WorkersService {
 
     // Обрабатываем аватар если передан
     if (worker.avatar !== undefined) {
-      if (worker.avatar === null) {
+      // Пустая строка обрабатывается как null (удаление)
+      if (worker.avatar === null || (typeof worker.avatar === 'string' && worker.avatar.trim() === '')) {
         // Удаляем существующий аватар
         await this.deleteWorkerAvatar(worker.id, db);
       } else {
@@ -390,17 +399,51 @@ export class WorkersService {
   private async handleWorkerAvatar(
     workerId: string,
     userId: string,
-    avatarBase64: string,
+    avatar: string,
     db: PrismaClient,
   ): Promise<void> {
+    // Если передан HTTPS URL - проверяем, совпадает ли он с существующим
+    if (this.isHttpsUrl(avatar)) {
+      const trimmedUrl = avatar.trim();
+      const existingAvatar = await db.file.findFirst({
+        where: {
+          workerId,
+          kind: FileKind.AVATAR,
+        },
+      });
+
+      // Если URL совпадает с существующим - ничего не меняем
+      if (existingAvatar && existingAvatar.url === trimmedUrl) {
+        console.log(
+          `[WorkerAvatar] HTTPS URL matches existing avatar, no changes needed (workerId=${workerId})`,
+        );
+        return;
+      }
+
+      // Если URL не совпадает - логируем warning и возвращаем
+      if (existingAvatar) {
+        console.warn(
+          `[WorkerAvatar] Different HTTPS URL provided, keeping existing. Provided: ${trimmedUrl.slice(0, 50)}..., Existing: ${existingAvatar.url?.slice(0, 50)}...`,
+        );
+        return;
+      }
+
+      // Если аватара нет в БД, но пришел HTTPS URL - неконсистентное состояние
+      console.warn(
+        `[WorkerAvatar] HTTPS URL provided but no existing avatar in DB (workerId=${workerId}): ${trimmedUrl.slice(0, 50)}...`,
+      );
+      return;
+    }
+
+    // Обработка base64 (новый файл для загрузки)
     const fileName = this.s3Service.generateFileNameFromBase64(
-      avatarBase64,
+      avatar,
       0,
       'avatar',
     );
     const s3Key = this.s3Service.generateWorkerAvatarKey(workerId);
-    const contentType = this.s3Service.getContentTypeFromBase64(avatarBase64);
-    const fileSize = this.s3Service.getFileSizeFromBase64(avatarBase64);
+    const contentType = this.s3Service.getContentTypeFromBase64(avatar);
+    const fileSize = this.s3Service.getFileSizeFromBase64(avatar);
 
     // Проверяем существующий аватар
     const existingAvatar = await db.file.findFirst({
@@ -415,7 +458,7 @@ export class WorkersService {
       await db.file.update({
         where: { id: existingAvatar.id },
         data: {
-          url: avatarBase64,
+          url: avatar,
           fileType: contentType,
           fileName,
           fileSize,
@@ -430,7 +473,7 @@ export class WorkersService {
         data: {
           ownerType: FileOwnerType.WORKER,
           workerId,
-          url: avatarBase64,
+          url: avatar,
           fileType: contentType,
           fileName,
           fileSize,
@@ -449,7 +492,7 @@ export class WorkersService {
       userId,
       fileType: 'avatar',
       fileIndex: 0,
-      fileData: avatarBase64,
+      fileData: avatar,
       fileName,
       contentType,
       fileSize,
