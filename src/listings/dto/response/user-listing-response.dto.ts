@@ -8,4 +8,5 @@ export class UserListingResponseDto extends PickType(UserResponseDto, [
   avatar?: string | null;
   isFavorite!: boolean;
   code!: string;
+  accountNumber!: string;
 }

@@ -217,6 +217,7 @@ export class ListingMapper {
       code: code ?? '',
       avatar: user.files && user.files.length > 0 ? user.files[0].url : null,
       isFavorite: isUserFavorite,
+      accountNumber: user.accountNumber,
     };
   }
 }

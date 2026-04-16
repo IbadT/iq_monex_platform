@@ -8,6 +8,8 @@ import {
   Post,
   Query,
   UseGuards,
+  UseInterceptors,
+  ClassSerializerInterceptor,
 } from '@nestjs/common';
 import { UsersService } from './users.service';
 import { ApiTags } from '@nestjs/swagger';
@@ -48,6 +50,7 @@ export class UsersController {
 
   // получить все профили
   @Get('profiles')
+  @UseInterceptors(ClassSerializerInterceptor)
   @ApiGetProfilesDocs()
   async getProfiles(
     @Query() query: GetProfilesDto,
@@ -58,6 +61,7 @@ export class UsersController {
   // получить свой профиль
   // получить профиль
   @Get(':id/profiles')
+  @UseInterceptors(ClassSerializerInterceptor)
   @UseGuards(OptionalJwtAuthGuard)
   @ApiGetProfileByIdDocs()
   async getProfileById(
