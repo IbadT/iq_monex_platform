@@ -23,7 +23,9 @@ export class SwaggerAuthMiddleware implements NestMiddleware {
     }
 
     const base64Credentials = authHeader.split(' ')[1];
-    const credentials = Buffer.from(base64Credentials, 'base64').toString('ascii');
+    const credentials = Buffer.from(base64Credentials, 'base64').toString(
+      'ascii',
+    );
     const [username, password] = credentials.split(':');
 
     if (username !== swaggerUser || password !== swaggerPassword) {
