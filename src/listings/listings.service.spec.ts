@@ -247,6 +247,7 @@ describe('ListingsService', () => {
               },
               profile: {
                 select: {
+                  avatarUrl: true,
                   legalEntityType: {
                     select: {
                       id: true,
