@@ -67,6 +67,7 @@ export class S3Service {
         Key: key,
         Body: buffer,
         ContentType: contentType,
+        ContentDisposition: 'inline', // Отображать файл в браузере вместо скачивания
         ACL: 'public-read', // Делаем файлы доступными для чтения
       });
 
@@ -133,26 +134,86 @@ export class S3Service {
   // Определение типа файла из base64
   getContentTypeFromBase64(base64String: string): string {
     const matches = base64String.match(/^data:(.+?);base64,/);
-    return matches ? matches[1] : 'application/octet-stream';
+    if (!matches) return 'application/octet-stream';
+    // Берем только основной MIME-type без параметров (charset и т.д.)
+    // Например, из 'image/svg+xml;charset=utf-8' берем 'image/svg+xml'
+    const fullType = matches[1];
+    return fullType.split(';')[0].trim();
   }
 
   // Извлечение расширения файла из base64
   getFileExtensionFromBase64(base64String: string): string {
     const contentType = this.getContentTypeFromBase64(base64String);
     const mimeToExt: Record<string, string> = {
+      // === ИЗОБРАЖЕНИЯ ===
       'image/jpeg': 'jpg',
       'image/jpg': 'jpg',
       'image/png': 'png',
       'image/gif': 'gif',
       'image/webp': 'webp',
+      'image/bmp': 'bmp',
+      'image/x-ms-bmp': 'bmp',
+      'image/tiff': 'tiff',
+      'image/svg+xml': 'svg',
+      'image/x-icon': 'ico',
+      'image/vnd.microsoft.icon': 'ico',
+      'image/heic': 'heic',
+      'image/heif': 'heif',
+      'image/avif': 'avif',
+
+      // === ДОКУМЕНТЫ ===
       'application/pdf': 'pdf',
       'text/plain': 'txt',
+      'application/rtf': 'rtf',
+      'text/rtf': 'rtf',
+
+      // === Word ===
       'application/msword': 'doc',
-      'application/vnd.openxmlformats-officedocument.wordprocessingml.document':
-        'docx',
+      'application/vnd.openxmlformats-officedocument.wordprocessingml.document': 'docx',
+      'application/vnd.oasis.opendocument.text': 'odt',
+
+      // === Excel ===
       'application/vnd.ms-excel': 'xls',
-      'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet':
-        'xlsx',
+      'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet': 'xlsx',
+      'application/vnd.oasis.opendocument.spreadsheet': 'ods',
+      'text/csv': 'csv',
+
+      // === PowerPoint ===
+      'application/vnd.ms-powerpoint': 'ppt',
+      'application/vnd.openxmlformats-officedocument.presentationml.presentation': 'pptx',
+      'application/vnd.oasis.opendocument.presentation': 'odp',
+
+      // === Архивы ===
+      'application/zip': 'zip',
+      'application/x-zip-compressed': 'zip',
+      'application/x-rar-compressed': 'rar',
+      'application/x-7z-compressed': '7z',
+      'application/gzip': 'gz',
+      'application/x-tar': 'tar',
+
+      // === Видео ===
+      'video/mp4': 'mp4',
+      'video/x-msvideo': 'avi',
+      'video/mpeg': 'mpeg',
+      'video/webm': 'webm',
+      'video/ogg': 'ogv',
+      'video/quicktime': 'mov',
+
+      // === Аудио ===
+      'audio/mpeg': 'mp3',
+      'audio/wav': 'wav',
+      'audio/ogg': 'ogg',
+      'audio/webm': 'weba',
+      'audio/aac': 'aac',
+      'audio/flac': 'flac',
+
+      // === Другое ===
+      'application/json': 'json',
+      'text/html': 'html',
+      'text/css': 'css',
+      'text/javascript': 'js',
+      'application/xml': 'xml',
+      'text/xml': 'xml',
     };
 
     return mimeToExt[contentType] || 'bin';
