@@ -211,11 +211,14 @@ export class ListingMapper {
       code = legalEntity.code;
     }
 
+    const avatar = user.profile?.avatarUrl ?? user.files?.find((i: any) => i.kind === "AVATAR")?.url ?? null;
+
+
     return {
       id: user.id,
       name: user.name,
       code: code ?? '',
-      avatar: user.files && user.files.length > 0 ? user.files[0].url : null,
+      avatar: avatar,
       isFavorite: isUserFavorite,
       accountNumber: user.accountNumber,
     };

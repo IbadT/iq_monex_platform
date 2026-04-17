@@ -158,6 +158,7 @@ export class ListingsService {
             },
             profile: {
               select: {
+                avatarUrl: true,
                 legalEntityType: {
                   select: {
                     id: true,
@@ -674,6 +675,7 @@ export class ListingsService {
             },
             profile: {
               select: {
+                avatarUrl: true,
                 legalEntityType: {
                   select: {
                     id: true,
@@ -1076,6 +1078,7 @@ export class ListingsService {
             },
             profile: {
               select: {
+                avatarUrl: true,
                 legalEntityType: {
                   select: {
                     id: true,
@@ -1218,6 +1221,7 @@ export class ListingsService {
             },
             profile: {
               select: {
+                avatarUrl: true,
                 legalEntityType: {
                   select: {
                     id: true,
@@ -1363,6 +1367,7 @@ export class ListingsService {
             },
             profile: {
               select: {
+                avatarUrl: true,
                 legalEntityType: {
                   select: {
                     id: true,
