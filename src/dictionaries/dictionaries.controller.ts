@@ -7,7 +7,6 @@ import { Language } from './dto/request/get-currency.dto';
 import { Public } from '@/common/decorators/public.decorator';
 import {
   ApiGetMeasurementsGroupsOperation,
-  ApiPostSeedDocs,
   ApiGetValutesDocs,
   ApiPostConvertValutDocs,
   ApiGetCurrenciesDocs,
@@ -25,13 +24,6 @@ import { CurrencyRateResponseDto } from './dto/response/currency-rate-response.d
 @Controller('dictionaries')
 export class DictionariesController {
   constructor(private readonly dictionariesService: DictionariesService) {}
-
-  // TODO: убрать
-  @Post('seed')
-  @ApiPostSeedDocs()
-  async addSeedDatas(): Promise<string> {
-    return await this.dictionariesService.seedDictionariesData();
-  }
 
   @Cron(CronExpression.EVERY_DAY_AT_8PM)
   @Get('valutes') // ДЛЯ ЗАПУСКА ВРУЧНУЮ

@@ -7,7 +7,6 @@ import { Admin } from '@/common/decorators';
 import { ParseUUIDPipe } from '@nestjs/common';
 import { ApiGetAllTariffsDocs } from './decorators/api-get-all-tariffs-docs.decorator';
 import { ApiCreateTariffDocs } from './decorators/api-create-tariff-docs.decorator';
-import { ApiSeedTariffsDocs } from './decorators/api-seed-tariffs-docs.decorator';
 import { ApiUpdateTariffDocs } from './decorators/api-update-tariff-docs.decorator';
 import { ApiGetTariffByIdDocs } from './decorators/api-get-tariff-by-id-docs.decorator';
 import { TariffResponseDto } from './dto/response/tariff-response.dto';
@@ -37,14 +36,6 @@ export class TariffsController {
   @ApiCreateTariffDocs()
   async createTariff(@Body() body: CreateTariffDto) {
     return await this.tariffsService.createTariff(body);
-  }
-
-  // TODO: убрать
-  @Post('seed')
-  @Admin()
-  @ApiSeedTariffsDocs()
-  async seedTariffs() {
-    return await this.tariffsService.seedTariffsFromData();
   }
 
   // ? ДОБАВИТЬ ОТВЕТ

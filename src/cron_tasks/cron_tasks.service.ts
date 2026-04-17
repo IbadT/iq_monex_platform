@@ -20,7 +20,7 @@ export class CronTasksService {
 
     try {
       // Запускаем shell скрипт бэкапа
-      const scriptPath = path.join(process.cwd(), 'scripts/backup-database.sh');
+      const scriptPath = path.join(process.cwd(), 'src/scripts/backup-database.sh');
       const command = `"${scriptPath}"`;
 
       this.logger.log(` Выполнение команды: ${command}`);
@@ -183,7 +183,7 @@ export class CronTasksService {
       // Запускаем shell скрипт восстановления
       const scriptPath = path.join(
         process.cwd(),
-        'scripts/restore-database.sh',
+        'src/scripts/restore-database.sh',
       );
       const command = `"${scriptPath}" "${date}"`;
 

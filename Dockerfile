@@ -30,7 +30,7 @@ RUN npm run build
 # ─────────────────────────────────────────────────────────────
 FROM node:20-alpine AS production
 
-RUN apk add --no-cache dumb-init
+RUN apk add --no-cache dumb-init postgresql-client jq bash
 
 WORKDIR /app
 
@@ -47,7 +47,11 @@ COPY --from=builder /app/dist ./dist
 # TODO: можно убрать для продакшена
 COPY test-performance.ts ./
 
-COPY scripts ./
+COPY src/scripts ./src/scripts
+RUN chmod +x ./src/scripts/*.sh
+
+# Создаем директорию для бэкапов
+RUN mkdir -p ./backups
 
 
 # Копируем Prisma клиент (только необходимые части)

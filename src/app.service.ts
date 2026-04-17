@@ -8,6 +8,8 @@ import {
 } from './dictionaries/default/dictionariesData';
 import { specificationsData } from './attributes/default/specificaitonsData';
 import { tariffData } from './tariffs/default/tariffData';
+import { legalEntityTypes } from './categories/default/legalEntityTypes';
+import { getFlatActivities } from './categories/default/activitiesData';
 import { S3Service } from './s3/s3.service';
 import { RabbitmqService } from './rabbitmq/rabbitmq.service';
 import { PromoCampaignStatus } from './promo/enums/promo-status.enum';
@@ -226,6 +228,8 @@ export class AppService {
         specifications: { created: 0, updated: 0, errors: 0 },
         tariffs: { created: 0, updated: 0, errors: 0 },
         promoCampaigns: { created: 0, updated: 0, errors: 0 },
+        legalEntityTypes: { created: 0, updated: 0, errors: 0 },
+        activities: { created: 0, updated: 0, errors: 0 },
       };
 
       // Создаем дефолтные данные без очистки
@@ -236,6 +240,8 @@ export class AppService {
       await this.seedSpecifications(results);
       await this.seedTariffs(results);
       await this.seedPromoCampaigns(results);
+      await this.seedLegalEntityTypes(results);
+      await this.seedActivities(results);
 
       this.logger.log(' Seed дефолтных данных завершен успешно');
 
@@ -658,6 +664,76 @@ export class AppService {
 
     this.logger.log(
       ` Promo кампании обработано: создано ${results.promoCampaigns.created}, обновлено ${results.promoCampaigns.updated}, ошибок ${results.promoCampaigns.errors}`,
+    );
+  }
+
+  private async seedLegalEntityTypes(results: any) {
+    this.logger.log(' Создание/обновление типов юрлиц...');
+
+    // Получаем существующие записи
+    const existing = await prisma.legalEntityType.findMany();
+
+    for (const item of legalEntityTypes) {
+      try {
+        const code = item.data.ru.code;
+        // Ищем существующую запись с таким же code
+        const existingItem = existing.find(
+          (e) => (e.data as any).ru.code === code
+        );
+
+        if (existingItem) {
+          // Обновляем существующую
+          await prisma.legalEntityType.update({
+            where: { id: existingItem.id },
+            data: { data: item.data },
+          });
+          results.legalEntityTypes.updated++;
+        } else {
+          // Создаем новую
+          await prisma.legalEntityType.create({
+            data: { data: item.data },
+          });
+          results.legalEntityTypes.created++;
+        }
+      } catch (error) {
+        this.logger.warn(
+          ` Ошибка при создании типа юрлица: ${error.message}`,
+        );
+        results.legalEntityTypes.errors++;
+      }
+    }
+
+    this.logger.log(
+      ` Типы юрлиц обработано: создано ${results.legalEntityTypes.created}, обновлено ${results.legalEntityTypes.updated}, ошибок ${results.legalEntityTypes.errors}`,
+    );
+  }
+
+  private async seedActivities(results: any) {
+    this.logger.log(' Создание/обновление сфер деятельности...');
+
+    const activities = getFlatActivities();
+
+    for (const activity of activities) {
+      try {
+        await prisma.activity.upsert({
+          where: { id: activity.id },
+          update: { name: activity.name },
+          create: {
+            id: activity.id,
+            name: activity.name,
+          },
+        });
+        results.activities.created++;
+      } catch (error) {
+        this.logger.warn(
+          ` Ошибка при создании сферы деятельности ${activity.name}: ${error.message}`,
+        );
+        results.activities.errors++;
+      }
+    }
+
+    this.logger.log(
+      ` Сферы деятельности обработано: создано ${results.activities.created}, ошибок ${results.activities.errors}`,
     );
   }
 }

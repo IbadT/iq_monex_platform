@@ -4,7 +4,6 @@ import { prisma } from '@/lib/prisma';
 import { Specification } from './entities/specification.entity';
 import { CacheService } from '@/cache/cacheService.service';
 import { AppLogger } from '@/common/logger/logger.service';
-import { specificationsData } from './default/specificaitonsData';
 import { SpecificationResponseDto } from './dto/response/specification.dto';
 import { UserSpecificationResponseDto } from './dto/response/user-specification.dto';
 import { CreateSpecificationDto } from './dto/request/createSpecification.dto';
@@ -238,41 +237,6 @@ export class AttributesService {
     );
 
     return { message: 'Specification deleted' };
-  }
-
-  // TODO: добавить redis при создании
-  async seedSpecifications() {
-    // const cachekey = 'specifications';
-    try {
-      this.logger.log('Начинаю сидирование specifications...');
-
-      // Очищаем таблицу
-      await prisma.specification.deleteMany();
-      // await this.cacheService.del(cachekey);
-      this.logger.log('Таблица specifications очищена');
-
-      // Сидирование
-      const specifications = await Promise.all(
-        specificationsData.map((spec) =>
-          prisma.specification.create({
-            data: {
-              name: spec.name,
-            },
-          }),
-        ),
-      );
-
-      this.logger.log(`Создано ${specifications.length} specifications`);
-
-      return 'OK';
-    } catch (error) {
-      if (error instanceof Error) {
-        this.logger.error(
-          `Ошибка при сидировании specifications: ${error.message}`,
-        );
-      }
-      throw error;
-    }
   }
 
   // ============ USER SPECIFICATIONS (пользовательские характеристики) ============

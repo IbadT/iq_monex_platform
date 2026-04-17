@@ -7,7 +7,6 @@ import { prisma } from '@/lib/prisma';
 import { AppLogger } from '@/common/logger/logger.service';
 import { CreateTariffDto } from './dto/create-tariff.dto';
 import { UpdateTariffDto } from './dto/update-tariff.dto';
-import { tariffData } from './default/tariffData';
 import { TariffResponseDto } from './dto/response/tariff-response.dto';
 import { TariffMapper } from './mappers/tariff.mapper';
 
@@ -104,88 +103,5 @@ export class TariffsService {
     this.logger.log(`Тариф обновлен: ${tariff.id}`);
 
     return tariff;
-  }
-
-  async seedTariffsFromData() {
-    this.logger.log('Создание тарифов из дефолтных данных...');
-
-    const results = [];
-    let created = 0;
-    let updated = 0;
-    let errors = 0;
-
-    for (const tariff of tariffData) {
-      try {
-        // Проверяем существует ли тариф с таким кодом
-        const existingTariff = await prisma.tariff.findFirst({
-          where: { code: tariff.code as any },
-        });
-
-        if (existingTariff) {
-          // Обновляем существующий
-          await prisma.tariff.update({
-            where: { id: existingTariff.id },
-            data: {
-              name: tariff.name,
-              description: tariff.description,
-              baseSlots: tariff.baseSlots,
-              baseDays: tariff.baseDays,
-              maxTotalDays: tariff.maxTotalDays,
-              isExtendable: tariff.isExtendable,
-              price: tariff.price,
-              currencyCode: tariff.currencyCode,
-              isActive: tariff.isActive,
-            },
-          });
-
-          results.push({
-            code: tariff.code,
-            action: 'updated',
-            id: existingTariff.id,
-          });
-          updated++;
-        } else {
-          // Создаем новый
-          const newTariff = await prisma.tariff.create({
-            data: {
-              ...tariff,
-              code: tariff.code as any,
-            },
-          });
-
-          results.push({
-            code: tariff.code,
-            action: 'created',
-            id: newTariff.id,
-          });
-          created++;
-        }
-      } catch (error) {
-        this.logger.error(
-          `Ошибка при создании тарифа ${tariff.code}: ${error.message}`,
-        );
-        results.push({
-          code: tariff.code,
-          action: 'error',
-          error: error.message,
-        });
-        errors++;
-      }
-    }
-
-    this.logger.log(
-      `Seed тарифов завершен: создано ${created}, обновлено ${updated}, ошибок ${errors}`,
-    );
-
-    return {
-      message: 'Обработка тарифов завершена',
-      data: {
-        created,
-        updated,
-        errors,
-        total: tariffData.length,
-        results,
-      },
-    };
   }
 }

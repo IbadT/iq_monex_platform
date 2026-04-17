@@ -24,7 +24,6 @@ import { ApiGetProfilesDocs } from './decorators/api-get-profiles-docs.decorator
 import { ApiGetProfileByIdDocs } from './decorators/api-get-profile-by-id-docs.decorator';
 import { ApiGetUserByAccountNumberDocs } from './decorators/api-get-user-by-account-number-docs.decorator';
 import { ApiMakeComplaintToUserDocs } from './decorators/api-make-complaint-to-user-docs.decorator';
-import { ApiSeedRolesDocs } from './decorators/api-seed-roles-docs.decorator';
 import { GetAllProfilesResponseDto } from './dto/response/profile-response.dto';
 import { FullProfileResponseDto } from './dto/response/full-profile-response.dto';
 import { UserResponseDto } from './dto/response/user-response.dto';
@@ -96,13 +95,6 @@ export class UsersController {
     @Body() body: MakeComplaintToUserDto,
   ): Promise<ComplaintResponseDto> {
     return await this.usersService.makeComplaintToUser(user.id, body);
-  }
-
-  // TODO: убрать
-  @Post('seed-roles')
-  @ApiSeedRolesDocs()
-  async seedRoles() {
-    return await this.usersService.seedRoles();
   }
 
   // редактирование профиля

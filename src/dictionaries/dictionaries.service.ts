@@ -17,10 +17,7 @@ import {
   CurrencyRateEntity,
 } from './dto/response/valut-response.dto';
 import { GetConvertValueFromAmountDto } from './dto/request/get-convert-valut-from-amount.dto';
-import {
-  currenciesData,
-  unitMeasurementsData,
-} from './default/dictionariesData';
+import { unitMeasurementsData } from './default/dictionariesData';
 import { categoryNames } from './default/categoryNames';
 import { CurrencyEntity } from './entities/currency.entity';
 import { MeasurementsGroupsResponseDto } from './dto/response/measurements-groups-response.dto';
@@ -369,62 +366,5 @@ export class DictionariesService {
     }
 
     return result;
-  }
-
-  async seedDictionariesData() {
-    try {
-      const cacheKeyCurrencies = 'currencies';
-      const cacheKeyUnit = 'unit-measurements';
-      this.logger.log('Начинаю сидирование валют и единиц измерения...');
-
-      // Очищаем таблицы
-      await prisma.currency.deleteMany();
-      await prisma.unitMeasurement.deleteMany();
-      this.logger.log('Таблицы очищены');
-
-      // Сидирование валют
-      const currencies = await Promise.all(
-        currenciesData.map((currency) =>
-          prisma.currency.create({
-            data: {
-              symbol: currency.symbol,
-              code: currency.code,
-              name: currency.name,
-            },
-          }),
-        ),
-      );
-      this.logger.log(`Создано ${currencies.length} валют`);
-
-      // Сидирование единиц измерения
-      const units = await Promise.all(
-        unitMeasurementsData.map((unit) =>
-          prisma.unitMeasurement.create({
-            data: {
-              name: unit.name,
-            },
-          }),
-        ),
-      );
-
-      await this.cacheService.set({
-        baseKey: cacheKeyCurrencies,
-        ttl: 900,
-        value: currencies,
-      });
-
-      await this.cacheService.set({
-        baseKey: cacheKeyUnit,
-        ttl: 900,
-        value: units,
-      });
-
-      this.logger.log(`Создано ${units.length} единиц измерения`);
-
-      return 'OK';
-    } catch (error) {
-      this.logger.error('Ошибка при сидировании:', error);
-      throw error;
-    }
   }
 }
