@@ -678,7 +678,7 @@ export class AppService {
         const code = item.data.ru.code;
         // Ищем существующую запись с таким же code
         const existingItem = existing.find(
-          (e) => (e.data as any).ru.code === code
+          (e) => (e.data as any).ru.code === code,
         );
 
         if (existingItem) {
@@ -696,9 +696,7 @@ export class AppService {
           results.legalEntityTypes.created++;
         }
       } catch (error) {
-        this.logger.warn(
-          ` Ошибка при создании типа юрлица: ${error.message}`,
-        );
+        this.logger.warn(` Ошибка при создании типа юрлица: ${error.message}`);
         results.legalEntityTypes.errors++;
       }
     }

@@ -1,10 +1,4 @@
-import {
-  Controller,
-  Get,
-  Param,
-  ParseIntPipe,
-  Query,
-} from '@nestjs/common';
+import { Controller, Get, Param, ParseIntPipe, Query } from '@nestjs/common';
 import { CategoriesService } from './categories.service';
 import { Public } from '@/common/decorators';
 import {
@@ -87,5 +81,4 @@ export class CategoriesController {
     const lang = query.lang ?? Language.RU;
     return await this.categoriesService.getLegalEntityTypes(lang);
   }
-
 }

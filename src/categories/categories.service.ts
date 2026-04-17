@@ -18,9 +18,7 @@ import { CategoryTreeMapper } from './mappers/category-tree.mapper';
 
 @Injectable()
 export class CategoriesService {
-  constructor(
-    private readonly cacheService: CacheService,
-  ) {}
+  constructor(private readonly cacheService: CacheService) {}
 
   async getLegalEntityTypes(lang: Language): Promise<LegalEntityResponseDto[]> {
     const cacheKey = `legal-entity-types/:${lang}`;
