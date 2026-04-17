@@ -287,7 +287,13 @@ export class FileService {
       const s3Key =
         kind === FileKind.AVATAR
           ? this.s3.generateAvatarKey(userId)
-          : this.s3.generateUserPhotoKey(userId, originalIndex);
+          : kind === FileKind.PHOTO
+            ? this.s3.generateUserPhotoKey(userId, originalIndex)
+            : this.s3.generateUserFileKey(
+                userId,
+                originalIndex,
+                this.s3.getFileExtensionFromBase64(base64),
+              );
       const contentType = this.s3.getContentTypeFromBase64(base64);
       const fileSize = this.s3.getFileSizeFromBase64(base64);
       const s3Bucket = process.env.S3_BUCKET_NAME ?? '';

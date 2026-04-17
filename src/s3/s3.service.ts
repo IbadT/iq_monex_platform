@@ -90,15 +90,21 @@ export class S3Service {
   }
 
   generatePhotoKey(listingId: string, index: number): string {
-    return `listings/${listingId}/photos/photo_${index}.jpg`;
+    const timestamp = Date.now();
+    const random = Math.random().toString(36).substring(2, 8);
+    return `listings/${listingId}/photos/photo_${index}_${timestamp}_${random}.jpg`;
   }
 
   generateComplaintPhotoKey(complaintId: string, index: number): string {
-    return `complaints/${complaintId}/photos/photo_${index}.jpg`;
+    const timestamp = Date.now();
+    const random = Math.random().toString(36).substring(2, 8);
+    return `complaints/${complaintId}/photos/photo_${index}_${timestamp}_${random}.jpg`;
   }
 
   generateSuggestionPhotoKey(suggestionId: number, index: number): string {
-    return `suggestions/${suggestionId}/photos/photo_${index}.jpg`;
+    const timestamp = Date.now();
+    const random = Math.random().toString(36).substring(2, 8);
+    return `suggestions/${suggestionId}/photos/photo_${index}_${timestamp}_${random}.jpg`;
   }
 
   generateAvatarKey(userId: string): string {
@@ -110,7 +116,9 @@ export class S3Service {
   }
 
   generateUserPhotoKey(userId: string, index: number): string {
-    return `users/${userId}/photos/photo_${index}.jpg`;
+    const timestamp = Date.now();
+    const random = Math.random().toString(36).substring(2, 8);
+    return `users/${userId}/photos/photo_${index}_${timestamp}_${random}.jpg`;
   }
 
   generateUserFileKey(
@@ -118,11 +126,15 @@ export class S3Service {
     index: number,
     extension: string,
   ): string {
-    return `users/${userId}/files/file_${index}.${extension}`;
+    const timestamp = Date.now();
+    const random = Math.random().toString(36).substring(2, 8);
+    return `users/${userId}/files/file_${index}_${timestamp}_${random}.${extension}`;
   }
 
-  generateDocumentKey(listingId: string, index: number): string {
-    return `listings/${listingId}/documents/document_${index}.pdf`;
+  generateDocumentKey(listingId: string, index: number, extension: string = 'pdf'): string {
+    const timestamp = Date.now();
+    const random = Math.random().toString(36).substring(2, 8);
+    return `listings/${listingId}/documents/document_${index}_${timestamp}_${random}.${extension}`;
   }
 
   // Конвертация base64 в Buffer
@@ -169,18 +181,21 @@ export class S3Service {
 
       // === Word ===
       'application/msword': 'doc',
-      'application/vnd.openxmlformats-officedocument.wordprocessingml.document': 'docx',
+      'application/vnd.openxmlformats-officedocument.wordprocessingml.document':
+        'docx',
       'application/vnd.oasis.opendocument.text': 'odt',
 
       // === Excel ===
       'application/vnd.ms-excel': 'xls',
-      'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet': 'xlsx',
+      'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet':
+        'xlsx',
       'application/vnd.oasis.opendocument.spreadsheet': 'ods',
       'text/csv': 'csv',
 
       // === PowerPoint ===
       'application/vnd.ms-powerpoint': 'ppt',
-      'application/vnd.openxmlformats-officedocument.presentationml.presentation': 'pptx',
+      'application/vnd.openxmlformats-officedocument.presentationml.presentation':
+        'pptx',
       'application/vnd.oasis.opendocument.presentation': 'odp',
 
       // === Архивы ===
@@ -227,11 +242,14 @@ export class S3Service {
   ): string {
     const extension = this.getFileExtensionFromBase64(base64String);
     const timestamp = Date.now();
-    return `${prefix || 'file'}_${index}_${timestamp}.${extension}`;
+    const random = Math.random().toString(36).substring(2, 8);
+    return `${prefix || 'file'}_${index}_${timestamp}_${random}.${extension}`;
   }
 
   generateListingFileKey(listingId: string, index: number, type: string) {
-    return `listings/${listingId}/${type}-${index}-${Date.now()}`;
+    const timestamp = Date.now();
+    const random = Math.random().toString(36).substring(2, 8);
+    return `listings/${listingId}/${type}-${index}-${timestamp}-${random}`;
   }
 
   // Получение размера файла из base64
