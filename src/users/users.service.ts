@@ -300,6 +300,7 @@ export class UsersService {
               where: {
                 ownerType: 'USER',
                 kind: { in: ['PHOTO', 'DOCUMENT'] },
+                uploadStatus: 'completed',
               },
               orderBy: {
                 sortOrder: 'asc',
@@ -442,6 +443,7 @@ export class UsersService {
           where: {
             ownerType: 'USER',
             uploadStatus: 'completed',
+            kind: { in: ['PHOTO', 'DOCUMENT'] },
           },
           orderBy: {
             sortOrder: 'asc',
