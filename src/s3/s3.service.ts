@@ -131,7 +131,11 @@ export class S3Service {
     return `users/${userId}/files/file_${index}_${timestamp}_${random}.${extension}`;
   }
 
-  generateDocumentKey(listingId: string, index: number, extension: string = 'pdf'): string {
+  generateDocumentKey(
+    listingId: string,
+    index: number,
+    extension: string = 'pdf',
+  ): string {
     const timestamp = Date.now();
     const random = Math.random().toString(36).substring(2, 8);
     return `listings/${listingId}/documents/document_${index}_${timestamp}_${random}.${extension}`;
