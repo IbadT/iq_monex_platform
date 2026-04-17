@@ -5,6 +5,7 @@ import { ValidationPipe } from '@nestjs/common';
 import { AppModule } from './app.module';
 import { swaggerCustomOptions } from '@/common/swagger-response-time.plugin';
 import { HttpExceptionFilter } from '@/common/filters/http-exception.filter';
+import { SwaggerAuthMiddleware } from '@/common/middleware/swagger-auth.middleware';
 import * as express from 'express';
 import * as cookieParser from 'cookie-parser';
 import './instrument';
@@ -60,6 +61,16 @@ async function bootstrap() {
     .build();
 
   const document = SwaggerModule.createDocument(app, config);
+
+  // Применяем базовую аутентификацию для Swagger
+  const swaggerUser = configService.get<string>('SWAGGER_USER');
+  const swaggerPassword = configService.get<string>('SWAGGER_PASSWORD');
+  if (swaggerUser && swaggerPassword) {
+    const swaggerAuth = new SwaggerAuthMiddleware(configService);
+    app.use('/docs', swaggerAuth.use.bind(swaggerAuth));
+    app.use('/docs-json', swaggerAuth.use.bind(swaggerAuth));
+  }
+
   // SwaggerModule.setup('/api/docs', app, document, swaggerCustomOptions);
   SwaggerModule.setup('docs', app, document, swaggerCustomOptions);
 

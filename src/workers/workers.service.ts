@@ -192,7 +192,11 @@ export class WorkersService {
     });
 
     // Обрабатываем аватар если передан (не null и не пустая строка)
-    if (worker.avatar && typeof worker.avatar === 'string' && worker.avatar.trim() !== '') {
+    if (
+      worker.avatar &&
+      typeof worker.avatar === 'string' &&
+      worker.avatar.trim() !== ''
+    ) {
       await this.handleWorkerAvatar(
         createdWorker.id,
         userId,
@@ -229,7 +233,10 @@ export class WorkersService {
     // Обрабатываем аватар если передан
     if (worker.avatar !== undefined) {
       // Пустая строка обрабатывается как null (удаление)
-      if (worker.avatar === null || (typeof worker.avatar === 'string' && worker.avatar.trim() === '')) {
+      if (
+        worker.avatar === null ||
+        (typeof worker.avatar === 'string' && worker.avatar.trim() === '')
+      ) {
         // Удаляем существующий аватар
         await this.deleteWorkerAvatar(worker.id, db);
       } else {

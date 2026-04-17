@@ -10,9 +10,6 @@ import {
   SubcategoryResponseDto,
   SubSubcategoryResponseDto,
 } from './dto/response/categories-response.dto';
-import { AppLogger } from '@/common/logger/logger.service';
-import { categoriesData } from './default/categoriesData';
-import { legalEntityTypes } from './default/legalEntityTypes';
 import { LegalEntityType } from './entities/legal-entity-type.entity';
 import { Language } from '@/dictionaries/dto/request/get-currency.dto';
 import { LegalEntityResponseDto } from './dto/response/legal-entity.response.dto';
@@ -21,10 +18,7 @@ import { CategoryTreeMapper } from './mappers/category-tree.mapper';
 
 @Injectable()
 export class CategoriesService {
-  constructor(
-    private readonly cacheService: CacheService,
-    private logger: AppLogger,
-  ) {}
+  constructor(private readonly cacheService: CacheService) {}
 
   async getLegalEntityTypes(lang: Language): Promise<LegalEntityResponseDto[]> {
     const cacheKey = `legal-entity-types/:${lang}`;
@@ -55,16 +49,6 @@ export class CategoriesService {
       throw new BadRequestException(`Категория с ID ${id} не найдена`);
     }
     return !!hasCategory;
-  }
-
-  async addSeedLegalEntityTypes() {
-    const data = legalEntityTypes.map((item) => ({
-      data: item.data, // Prisma сама сериализует JSON
-    }));
-
-    return await prisma.legalEntityType.createMany({
-      data: data,
-    });
   }
 
   async categoriesList(): Promise<CategoryResponseDto[]> {
@@ -175,71 +159,5 @@ export class CategoriesService {
     }
 
     return subsubcategories;
-  }
-
-  async seedCategories(): Promise<string> {
-    const cacheCategoriesKey = `categories`;
-    try {
-      this.logger.log('Начинаю сидирование категорий...');
-
-      // Очищаем таблицу (опционально)
-      await prisma.category.deleteMany();
-      await this.cacheService.del(cacheCategoriesKey);
-      this.logger.log('Таблица categories очищена');
-
-      let categoryCount = 0;
-      let subcategoryCount = 0;
-      let subsubcategoryCount = 0;
-
-      // Проходим по всем категориям
-      for (const categoryData of categoriesData) {
-        // Создаем категорию (parentId = null)
-        const category = await prisma.category.create({
-          data: {
-            id: categoryData.id,
-            name: categoryData.name,
-            parentId: null,
-          },
-        });
-        categoryCount++;
-        this.logger.log(`Создана категория: ${category.name}`);
-
-        // Проходим по подкатегориям
-        for (const subcategoryData of categoryData.subcategories) {
-          // Создаем подкатегорию (parentId = id категории)
-          const subcategory = await prisma.category.create({
-            data: {
-              id: subcategoryData.id,
-              name: subcategoryData.name,
-              parentId: category.id,
-            },
-          });
-          subcategoryCount++;
-          this.logger.log(`  Создана подкатегория: ${subcategory.name}`);
-
-          // Проходим по подподкатегориям
-          for (const subsubcategoryData of subcategoryData.subsubcategories) {
-            await prisma.category.create({
-              data: {
-                id: subsubcategoryData.id,
-                name: subsubcategoryData.name,
-                parentId: subcategory.id,
-              },
-            });
-            subsubcategoryCount++;
-          }
-        }
-      }
-
-      this.logger.log('Сидирование завершено успешно');
-      this.logger.log(
-        `Создано: ${categoryCount} категорий, ${subcategoryCount} подкатегорий, ${subsubcategoryCount} подподкатегорий`,
-      );
-
-      return 'OK';
-    } catch (error) {
-      this.logger.error('Ошибка при сидировании:', error);
-      throw error;
-    }
   }
 }

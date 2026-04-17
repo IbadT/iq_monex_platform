@@ -1,11 +1,4 @@
-import {
-  Controller,
-  Get,
-  Param,
-  ParseIntPipe,
-  Post,
-  Query,
-} from '@nestjs/common';
+import { Controller, Get, Param, ParseIntPipe, Query } from '@nestjs/common';
 import { CategoriesService } from './categories.service';
 import { Public } from '@/common/decorators';
 import {
@@ -20,8 +13,6 @@ import {
   ApiGetSubcategoryTreeDocs,
   ApiGetSubsubcategoriesDocs,
   ApiGetLegalEntityTypesDocs,
-  ApiPostLegalEntitySeedDocs,
-  ApiPostCategoriesSeedDocs,
 } from './decorators';
 import { ApiTags, ApiQuery } from '@nestjs/swagger';
 import { Language } from '@/dictionaries/dto/request/get-currency.dto';
@@ -89,19 +80,5 @@ export class CategoriesController {
   ): Promise<LegalEntityResponseDto[]> {
     const lang = query.lang ?? Language.RU;
     return await this.categoriesService.getLegalEntityTypes(lang);
-  }
-
-  @Post('legal-entity-types/seed')
-  @Public()
-  @ApiPostLegalEntitySeedDocs()
-  async addSeedLegalEntityTypes() {
-    return await this.categoriesService.addSeedLegalEntityTypes();
-  }
-
-  @Post('seed')
-  @Public()
-  @ApiPostCategoriesSeedDocs()
-  async addSeedDatas(): Promise<string> {
-    return await this.categoriesService.seedCategories();
   }
 }

@@ -68,12 +68,6 @@ export class AttributesController {
     };
   }
 
-  // TODO: проверить, нужен ли?
-  @Post('seed')
-  async seedSpecifications() {
-    return await this.attributesService.seedSpecifications();
-  }
-
   // ============ USER SPECIFICATIONS (пользовательские характеристики) ============
 
   @Get('custom')

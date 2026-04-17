@@ -39,8 +39,13 @@ export class FileService {
     }
 
     // Пустая строка обрабатывается как null (удаление аватара)
-    if (avatar === null || (typeof avatar === 'string' && avatar.trim() === '')) {
-      this.logger.log(`[Avatar] Deleting avatar for user ${userId} (null or empty string)`);
+    if (
+      avatar === null ||
+      (typeof avatar === 'string' && avatar.trim() === '')
+    ) {
+      this.logger.log(
+        `[Avatar] Deleting avatar for user ${userId} (null or empty string)`,
+      );
       // Удаляем аватар из таблицы files
       await tx.file.deleteMany({
         where: {
@@ -207,9 +212,7 @@ export class FileService {
     filesArray.forEach((item, index) => {
       // Пропускаем пустые строки
       if (!item || typeof item !== 'string' || item.trim() === '') {
-        this.logger.warn(
-          `[${kind}] Skipping empty string at index ${index}`,
-        );
+        this.logger.warn(`[${kind}] Skipping empty string at index ${index}`);
         return;
       }
       if (this.isHttpsUrl(item)) {
@@ -404,7 +407,9 @@ export class FileService {
       await this.rabbit.sendFileUpload(message);
     }
 
-    this.logger.log(`[Queue] Successfully enqueued ${filesToUpload.length} files`);
+    this.logger.log(
+      `[Queue] Successfully enqueued ${filesToUpload.length} files`,
+    );
   }
 
   async enqueueAvatarUploadIfNeeded(file: any | null) {
@@ -517,9 +522,7 @@ export class FileService {
     filesArray.forEach((item, index) => {
       // Пропускаем пустые строки
       if (!item || typeof item !== 'string' || item.trim() === '') {
-        this.logger.warn(
-          `[${kind}] Skipping empty string at index ${index}`,
-        );
+        this.logger.warn(`[${kind}] Skipping empty string at index ${index}`);
         return;
       }
       if (this.isHttpsUrl(item)) {
