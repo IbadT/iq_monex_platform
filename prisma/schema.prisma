@@ -69,7 +69,7 @@ model User {
 
   // Активности (многие ко многим через промежуточную таблицу)
   userActivities UserActivity[]
-  
+
   // Promo кампании
   promoCampaignParticipants PromoCampaignParticipant[]
 
@@ -379,16 +379,16 @@ model ChatFile {
 model Listing {
   id String @id @default(uuid()) @db.Uuid
 
-  userId        String @map("user_id") @db.Uuid
-  categoryId    Int?   @map("category_id")
-  subcategoryId Int?   @map("subcategory_id")
-  subsubcategoryId Int? @map("subsubcategory_id")
+  userId           String @map("user_id") @db.Uuid
+  categoryId       Int?   @map("category_id")
+  subcategoryId    Int?   @map("subcategory_id")
+  subsubcategoryId Int?   @map("subsubcategory_id")
 
   // Контактные данные для объявления
   contactId   String? @map("contact_id") @db.Uuid
   contactType String? @map("contact_type") // "USER" или "WORKER"
 
-  user     User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+  user           User      @relation(fields: [userId], references: [id], onDelete: Cascade)
   // Связи с категориями разных уровней
   category       Category? @relation("ListingCategory", fields: [categoryId], references: [id])
   subcategory    Category? @relation("ListingSubcategory", fields: [subcategoryId], references: [id])
@@ -454,9 +454,9 @@ model Listing {
   lastUsedAt DateTime? @map("last_used_at")
 
   // ===== RELATIONS =====
-  files          File[]
-  locations      MapLocation[]          @relation("ListingLocations")
-  specifications ListingSpecification[]
+  files              File[]
+  locations          MapLocation[]              @relation("ListingLocations")
+  specifications     ListingSpecification[]
   userSpecifications ListingUserSpecification[]
 
   listingSlot ListingSlot?
@@ -465,7 +465,7 @@ model Listing {
   complaints Complaint[] @relation("ListingComplaints")
 
   // Уникальный номер объявления (8 цифр)
-  accountNumber String @unique @map("account_number") @default("")
+  accountNumber String @unique @default("") @map("account_number")
 
   createdAt DateTime @default(now()) @map("created_at")
   updatedAt DateTime @updatedAt @map("updated_at")
@@ -507,8 +507,8 @@ model ListingSpecification {
 // ================ USER SPECIFICATIONS (пользовательские характеристики) ================
 
 model UserSpecification {
-  id    Int  @id @default(autoincrement())
-  name  Json
+  id     Int    @id @default(autoincrement())
+  name   Json
   userId String @map("user_id") @db.Uuid
   user   User   @relation(fields: [userId], references: [id], onDelete: Cascade)
 
@@ -688,7 +688,7 @@ model Review {
 
   // Содержание
   rating  Int // 1-5 звёзд
-  content String  @db.VarChar(2000) // Текст отзыва
+  content String @db.VarChar(2000) // Текст отзыва
 
   // Модерация
   status ReviewStatus @default(PENDING) // PENDING, APPROVED, REJECTED
@@ -811,8 +811,8 @@ model Subscription {
   user   User   @relation(fields: [userId], references: [id], onDelete: Cascade)
   tariff Tariff @relation(fields: [tariffId], references: [id])
 
-  periods   SubscriptionPeriod[]
-  userSlots UserSlot[] // Слоты, созданные этой подпиской
+  periods      SubscriptionPeriod[]
+  userSlots    UserSlot[] // Слоты, созданные этой подпиской
   participants PromoCampaignParticipant[] // Участники акций с этой подпиской
 
   createdAt DateTime @default(now()) @map("created_at")
@@ -821,9 +821,6 @@ model Subscription {
   @@index([userId, isActive])
   @@map("subscriptions")
 }
-
-
-
 
 // ================ PROMO CAMPAIGNS ================
 
@@ -848,73 +845,69 @@ enum PromoParticipantStatus {
 }
 
 model PromoCampaign {
-  id                    String                @id @default(uuid()) @db.Uuid
-  code                  String                @unique
-  name                  String
-  status                PromoCampaignStatus   @default(ACTIVE)
-  maxParticipants       Int
-  currentParticipants   Int                   @default(0)
+  id                  String              @id @default(uuid()) @db.Uuid
+  code                String              @unique
+  name                String
+  status              PromoCampaignStatus @default(ACTIVE)
+  maxParticipants     Int
+  currentParticipants Int                 @default(0)
 
-  initialFreeDays       Int                  @map("initial_free_days")
-  subsequentDiscount    Int                  @map("subsequent_discount")
-  subsequentDays        Int                  @map("subsequent_days")
+  initialFreeDays    Int @map("initial_free_days")
+  subsequentDiscount Int @map("subsequent_discount")
+  subsequentDays     Int @map("subsequent_days")
 
-  requiredActiveListings Int                  @default(10) @map("required_active_listings")
-  requiredDays          Int                  @default(7) @map("required_days")
+  requiredActiveListings Int @default(10) @map("required_active_listings")
+  requiredDays           Int @default(7) @map("required_days")
 
-  startAt DateTime      @default(now()) @map("start_at")
-  endAt   DateTime?     @map("end_at")
+  startAt DateTime  @default(now()) @map("start_at")
+  endAt   DateTime? @map("end_at")
 
   // Флаг блокировки кампании (true когда достигнут лимит участников)
-  isLocked  Boolean     @default(false) @map("is_locked")
+  isLocked Boolean @default(false) @map("is_locked")
 
   participants PromoCampaignParticipant[]
 
-  createdAt DateTime    @default(now()) @map("created_at")
-  updatedAt DateTime    @updatedAt @map("updated_at")
+  createdAt DateTime @default(now()) @map("created_at")
+  updatedAt DateTime @updatedAt @map("updated_at")
 
   @@index([status])
   @@map("promo_campaigns")
 }
 
 model PromoCampaignParticipant {
-  id                String                @id @default(uuid()) @db.Uuid
-  campaignId        String                @map("campaign_id") @db.Uuid
-  userId            String                @map("user_id") @db.Uuid
+  id         String @id @default(uuid()) @db.Uuid
+  campaignId String @map("campaign_id") @db.Uuid
+  userId     String @map("user_id") @db.Uuid
 
-  status            PromoParticipantStatus @default(PENDING)
+  status PromoParticipantStatus @default(PENDING)
 
-  joinedAt          DateTime              @default(now()) @map("joined_at")
-  conditionReachedAt DateTime?            @map("condition_reached_at")
-  conditionLostAt    DateTime?            @map("condition_lost_at")
+  joinedAt           DateTime  @default(now()) @map("joined_at")
+  conditionReachedAt DateTime? @map("condition_reached_at")
+  conditionLostAt    DateTime? @map("condition_lost_at")
 
   // Флаг что пользователь получил бесплатный период
-  freePeriodGranted  Boolean  @default(false) @map("free_period_granted")
+  freePeriodGranted   Boolean   @default(false) @map("free_period_granted")
   // Флаг что пользователь использовал скидку 50% на второй год
-  discountUsed       Boolean  @default(false) @map("discount_used")
+  discountUsed        Boolean   @default(false) @map("discount_used")
   // Дата когда скидка стала доступной
   discountAvailableAt DateTime? @map("discount_available_at")
   // Статус вылета из акции (не смог выполнить условия)
-  droppedOut         Boolean  @default(false) @map("dropped_out")
-  droppedOutAt       DateTime? @map("dropped_out_at")
+  droppedOut          Boolean   @default(false) @map("dropped_out")
+  droppedOutAt        DateTime? @map("dropped_out_at")
   // Причина вылета
-  dropReason         String?  @map("drop_reason")
+  dropReason          String?   @map("drop_reason")
 
-  campaign          PromoCampaign         @relation(fields: [campaignId], references: [id], onDelete: Cascade)
-  user              User                  @relation(fields: [userId], references: [id], onDelete: Cascade)
+  campaign PromoCampaign @relation(fields: [campaignId], references: [id], onDelete: Cascade)
+  user     User          @relation(fields: [userId], references: [id], onDelete: Cascade)
 
-  subscriptionId    String?               @map("subscription_id") @db.Uuid
-  subscription      Subscription?         @relation(fields: [subscriptionId], references: [id], onDelete: SetNull)
+  subscriptionId String?       @map("subscription_id") @db.Uuid
+  subscription   Subscription? @relation(fields: [subscriptionId], references: [id], onDelete: SetNull)
 
   @@unique([campaignId, userId])
   @@index([userId])
   @@index([campaignId])
   @@map("promo_campaign_participants")
 }
-
-
-
-
 
 model SubscriptionPeriod {
   id             String @id @default(uuid()) @db.Uuid
@@ -928,9 +921,9 @@ model SubscriptionPeriod {
   paymentId String? @map("payment_id") @db.Uuid
 
   // Процент скидки (0 = без скидки, 50 = 50% скидка, 100 = бесплатно)
-  discountPercent Int     @default(0) @map("discount_percent")
+  discountPercent Int    @default(0) @map("discount_percent")
   // Статус периода: FREE = бесплатный период, DISCOUNTED = со скидкой, PAID = обычная цена
-  periodType      String  @default("PAID") @map("period_type") // FREE, DISCOUNTED, PAID
+  periodType      String @default("PAID") @map("period_type") // FREE, DISCOUNTED, PAID
 
   subscription Subscription @relation(fields: [subscriptionId], references: [id], onDelete: Cascade)
 
@@ -1123,10 +1116,26 @@ model LegalEntityType {
   @@map("legal_entity_types")
 }
 
+// ================ ACTIVITY GROUPS ================
+model ActivityGroup {
+  id   Int    @id
+  name String
+
+  activities Activity[]
+
+  createdAt DateTime @default(now()) @map("created_at")
+  updatedAt DateTime @updatedAt @map("updated_at")
+
+  @@map("activity_groups")
+}
+
 // ================ ACTIVITIES ================
 model Activity {
-  id   Int    @id @default(autoincrement())
+  id   Int    @id
   name String @unique
+
+  groupId Int           @map("group_id")
+  group   ActivityGroup @relation(fields: [groupId], references: [id], onDelete: Cascade)
 
   userActivities UserActivity[]
 
@@ -1264,29 +1273,28 @@ enum ComplaintType {
 // ================ USER NOTES ================
 // Заметки пользователей о других пользователях и объявлениях
 model UserNote {
-  id        String   @id @default(uuid()) @db.Uuid
-  
+  id String @id @default(uuid()) @db.Uuid
+
   // Кто создал заметку
-  authorId  String   @map("author_id") @db.Uuid
-  author    User     @relation("AuthoredNotes", fields: [authorId], references: [id], onDelete: Cascade)
-  
+  authorId String @map("author_id") @db.Uuid
+  author   User   @relation("AuthoredNotes", fields: [authorId], references: [id], onDelete: Cascade)
+
   // Тип цели заметки
   targetType UserNoteTargetType @map("target_type")
-  
+
   // ID цели (пользователь или объявление)
-  targetUserId  String? @map("target_user_id") @db.Uuid
+  targetUserId    String? @map("target_user_id") @db.Uuid
   targetListingId String? @map("target_listing_id") @db.Uuid
-  
+
   // Текст заметки (макс 100 символов)
-  content   String   @db.VarChar(100)
-  
+  content String @db.VarChar(100)
+
   createdAt DateTime @default(now()) @map("created_at")
   updatedAt DateTime @updatedAt @map("updated_at")
-  
+
   // Один пользователь может иметь только одну заметку на одну цель
   @@unique([authorId, targetType, targetUserId], name: "unique_user_note_per_user")
   @@unique([authorId, targetType, targetListingId], name: "unique_user_note_per_listing")
-  
   @@index([authorId])
   @@index([targetUserId])
   @@index([targetListingId])
@@ -1297,4 +1305,3 @@ enum UserNoteTargetType {
   USER
   LISTING
 }
-

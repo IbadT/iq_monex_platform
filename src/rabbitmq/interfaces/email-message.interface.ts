@@ -6,5 +6,6 @@ export interface EmailMessage {
     userId?: string;
     verificationCode: string;
     userName?: string;
+    login?: string;
   };
 }

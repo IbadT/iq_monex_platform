@@ -8,6 +8,7 @@ import {
   UploadedFile,
   Query,
   Body,
+  Req,
 } from '@nestjs/common';
 import { AppService } from './app.service';
 import {
@@ -140,12 +141,18 @@ export class AppController {
     return await this.appService.createUserSuggestion(body);
   }
 
-  @Get('banners/:key')
+  @Get('banners/*')
   @ApiOperation({ summary: 'Получение баннера по ключу из S3 хранилища' })
   @ApiResponse({ status: 200, description: 'Баннер успешно найден' })
   @ApiResponse({ status: 404, description: 'Баннер не найден' })
-  async getBanner(@Param('key') key: string) {
-    const result = await this.appService.getBannerByKey(key);
+  async getBanner(@Req() req: any) {
+    // Извлекаем ключ из полного URL (всё после /banners/)
+    const fullUrl = req.url || req.raw.url || '';
+    const match = fullUrl.match(/\/banners\/(.+)$/);
+    const key = match ? match[1] : '';
+    const decodedKey = decodeURIComponent(key);
+
+    const result = await this.appService.getBannerByKey(decodedKey);
 
     if (!result) {
       return { success: false, message: 'Баннер не найден' };

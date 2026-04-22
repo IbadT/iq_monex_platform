@@ -1,3 +1,32 @@
+=== ПЛАН ДЕПЛОЯ: ГРУППЫ АКТИВНОСТЕЙ ===
+
+1. БЭКАП (ОБЯЗАТЕЛЬНО!)
+   docker compose exec app pg_dump -h postgres -U iqmonex_user -d iq_monex_platform > backup_$(date +%Y%m%d_%H%M%S).sql
+
+2. Восстановление чистой БД из бэкапа (для теста миграции)
+   docker compose exec -T app psql -h postgres -U iqmonex_user -d iq_monex_platform < backup_xxxx.sql
+
+3. Выполнение миграции ВРУЧНУЮ (SQL)
+   docker compose exec -T app psql -h postgres -U iqmonex_user -d iq_monex_platform < prisma/migrations/20250422120000_add_activity_groups/migration.sql
+
+4. Baseline миграции (Prisma)
+   docker compose exec app npx prisma migrate resolve --applied "20250422120000_add_activity_groups"
+
+5. Проверка
+   - Проверить группы: SELECT * FROM activity_groups ORDER BY id;
+   - Проверить активности: SELECT group_id, COUNT(*) FROM activities GROUP BY group_id ORDER BY group_id;
+
+6. Сборка и запуск
+   docker compose exec app npm install
+   docker compose exec app npm run build
+   docker compose restart app
+
+=== КЛЮЧЕВЫЕ ИСПРАВЛЕНИЯ В МИГРАЦИИ ===
+- Добавлен updated_at для всех INSERT INTO activities
+- Добавлен created_at для всех INSERT INTO activity_groups
+- Порядок: группы → колонка → активности → обновление старых → FK/NOT NULL
+
+
 не работают фильтры всех категорий для listings GET
 
 аватарка в workers не создается 
@@ -32,3 +61,7 @@
     "longitude": 37.6173
   }
 }
+
+
+
+

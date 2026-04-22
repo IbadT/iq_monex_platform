@@ -1,5 +1,5 @@
 // profile.mapper.ts
-import { ActivityResponseDto } from '@/activities/dto/response/activity-response.dto';
+import { ActivityGroupResponseDto, ActivityInGroupDto } from '@/activities/dto/response/activity-group-response.dto';
 import { LegalEntityType } from '@/categories/entities/legal-entity-type.entity';
 import { Language } from '@/dictionaries/dto/request/get-currency.dto';
 import { CurrenciesResponseDto } from '@/dictionaries/dto/response/currencies-response.dto';
@@ -17,21 +17,21 @@ import { MapLocationResponseDto } from '@/map_locations/dto/response/map-enterpr
 import { NoteTargetType } from '@/notes';
 import { BanResponseDto } from '../dto/response/ban-response.dto';
 
-interface UserActivityWithActivity {
-  activity: {
-    id: number;
-    name: string;
-  };
-}
+// interface UserActivityWithActivity {
+//   activity: {
+//     id: number;
+//     name: string;
+//     groupId: number;
+//     group?: {
+//       name: string;
+//     };
+//   };
+// }
 
 export class ProfileMapper {
   static toResponse(profile: any): ProfileResponseDto {
-    // Преобразуем активности
-    const activities =
-      profile.user?.userActivities?.map(
-        (ua: UserActivityWithActivity) =>
-          new ActivityResponseDto(ua.activity.id, ua.activity.name),
-      ) || [];
+    // Преобразуем активности, группируя их по группам
+    const activities = this.groupActivitiesByGroup(profile.user?.userActivities || []);
 
     // Преобразуем тип юр лица через маппер с дефолтным языком RU (опциональное поле)
     const legalEntityType = profile.legalEntityType
@@ -101,6 +101,7 @@ export class ProfileMapper {
       commentsCount,
       ban,
       maps,
+      profile.user?.createdAt || new Date(),
     );
   }
 
@@ -126,11 +127,8 @@ export class ProfileMapper {
     isFavoriteParam?: boolean,
     note?: NoteEmbeddedDto | null,
   ): FullProfileResponseDto {
-    // Активности
-    const activities =
-      user.userActivities?.map(
-        (ua: any) => new ActivityResponseDto(ua.activity.id, ua.activity.name),
-      ) || [];
+    // Активности, сгруппированные по группам
+    const activities = this.groupActivitiesByGroup(user.userActivities || []);
 
     // Юр лицо (опциональное поле) - данные хранятся в JSON поле data по локалям
     const legalEntityType = user.profile?.legalEntityType
@@ -270,6 +268,7 @@ export class ProfileMapper {
       maps,
       note ?? null,
       ban,
+      user.createdAt,
     );
   }
 
@@ -281,5 +280,44 @@ export class ProfileMapper {
   ): NoteEmbeddedDto | null {
     if (!noteId) return null;
     return new NoteEmbeddedDto(noteId, targetType, targetId);
+  }
+
+  /**
+   * Группирует активности пользователя по группам активностей
+   */
+  static groupActivitiesByGroup(
+    userActivities: any[],
+  ): ActivityGroupResponseDto[] {
+    // Группируем активности по groupId
+    const groupsMap = new Map<number, { name: string; activities: ActivityInGroupDto[] }>();
+
+    for (const ua of userActivities) {
+      const activity = ua.activity;
+      if (!activity) continue;
+
+      const groupId = activity.groupId;
+      const groupName = activity.group?.name || '';
+
+      if (!groupsMap.has(groupId)) {
+        groupsMap.set(groupId, {
+          name: groupName,
+          activities: [],
+        });
+      }
+
+      const group = groupsMap.get(groupId)!;
+      group.activities.push(
+        new ActivityInGroupDto(activity.id, activity.name, groupId),
+      );
+    }
+
+    // Преобразуем Map в массив ActivityGroupResponseDto
+    const result: ActivityGroupResponseDto[] = [];
+    for (const [id, { name, activities }] of groupsMap) {
+      result.push(new ActivityGroupResponseDto(id, name, activities));
+    }
+
+    // Сортируем по id группы для стабильного порядка
+    return result.sort((a, b) => a.id - b.id);
   }
 }

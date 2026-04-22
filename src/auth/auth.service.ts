@@ -186,6 +186,7 @@ export class AuthService {
       data: {
         // userId: newUser.id, // Пока нет пользователя
         verificationCode,
+        login: email,
       },
     };
 
@@ -370,6 +371,7 @@ export class AuthService {
       data: {
         userId: user.id,
         verificationCode,
+        login: email,
       },
     });
 
@@ -477,6 +479,7 @@ export class AuthService {
         userId: user.id,
         verificationCode: resetCode,
         userName: user.name || user.email,
+        login: email,
       },
     });
 

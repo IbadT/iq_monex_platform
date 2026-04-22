@@ -123,7 +123,7 @@ describe('AppController', () => {
       // Мокаем listObjects чтобы вернуть баннер
       mockS3Service.listObjects.mockResolvedValueOnce(['banner1.jpg']);
 
-      const result = await appController.getBanner('banner1.jpg');
+      const result = await appController.getBanner({ url: '/banners/banner1.jpg' });
       expect(result).toEqual({
         success: true,
         message: 'Баннер успешно найден',
@@ -139,7 +139,7 @@ describe('AppController', () => {
       // Мокаем listObjects чтобы вернуть пустой массив
       mockS3Service.listObjects.mockResolvedValueOnce([]);
 
-      const result = await appController.getBanner('nonexistent.jpg');
+      const result = await appController.getBanner({ url: '/banners/nonexistent.jpg' });
       expect(result).toEqual({
         success: false,
         message: 'Баннер не найден',

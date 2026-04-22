@@ -1,6 +1,7 @@
 import { CategoryResponseDto } from '@/categories/dto/response/categories-response.dto';
 import { CurrenciesResponseDto } from '@/dictionaries/dto/response/currencies-response.dto';
 import { MapLocationResponseDto } from '@/map_locations/dto/response/map-enterprice.response.dto';
+import { Decimal } from '@prisma/client/runtime/index-browser';
 import { ListingResposeDto } from '../dto/response/listing-response.dto';
 import { ListingSpecificationResponseDto } from '../dto/response/listing-specification-response.dto';
 import { ListingFileResponseDto } from '../dto/response/listing-file-response.dto';
@@ -26,6 +27,8 @@ export class ListingMapper {
     note?: NoteEmbeddedDto | null,
     isUserFavorite?: boolean,
     mine?: boolean,
+    convertedPrice?: number | null,
+    targetCurrency?: { id: number; symbol: string; name: string; code: string } | null,
   ): ListingResposeDto {
     // Преобразуем категории (все 3 уровня)
     const category = listing.category
@@ -45,8 +48,16 @@ export class ListingMapper {
       : null;
 
     // Преобразуем валюту (с проверкой на null)
+    // Если есть targetCurrency (валюта пользователя) - используем её, иначе валюту из объявления
     let currency: CurrenciesResponseDto | null = null;
-    if (listing.currency) {
+    if (targetCurrency) {
+      currency = new CurrenciesResponseDto(
+        targetCurrency.id,
+        targetCurrency.symbol,
+        targetCurrency.name,
+        targetCurrency.code,
+      );
+    } else if (listing.currency) {
       currency = new CurrenciesResponseDto(
         listing.currency.id,
         listing.currency.symbol,
@@ -158,7 +169,9 @@ export class ListingMapper {
       listing.accountNumber,
       listing.title,
       listing.description,
-      listing.price,
+      convertedPrice !== undefined && convertedPrice !== null
+        ? new Decimal(convertedPrice)
+        : listing.price,
       listing.condition,
       listing.status,
       listing.rating,
@@ -211,8 +224,10 @@ export class ListingMapper {
       code = legalEntity.code;
     }
 
-    const avatar = user.profile?.avatarUrl ?? user.files?.find((i: any) => i.kind === "AVATAR")?.url ?? null;
-
+    const avatar =
+      user.profile?.avatarUrl ??
+      user.files?.find((i: any) => i.kind === 'AVATAR')?.url ??
+      null;
 
     return {
       id: user.id,
@@ -221,6 +236,8 @@ export class ListingMapper {
       avatar: avatar,
       isFavorite: isUserFavorite,
       accountNumber: user.accountNumber,
+      rating: user.rating ?? 0,
+      reviewsCount: user.reviewsCount ?? 0,
     };
   }
 }

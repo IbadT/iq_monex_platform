@@ -14,23 +14,9 @@ export type LegalEntityTypeInfo = {
 export const legalEntityTypes: LegalEntityTypeInfo[] = [
   {
     data: {
-      ru: { code: 'ООО', name: 'Общество с ограниченной ответственностью' },
-      en: { code: 'LLC', name: 'Limited Liability Company' },
-      kz: { code: 'ЖШС', name: 'Жауапкершілігі шектеулі серіктестік' },
-    },
-  },
-  {
-    data: {
-      ru: { code: 'АО', name: 'Акционерное общество' },
-      en: { code: 'JSC', name: 'Joint Stock Company' },
-      kz: { code: 'АҚ', name: 'Акционерлік қоғам' },
-    },
-  },
-  {
-    data: {
-      ru: { code: 'ПАО', name: 'Публичное акционерное общество' },
-      en: { code: 'PJSC', name: 'Public Joint Stock Company' },
-      kz: { code: 'ЖАҚ', name: 'Жария акционерлік қоғам' },
+      ru: { code: 'Частное лицо', name: 'Частное лицо' },
+      en: { code: 'Private person', name: 'Private person' },
+      kz: { code: 'Жеке тұлға', name: 'Жеке тұлға' },
     },
   },
   {
@@ -42,79 +28,37 @@ export const legalEntityTypes: LegalEntityTypeInfo[] = [
   },
   {
     data: {
-      ru: { code: 'ГУП', name: 'Государственное унитарное предприятие' },
-      en: { code: 'SUE', name: 'State Unitary Enterprise' },
-      kz: { code: 'МУК', name: 'Мемлекеттік унитарлық кәсіпорын' },
+      ru: { code: 'ООО', name: 'Общество с ограниченной ответственностью' },
+      en: { code: 'LLC', name: 'Limited Liability Company' },
+      kz: { code: 'ЖШС', name: 'Жауапкершілігі шектеулі серіктестік' },
     },
   },
   {
     data: {
-      ru: { code: 'МУП', name: 'Муниципальное унитарное предприятие' },
-      en: { code: 'MUE', name: 'Municipal Unitary Enterprise' },
-      kz: { code: 'КУК', name: 'Коммуналдық унитарлық кәсіпорын' },
+      ru: { code: 'ЗАО', name: 'Закрытое акционерное общество' },
+      en: { code: 'CJSC', name: 'Closed Joint Stock Company' },
+      kz: { code: 'ЖАҚ', name: 'Жабық акционерлік қоғам' },
     },
   },
   {
     data: {
-      ru: { code: 'НКО', name: 'Некоммерческая организация' },
-      en: { code: 'NPO', name: 'Non-Profit Organization' },
-      kz: { code: 'КО', name: 'Коммерциялық емес ұйым' },
+      ru: { code: 'ПАО', name: 'Публичное акционерное общество' },
+      en: { code: 'PJSC', name: 'Public Joint Stock Company' },
+      kz: { code: 'ЖАҚ', name: 'Жария акционерлік қоғам' },
     },
   },
   {
     data: {
-      ru: { code: 'АНО', name: 'Автономная некоммерческая организация' },
-      en: { code: 'ANO', name: 'Autonomous Non-Profit Organization' },
-      kz: { code: 'АКО', name: 'Автономиялық коммерциялық емес ұйым' },
+      ru: { code: 'АО', name: 'Акционерное общество' },
+      en: { code: 'JSC', name: 'Joint Stock Company' },
+      kz: { code: 'АҚ', name: 'Акционерлік қоғам' },
     },
   },
   {
     data: {
-      ru: { code: 'Фонд', name: 'Фонд' },
-      en: { code: 'Foundation', name: 'Foundation' },
-      kz: { code: 'Қор', name: 'Қор' },
-    },
-  },
-  {
-    data: {
-      ru: { code: 'Учреждение', name: 'Учреждение' },
-      en: { code: 'Institution', name: 'Institution' },
-      kz: { code: 'Мекеме', name: 'Мекеме' },
-    },
-  },
-  {
-    data: {
-      ru: { code: 'Религиозная организация', name: 'Религиозная организация' },
-      en: { code: 'Religious', name: 'Religious Organization' },
-      kz: { code: 'Діни ұйым', name: 'Діни ұйым' },
-    },
-  },
-  {
-    data: {
-      ru: { code: 'КА', name: 'Коллегия адвокатов' },
-      en: { code: 'BA', name: 'Bar Association' },
-      kz: { code: 'АК', name: 'Адвокаттар алқасы' },
-    },
-  },
-  {
-    data: {
-      ru: { code: 'НП', name: 'Нотариальная палата' },
-      en: { code: 'NC', name: 'Notarial Chamber' },
-      kz: { code: 'НП', name: 'Нотариалдық палата' },
-    },
-  },
-  {
-    data: {
-      ru: { code: 'ТСН', name: 'Товарищество собственников недвижимости' },
-      en: { code: 'HOA', name: 'Homeowners Association' },
-      kz: { code: 'МС', name: 'Мүлік иелерінің серіктестігі' },
-    },
-  },
-  {
-    data: {
-      ru: { code: 'СНТ', name: 'Садоводческое некоммерческое товарищество' },
-      en: { code: 'GNT', name: 'Gardening Non-Profit Partnership' },
-      kz: { code: 'БС', name: 'Бағбаншылық серіктестік' },
+      ru: { code: 'ОАО', name: 'Открытое акционерное общество' },
+      en: { code: 'OJSC', name: 'Open Joint Stock Company' },
+      kz: { code: 'ААҚ', name: 'Ашық акционерлік қоғам' },
     },
   },
 ];

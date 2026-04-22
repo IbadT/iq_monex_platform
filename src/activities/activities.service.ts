@@ -4,6 +4,10 @@ import {
   ConflictException,
 } from '@nestjs/common';
 import {
+  UpdateUserActivityDto,
+  UpdateActivityAction,
+} from '@/users/dto/update-user-activity.dto';
+import {
   AddActivityToUserDto,
   ActivityAction,
 } from '@/users/dto/add-activity-to-user.dto';
@@ -11,7 +15,7 @@ import { ActivityProcessData } from '@/users/interfaces/activity.interface';
 import { prisma } from '@/lib/prisma';
 import { CacheService } from '@/cache/cacheService.service';
 import { PrismaClient } from '../../prisma/generated/client';
-import { ActivityResponseDto } from './dto/response/activity-response.dto';
+import { ActivityGroupResponseDto, ActivityInGroupDto } from './dto/response/activity-group-response.dto';
 import { UserActivityResponseDto } from './dto/response/user-activity.response.dto';
 import { AppLogger } from '@/common/logger/logger.service';
 
@@ -72,14 +76,23 @@ export class ActivitiesService {
     });
 
     if (!activity) {
-      // Если не существует, создаем новую
+      // Если не существует, создаем новую в группе "Прочее" (id=99)
+      // Генерируем ID в диапазоне 9000+ для кастомных активностей
+      const maxCustomActivity = await tx.activity.findFirst({
+        where: { groupId: 99 },
+        orderBy: { id: 'desc' },
+      });
+      const newId = maxCustomActivity ? maxCustomActivity.id + 1 : 9001;
+
       activity = await tx.activity.create({
         data: {
+          id: newId,
           name: body.activity,
+          groupId: 99, // Группа "Прочее"
         },
       });
       this.logger.debug(
-        `[handleCreateActivity] Created new activity: ${activity.id}`,
+        `[handleCreateActivity] Created new activity: ${activity.id} in group 99`,
       );
     } else {
       this.logger.debug(
@@ -131,7 +144,7 @@ export class ActivitiesService {
   }
 
   private async handleBindActivity(
-    body: AddActivityToUserDto,
+    body: UpdateUserActivityDto | AddActivityToUserDto,
     userId: string,
     tx: PrismaClient,
   ) {
@@ -168,7 +181,7 @@ export class ActivitiesService {
   }
 
   private async handleUpdateActivity(
-    body: AddActivityToUserDto,
+    body: UpdateUserActivityDto | AddActivityToUserDto,
     userId: string,
     tx: PrismaClient,
   ) {
@@ -190,15 +203,27 @@ export class ActivitiesService {
       throw new BadRequestException('User activity not found');
     }
 
-    // Если указано новое название активности, обновляем или создаем активность
-    if (body.activity) {
+    // Если указано новое название активности (только для AddActivityToUserDto),
+    // обновляем или создаем активность
+    if ('activity' in body && body.activity) {
       let activity = await tx.activity.findFirst({
         where: { name: body.activity },
       });
 
       if (!activity) {
+        // Создаем новую активность в группе "Прочее" (id=99)
+        const maxCustomActivity = await tx.activity.findFirst({
+          where: { groupId: 99 },
+          orderBy: { id: 'desc' },
+        });
+        const newId = maxCustomActivity ? maxCustomActivity.id + 1 : 9001;
+
         activity = await tx.activity.create({
-          data: { name: body.activity },
+          data: {
+            id: newId,
+            name: body.activity,
+            groupId: 99,
+          },
         });
       }
 
@@ -212,13 +237,12 @@ export class ActivitiesService {
       });
     }
 
-    throw new BadRequestException(
-      'Activity name is required for UPDATE action',
-    );
+    // Для UpdateUserActivityDto просто проверяем существование связи
+    return userActivity;
   }
 
   private async handleDeleteActivity(
-    body: AddActivityToUserDto,
+    body: UpdateUserActivityDto | AddActivityToUserDto,
     userId: string,
     tx: PrismaClient,
   ) {
@@ -272,24 +296,21 @@ export class ActivitiesService {
   }
 
   private async processActivityAction(
-    activity: AddActivityToUserDto,
+    activity: UpdateUserActivityDto,
     userId: string,
     tx: PrismaClient,
   ): Promise<any> {
     switch (activity.action) {
-      case ActivityAction.CREATE:
-        return await this.handleCreateActivity(activity, userId, tx);
-
-      case ActivityAction.BIND:
+      case UpdateActivityAction.CREATE:
         return await this.handleBindActivity(activity, userId, tx);
 
-      case ActivityAction.UPDATE:
+      case UpdateActivityAction.UPDATE:
         return await this.handleUpdateActivity(activity, userId, tx);
 
-      case ActivityAction.DELETE:
+      case UpdateActivityAction.DELETE:
         return await this.handleDeleteActivity(activity, userId, tx);
 
-      case ActivityAction.IGNORE:
+      case UpdateActivityAction.IGNORE:
         return null;
 
       default:
@@ -299,15 +320,48 @@ export class ActivitiesService {
     }
   }
 
-  async getActivities(): Promise<ActivityResponseDto[]> {
-    const cacheKey = `activities`;
-    const cachedData =
-      await this.cacheService.get<ActivityResponseDto[]>(cacheKey);
+  async getActivityGroups() {
+    const cacheKey = `activity-groups`;
+    const cachedData = await this.cacheService.get(cacheKey);
     if (cachedData) return cachedData;
 
-    const activities = await prisma.activity.findMany();
-    const response = activities.map(
-      (activity) => new ActivityResponseDto(activity.id, activity.name),
+    const groups = await prisma.activityGroup.findMany({
+      include: { activities: true },
+      orderBy: { id: 'asc' },
+    });
+
+    await this.cacheService.set({
+      baseKey: cacheKey,
+      ttl: 3600,
+      value: groups,
+    });
+
+    return groups;
+  }
+
+  async getActivities(): Promise<ActivityGroupResponseDto[]> {
+    const cacheKey = `activities`;
+    const cachedData =
+      await this.cacheService.get<ActivityGroupResponseDto[]>(cacheKey);
+    if (cachedData) return cachedData;
+
+    const groups = await prisma.activityGroup.findMany({
+      include: { activities: true },
+      orderBy: { id: 'asc' },
+    });
+
+    const response = groups.map(
+      (group) => new ActivityGroupResponseDto(
+        group.id,
+        group.name,
+        group.activities.map(
+          (activity) => new ActivityInGroupDto(
+            activity.id,
+            activity.name,
+            activity.groupId,
+          ),
+        ),
+      ),
     );
 
     await this.cacheService.set({

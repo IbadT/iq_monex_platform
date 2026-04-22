@@ -3,7 +3,7 @@ import { ActivityEntity } from '../entities/activity.entity';
 
 export class ActivityMapper {
   static fromEntityToDto(activity: ActivityEntity): ActivityResponseDto {
-    return new ActivityResponseDto(activity.id, activity.name);
+    return new ActivityResponseDto(activity.id, activity.name, activity.groupId, activity.groupName);
   }
 
   static fromEntityListToDto(

@@ -139,6 +139,7 @@ export class EmailConsumerService implements OnModuleInit, OnModuleDestroy {
       const frontendUrl =
         this.configService.get('FRONTEND_URL') || 'http://localhost:5173';
       const verificationCode = message.data?.verificationCode || 'DEFAULT';
+      const login = message.data?.login || message.to;
 
       // Определяем тип письма: сброс пароля или подтверждение регистрации
       const isPasswordReset =
@@ -147,8 +148,8 @@ export class EmailConsumerService implements OnModuleInit, OnModuleDestroy {
 
       // Формируем ссылку в зависимости от типа письма
       const confirmUrl = isPasswordReset
-        ? `${frontendUrl}/auth/reset-password?code=${verificationCode}`
-        : `${frontendUrl}/auth/confirm-email?code=${verificationCode}`;
+        ? `${frontendUrl}/auth/reset-password?login=${encodeURIComponent(login)}&code=${verificationCode}`
+        : `${frontendUrl}/auth/confirm-email?login=${encodeURIComponent(login)}&code=${verificationCode}`;
 
       const buttonText = isPasswordReset
         ? 'Перейти на сайт'

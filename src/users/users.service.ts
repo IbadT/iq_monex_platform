@@ -225,7 +225,11 @@ export class UsersService {
             include: {
               userActivities: {
                 include: {
-                  activity: true,
+                  activity: {
+                    include: {
+                      group: true,
+                    },
+                  },
                 },
               },
             },
@@ -293,7 +297,11 @@ export class UsersService {
           include: {
             userActivities: {
               include: {
-                activity: true,
+                activity: {
+                  include: {
+                    group: true,
+                  },
+                },
               },
             },
             files: {
@@ -436,7 +444,11 @@ export class UsersService {
         },
         userActivities: {
           include: {
-            activity: true,
+            activity: {
+              include: {
+                group: true,
+              },
+            },
           },
         },
         files: {

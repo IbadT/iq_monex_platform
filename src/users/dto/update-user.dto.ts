@@ -13,7 +13,7 @@ import {
   ArrayMaxSize,
   IsNumber,
 } from 'class-validator';
-import { AddActivityToUserDto } from './add-activity-to-user.dto';
+import { UpdateUserActivityDto } from './update-user-activity.dto';
 import { CreateWorkerDto } from '@/workers/dto/create-worker.dto';
 import { CreateMapLocationDto } from '@/listings/dto/request/create-map-location.dto';
 
@@ -63,14 +63,14 @@ export class UpdateUserDto {
 
   @ApiProperty({
     description: 'Сферы деятельности',
-    type: [AddActivityToUserDto],
+    type: [UpdateUserActivityDto],
     required: true,
   })
   @IsArray({ message: 'Активности должны быть массивом' })
   @ValidateNested({ each: true })
-  @Type(() => AddActivityToUserDto)
+  @Type(() => UpdateUserActivityDto)
   @ArrayMaxSize(5, { message: 'Максимум 5 видов деятельности' })
-  activities: AddActivityToUserDto[];
+  activities: UpdateUserActivityDto[];
 
   @ApiProperty({
     description: 'Телефон компании',
@@ -156,7 +156,7 @@ export class UpdateUserDto {
     legalEntityId: number,
     name: string,
     currencyId: number,
-    activities: AddActivityToUserDto[],
+    activities: UpdateUserActivityDto[],
     companyPhone?: string | null,
     companyEmail?: string | null,
     telegram?: string | null,
