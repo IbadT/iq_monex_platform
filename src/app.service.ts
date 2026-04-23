@@ -130,14 +130,20 @@ export class AppService {
       const imageKeys = await this.s3Service.listObjects();
       this.logger.log(`[getBannerByKey] Looking for key: "${key}"`);
       this.logger.log(`[getBannerByKey] Total keys in S3: ${imageKeys.length}`);
-      this.logger.log(`[getBannerByKey] First 10 keys: ${JSON.stringify(imageKeys.slice(0, 10))}`);
+      this.logger.log(
+        `[getBannerByKey] First 10 keys: ${JSON.stringify(imageKeys.slice(0, 10))}`,
+      );
       const exists = imageKeys.includes(key);
       this.logger.log(`[getBannerByKey] Key exists: ${exists}`);
 
       if (!exists) {
         // Проверим, может ключ есть но с другим префиксом
-        const similarKeys = imageKeys.filter(k => k.includes(key.split('/').pop() || ''));
-        this.logger.warn(`[getBannerByKey] Banner not found: "${key}". Similar keys: ${JSON.stringify(similarKeys)}`);
+        const similarKeys = imageKeys.filter((k) =>
+          k.includes(key.split('/').pop() || ''),
+        );
+        this.logger.warn(
+          `[getBannerByKey] Banner not found: "${key}". Similar keys: ${JSON.stringify(similarKeys)}`,
+        );
         return null;
       }
 

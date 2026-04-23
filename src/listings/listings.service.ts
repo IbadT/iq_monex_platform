@@ -90,7 +90,10 @@ export class ListingsService {
     try {
       // Проверяем, что коды валют поддерживаются
       const validCodes = Object.values(VALUT_CODE) as string[];
-      if (!validCodes.includes(listingCurrencyCode) || !validCodes.includes(targetCurrencyCode)) {
+      if (
+        !validCodes.includes(listingCurrencyCode) ||
+        !validCodes.includes(targetCurrencyCode)
+      ) {
         return Number(price);
       }
 
@@ -115,10 +118,12 @@ export class ListingsService {
       }
 
       // Сначала в рубли: (цена * курс_исходной) / номинал_исходной
-      const amountInRub = (Number(price) * Number(sourceRate.rate)) / sourceRate.nominal;
+      const amountInRub =
+        (Number(price) * Number(sourceRate.rate)) / sourceRate.nominal;
 
       // Затем в целевую валюту: (рубли * номинал_целевой) / курс_целевой
-      const convertedPrice = (amountInRub * targetRate.nominal) / Number(targetRate.rate);
+      const convertedPrice =
+        (amountInRub * targetRate.nominal) / Number(targetRate.rate);
       return Number(convertedPrice.toFixed(2));
     } catch (error) {
       this.logger.error('Ошибка конвертации цены:', error);
@@ -129,7 +134,14 @@ export class ListingsService {
   /**
    * Получает предпочитаемую валюту пользователя из профиля
    */
-  private async getUserPreferredCurrency(userId: string): Promise<{ id: number; symbol: string; name: string; code: string } | null> {
+  private async getUserPreferredCurrency(
+    userId: string,
+  ): Promise<{
+    id: number;
+    symbol: string;
+    name: string;
+    code: string;
+  } | null> {
     try {
       const profile = await prisma.profile.findUnique({
         where: { userId },
@@ -137,7 +149,11 @@ export class ListingsService {
       });
       if (!profile?.currency) return null;
       // name - JSON поле с мультиязычными названиями {"ru": "...", "en": "..."}
-      const nameData = profile.currency.name as { ru?: string; en?: string; kz?: string };
+      const nameData = profile.currency.name as {
+        ru?: string;
+        en?: string;
+        kz?: string;
+      };
       return {
         id: profile.currency.id,
         symbol: profile.currency.symbol,
@@ -829,39 +845,46 @@ export class ListingsService {
       string,
       { id: string; targetType: string; targetId: string }
     >();
-    let userPreferredCurrency: { id: number; symbol: string; name: string; code: string } | null = null;
+    let userPreferredCurrency: {
+      id: number;
+      symbol: string;
+      name: string;
+      code: string;
+    } | null = null;
 
     if (currentUserId) {
       const listingIds = listings.map((l) => l.id);
       const targetUserIds = [...new Set(listings.map((l) => l.userId))];
 
-      const [favorites, userFavorites, notes, currencyCode] = await Promise.all([
-        prisma.favorite.findMany({
-          where: {
-            userId: currentUserId,
-            listingId: { in: listingIds },
-            type: 'LISTING',
-          },
-          select: { listingId: true },
-        }),
-        prisma.favorite.findMany({
-          where: {
-            userId: currentUserId,
-            targetUserId: { in: targetUserIds },
-            type: 'USER',
-          },
-          select: { targetUserId: true },
-        }),
-        prisma.userNote.findMany({
-          where: {
-            authorId: currentUserId,
-            targetType: 'LISTING',
-            targetListingId: { in: listingIds },
-          },
-          select: { id: true, targetListingId: true },
-        }),
-        this.getUserPreferredCurrency(currentUserId),
-      ]);
+      const [favorites, userFavorites, notes, currencyCode] = await Promise.all(
+        [
+          prisma.favorite.findMany({
+            where: {
+              userId: currentUserId,
+              listingId: { in: listingIds },
+              type: 'LISTING',
+            },
+            select: { listingId: true },
+          }),
+          prisma.favorite.findMany({
+            where: {
+              userId: currentUserId,
+              targetUserId: { in: targetUserIds },
+              type: 'USER',
+            },
+            select: { targetUserId: true },
+          }),
+          prisma.userNote.findMany({
+            where: {
+              authorId: currentUserId,
+              targetType: 'LISTING',
+              targetListingId: { in: listingIds },
+            },
+            select: { id: true, targetListingId: true },
+          }),
+          this.getUserPreferredCurrency(currentUserId),
+        ],
+      );
 
       favoritesSet = new Set(favorites.map((f) => f.listingId!));
       userFavoritesSet = new Set(userFavorites.map((f) => f.targetUserId!));
@@ -1252,43 +1275,47 @@ export class ListingsService {
     let isFavorite = false;
     let isUserFavorite = false;
     let note;
-    let userPreferredCurrency: { id: number; symbol: string; name: string; code: string } | null = null;
+    let userPreferredCurrency: {
+      id: number;
+      symbol: string;
+      name: string;
+      code: string;
+    } | null = null;
     // Определяем, является ли объявление собственностью текущего пользователя
     const mine = userId ? listing.userId === userId : false;
     if (userId) {
-      const [favorite, userFavorite, userNote, currencyCode] = await Promise.all([
-        prisma.favorite.findFirst({
-          where: {
-            userId,
-            listingId: id,
-            type: 'LISTING',
-          },
-        }),
-        prisma.favorite.findFirst({
-          where: {
-            userId,
-            targetUserId: listing.userId,
-            type: 'USER',
-          },
-        }),
-        prisma.userNote.findFirst({
-          where: {
-            authorId: userId,
-            targetType: 'LISTING',
-            targetListingId: id,
-          },
-        }),
-        this.getUserPreferredCurrency(userId),
-      ]);
+      const [favorite, userFavorite, userNote, currencyCode] =
+        await Promise.all([
+          prisma.favorite.findFirst({
+            where: {
+              userId,
+              listingId: id,
+              type: 'LISTING',
+            },
+          }),
+          prisma.favorite.findFirst({
+            where: {
+              userId,
+              targetUserId: listing.userId,
+              type: 'USER',
+            },
+          }),
+          prisma.userNote.findFirst({
+            where: {
+              authorId: userId,
+              targetType: 'LISTING',
+              targetListingId: id,
+            },
+          }),
+          this.getUserPreferredCurrency(userId),
+        ]);
 
       isFavorite = !!favorite;
       isUserFavorite = !!userFavorite;
       userPreferredCurrency = currencyCode;
 
       // Получаем заметку пользователя об объявлении
-      this.logger.log(
-        `[DEBUG] Found note: ${userNote ? userNote.id : 'null'}`,
-      );
+      this.logger.log(`[DEBUG] Found note: ${userNote ? userNote.id : 'null'}`);
       note = userNote
         ? ListingMapper.buildNoteEmbeddedDto(
             userNote.id,
@@ -1393,34 +1420,40 @@ export class ListingsService {
     let isFavorite = false;
     let isUserFavorite = false;
     let note;
-    let userPreferredCurrency: { id: number; symbol: string; name: string; code: string } | null = null;
+    let userPreferredCurrency: {
+      id: number;
+      symbol: string;
+      name: string;
+      code: string;
+    } | null = null;
     // Определяем, является ли объявление собственностью текущего пользователя
     const mine = userId ? listing.userId === userId : false;
     if (userId) {
-      const [favorite, userFavorite, userNote, currencyCode] = await Promise.all([
-        prisma.favorite.findFirst({
-          where: {
-            userId,
-            listingId: listing.id,
-            type: 'LISTING',
-          },
-        }),
-        prisma.favorite.findFirst({
-          where: {
-            userId,
-            targetUserId: listing.userId,
-            type: 'USER',
-          },
-        }),
-        prisma.userNote.findFirst({
-          where: {
-            authorId: userId,
-            targetType: 'LISTING',
-            targetListingId: listing.id,
-          },
-        }),
-        this.getUserPreferredCurrency(userId),
-      ]);
+      const [favorite, userFavorite, userNote, currencyCode] =
+        await Promise.all([
+          prisma.favorite.findFirst({
+            where: {
+              userId,
+              listingId: listing.id,
+              type: 'LISTING',
+            },
+          }),
+          prisma.favorite.findFirst({
+            where: {
+              userId,
+              targetUserId: listing.userId,
+              type: 'USER',
+            },
+          }),
+          prisma.userNote.findFirst({
+            where: {
+              authorId: userId,
+              targetType: 'LISTING',
+              targetListingId: listing.id,
+            },
+          }),
+          this.getUserPreferredCurrency(userId),
+        ]);
 
       isFavorite = !!favorite;
       isUserFavorite = !!userFavorite;
@@ -1553,39 +1586,46 @@ export class ListingsService {
       string,
       { id: string; targetType: string; targetId: string }
     >();
-    let userPreferredCurrency: { id: number; symbol: string; name: string; code: string } | null = null;
+    let userPreferredCurrency: {
+      id: number;
+      symbol: string;
+      name: string;
+      code: string;
+    } | null = null;
 
     if (currentUserId) {
       const listingIds = listings.map((l) => l.id);
       const targetUserIds = [...new Set(listings.map((l) => l.userId))];
 
-      const [favorites, userFavorites, notes, currencyCode] = await Promise.all([
-        prisma.favorite.findMany({
-          where: {
-            userId: currentUserId,
-            listingId: { in: listingIds },
-            type: 'LISTING',
-          },
-          select: { listingId: true },
-        }),
-        prisma.favorite.findMany({
-          where: {
-            userId: currentUserId,
-            targetUserId: { in: targetUserIds },
-            type: 'USER',
-          },
-          select: { targetUserId: true },
-        }),
-        prisma.userNote.findMany({
-          where: {
-            authorId: currentUserId,
-            targetType: 'LISTING',
-            targetListingId: { in: listingIds },
-          },
-          select: { id: true, targetListingId: true },
-        }),
-        this.getUserPreferredCurrency(currentUserId),
-      ]);
+      const [favorites, userFavorites, notes, currencyCode] = await Promise.all(
+        [
+          prisma.favorite.findMany({
+            where: {
+              userId: currentUserId,
+              listingId: { in: listingIds },
+              type: 'LISTING',
+            },
+            select: { listingId: true },
+          }),
+          prisma.favorite.findMany({
+            where: {
+              userId: currentUserId,
+              targetUserId: { in: targetUserIds },
+              type: 'USER',
+            },
+            select: { targetUserId: true },
+          }),
+          prisma.userNote.findMany({
+            where: {
+              authorId: currentUserId,
+              targetType: 'LISTING',
+              targetListingId: { in: listingIds },
+            },
+            select: { id: true, targetListingId: true },
+          }),
+          this.getUserPreferredCurrency(currentUserId),
+        ],
+      );
 
       favoritesSet = new Set(favorites.map((f) => f.listingId!));
       userFavoritesSet = new Set(userFavorites.map((f) => f.targetUserId!));

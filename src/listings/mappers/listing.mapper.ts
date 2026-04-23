@@ -28,7 +28,12 @@ export class ListingMapper {
     isUserFavorite?: boolean,
     mine?: boolean,
     convertedPrice?: number | null,
-    targetCurrency?: { id: number; symbol: string; name: string; code: string } | null,
+    targetCurrency?: {
+      id: number;
+      symbol: string;
+      name: string;
+      code: string;
+    } | null,
   ): ListingResposeDto {
     // Преобразуем категории (все 3 уровня)
     const category = listing.category

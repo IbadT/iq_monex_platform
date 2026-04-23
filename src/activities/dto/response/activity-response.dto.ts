@@ -30,7 +30,12 @@ export class ActivityResponseDto {
   })
   groupName?: string | undefined;
 
-  constructor(id: number, name: string, groupId: number, groupName?: string | undefined) {
+  constructor(
+    id: number,
+    name: string,
+    groupId: number,
+    groupName?: string | undefined,
+  ) {
     this.id = id;
     this.name = name;
     this.groupId = groupId;

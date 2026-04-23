@@ -1,5 +1,8 @@
 // profile.mapper.ts
-import { ActivityGroupResponseDto, ActivityInGroupDto } from '@/activities/dto/response/activity-group-response.dto';
+import {
+  ActivityGroupResponseDto,
+  ActivityInGroupDto,
+} from '@/activities/dto/response/activity-group-response.dto';
 import { LegalEntityType } from '@/categories/entities/legal-entity-type.entity';
 import { Language } from '@/dictionaries/dto/request/get-currency.dto';
 import { CurrenciesResponseDto } from '@/dictionaries/dto/response/currencies-response.dto';
@@ -31,7 +34,9 @@ import { BanResponseDto } from '../dto/response/ban-response.dto';
 export class ProfileMapper {
   static toResponse(profile: any): ProfileResponseDto {
     // Преобразуем активности, группируя их по группам
-    const activities = this.groupActivitiesByGroup(profile.user?.userActivities || []);
+    const activities = this.groupActivitiesByGroup(
+      profile.user?.userActivities || [],
+    );
 
     // Преобразуем тип юр лица через маппер с дефолтным языком RU (опциональное поле)
     const legalEntityType = profile.legalEntityType
@@ -289,7 +294,10 @@ export class ProfileMapper {
     userActivities: any[],
   ): ActivityGroupResponseDto[] {
     // Группируем активности по groupId
-    const groupsMap = new Map<number, { name: string; activities: ActivityInGroupDto[] }>();
+    const groupsMap = new Map<
+      number,
+      { name: string; activities: ActivityInGroupDto[] }
+    >();
 
     for (const ua of userActivities) {
       const activity = ua.activity;

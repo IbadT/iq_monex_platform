@@ -19,7 +19,14 @@ export class ActivityEntity {
   //     };
   //   }
 
-  constructor(id: number, name: string, groupId: number, createdAt: Date, updatedAt: Date, groupName?: string) {
+  constructor(
+    id: number,
+    name: string,
+    groupId: number,
+    createdAt: Date,
+    updatedAt: Date,
+    groupName?: string,
+  ) {
     this.id = id;
     this.name = name;
     this.groupId = groupId;

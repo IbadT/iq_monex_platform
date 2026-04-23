@@ -15,7 +15,10 @@ import { ActivityProcessData } from '@/users/interfaces/activity.interface';
 import { prisma } from '@/lib/prisma';
 import { CacheService } from '@/cache/cacheService.service';
 import { PrismaClient } from '../../prisma/generated/client';
-import { ActivityGroupResponseDto, ActivityInGroupDto } from './dto/response/activity-group-response.dto';
+import {
+  ActivityGroupResponseDto,
+  ActivityInGroupDto,
+} from './dto/response/activity-group-response.dto';
 import { UserActivityResponseDto } from './dto/response/user-activity.response.dto';
 import { AppLogger } from '@/common/logger/logger.service';
 
@@ -351,17 +354,19 @@ export class ActivitiesService {
     });
 
     const response = groups.map(
-      (group) => new ActivityGroupResponseDto(
-        group.id,
-        group.name,
-        group.activities.map(
-          (activity) => new ActivityInGroupDto(
-            activity.id,
-            activity.name,
-            activity.groupId,
+      (group) =>
+        new ActivityGroupResponseDto(
+          group.id,
+          group.name,
+          group.activities.map(
+            (activity) =>
+              new ActivityInGroupDto(
+                activity.id,
+                activity.name,
+                activity.groupId,
+              ),
           ),
         ),
-      ),
     );
 
     await this.cacheService.set({
