@@ -28,7 +28,7 @@ export const ApiUpdateUserDocs = () =>
         - Локаций на карте
 
         **Важные моменты по полям профиля:**
-        - Все поля профиля (avatar, companyPhone, companyEmail, telegram, siteUrl, description) обязательны
+        - Все поля профиля (avatar, companyPhone, companyEmail, siteUrl, description) обязательны
         - Для обновления поля передайте новое значение
         - Для сохранения текущего значения передайте текущее значение
 
@@ -65,7 +65,6 @@ export const ApiUpdateUserDocs = () =>
           ],
           "companyPhone": "+79991234567",
           "companyEmail": "info@company.com",
-          "telegram": "@username",
           "siteUrl": "https://company.com",
           "description": "Компания занимается разработкой программного обеспечения",
           "workers": [

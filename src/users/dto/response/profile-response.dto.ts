@@ -61,13 +61,6 @@ export class ProfileResponseDto {
   email: string | null;
 
   @ApiProperty({
-    description: 'Telegram',
-    example: '@company',
-    type: 'string',
-  })
-  telegram: string | null;
-
-  @ApiProperty({
     description: 'Сайт компании',
     example: 'https://company.com',
     type: 'string',
@@ -144,7 +137,6 @@ export class ProfileResponseDto {
     avatarUrl: string | null,
     phone: string | null,
     email: string | null,
-    telegram: string | null,
     siteUrl: string | null,
     description: string | null,
     legalEntityType: LegalEntityResponseDto | null,
@@ -163,7 +155,6 @@ export class ProfileResponseDto {
     this.avatarUrl = avatarUrl;
     this.phone = phone;
     this.email = email;
-    this.telegram = telegram;
     this.siteUrl = siteUrl;
     this.description = description;
     this.legalEntityType = legalEntityType;

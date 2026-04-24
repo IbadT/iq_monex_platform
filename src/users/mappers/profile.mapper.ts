@@ -96,7 +96,6 @@ export class ProfileMapper {
       profile.avatarUrl,
       profile.phone,
       profile.email,
-      profile.telegram,
       profile.siteUrl,
       profile.description,
       legalEntityType,
@@ -258,7 +257,6 @@ export class ProfileMapper {
       avatarUrl,
       user.profile?.phone || null,
       user.profile?.email || null,
-      user.profile?.telegram || null,
       user.profile?.siteUrl || null,
       user.profile?.description || null,
       legalEntityType, // Всегда есть

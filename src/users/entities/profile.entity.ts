@@ -9,7 +9,6 @@ export class ProfileEntity {
   avatarUrl: string | null;
   phone: string | null;
   email: string | null;
-  telegram: string | null;
   siteUrl: string | null;
   description: string | null;
   createdAt: Date;
@@ -25,7 +24,6 @@ export class ProfileEntity {
     avatarUrl: string | null,
     phone: string | null,
     email: string | null,
-    telegram: string | null,
     siteUrl: string | null,
     description: string | null,
     createdAt: Date,
@@ -40,7 +38,6 @@ export class ProfileEntity {
     this.avatarUrl = avatarUrl;
     this.phone = phone;
     this.email = email;
-    this.telegram = telegram;
     this.siteUrl = siteUrl;
     this.description = description;
     this.createdAt = createdAt;

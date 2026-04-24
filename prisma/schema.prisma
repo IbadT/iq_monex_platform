@@ -102,7 +102,6 @@ model Profile {
   avatarUrl   String? @map("avatar_url")
   phone       String?
   email       String?
-  telegram    String?
   siteUrl     String? @map("site_url")
   description String?
 

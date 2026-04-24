@@ -89,13 +89,6 @@ export class UpdateUserDto {
   companyEmail: string | null;
 
   @ApiPropertyOptional({
-    description: 'Telegram',
-    example: '@username',
-  })
-  @IsString({ message: 'Telegram должен быть строкой' })
-  telegram: string | null;
-
-  @ApiPropertyOptional({
     description: 'Сайт компании',
     example: 'https://company.com',
   })
@@ -159,7 +152,6 @@ export class UpdateUserDto {
     activities: UpdateUserActivityDto[],
     companyPhone?: string | null,
     companyEmail?: string | null,
-    telegram?: string | null,
     siteUrl?: string | null,
     description?: string | null,
     workers?: CreateWorkerDto[] | [],
@@ -174,7 +166,6 @@ export class UpdateUserDto {
     this.activities = activities;
     this.companyPhone = companyPhone || null;
     this.companyEmail = companyEmail || null;
-    this.telegram = telegram || null;
     this.siteUrl = siteUrl || null;
     this.description = description || null;
     this.workers = workers || [];

@@ -150,7 +150,6 @@ describe('AuthService', () => {
           avatarUrl: null,
           phone: null,
           email: null,
-          telegram: null,
           siteUrl: null,
           description: null,
           createdAt: new Date(),

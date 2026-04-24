@@ -134,9 +134,7 @@ export class ListingsService {
   /**
    * Получает предпочитаемую валюту пользователя из профиля
    */
-  private async getUserPreferredCurrency(
-    userId: string,
-  ): Promise<{
+  private async getUserPreferredCurrency(userId: string): Promise<{
     id: number;
     symbol: string;
     name: string;
@@ -1020,12 +1018,21 @@ export class ListingsService {
 
         // если статус НЕ PUBLISHED, то освобождаем слоты
         if (checkIfListingExist.status === ListingStatus.PUBLISHED) {
-          await tx.listingSlot.delete({
-            where: {
-              listingId,
-            },
+          // Проверяем, существует ли слот перед удалением
+          const existingSlot = await tx.listingSlot.findFirst({
+            where: { listingId },
           });
-          this.logger.log(`Освобожден слот для объявления ${listingId}`);
+
+          if (existingSlot) {
+            await tx.listingSlot.delete({
+              where: { id: existingSlot.id },
+            });
+            this.logger.log(`Освобожден слот для объявления ${listingId}`);
+          } else {
+            this.logger.warn(
+              `Попытка удалить несуществующий слот для объявления ${listingId}`,
+            );
+          }
         }
 
         // Обработка ARCHIVED

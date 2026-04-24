@@ -47,6 +47,13 @@ export class FavoriteService {
                 },
               },
             },
+            listings: true,
+            workers: true,
+            files: {
+              where: {
+                kind: 'PHOTO',
+              },
+            },
           },
         },
       },
