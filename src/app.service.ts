@@ -9,7 +9,7 @@ import {
 import { specificationsData } from './attributes/default/specificaitonsData';
 import { tariffData } from './tariffs/default/tariffData';
 import { legalEntityTypes } from './categories/default/legalEntityTypes';
-import { getFlatActivities } from './categories/default/activitiesData';
+import { activityGroupsData } from './categories/default/activitiesData';
 import { S3Service } from './s3/s3.service';
 import { RabbitmqService } from './rabbitmq/rabbitmq.service';
 import { PromoCampaignStatus } from './promo/enums/promo-status.enum';
@@ -128,10 +128,22 @@ export class AppService {
     try {
       // Проверяем существует ли такой файл в S3
       const imageKeys = await this.s3Service.listObjects();
+      this.logger.log(`[getBannerByKey] Looking for key: "${key}"`);
+      this.logger.log(`[getBannerByKey] Total keys in S3: ${imageKeys.length}`);
+      this.logger.log(
+        `[getBannerByKey] First 10 keys: ${JSON.stringify(imageKeys.slice(0, 10))}`,
+      );
       const exists = imageKeys.includes(key);
+      this.logger.log(`[getBannerByKey] Key exists: ${exists}`);
 
       if (!exists) {
-        this.logger.warn(`Banner not found: ${key}`);
+        // Проверим, может ключ есть но с другим префиксом
+        const similarKeys = imageKeys.filter((k) =>
+          k.includes(key.split('/').pop() || ''),
+        );
+        this.logger.warn(
+          `[getBannerByKey] Banner not found: "${key}". Similar keys: ${JSON.stringify(similarKeys)}`,
+        );
         return null;
       }
 
@@ -707,26 +719,43 @@ export class AppService {
   }
 
   private async seedActivities(results: any) {
-    this.logger.log(' Создание/обновление сфер деятельности...');
+    this.logger.log(' Создание/обновление групп и сфер деятельности...');
 
-    const activities = getFlatActivities();
-
-    for (const activity of activities) {
+    // Создаем группы активностей
+    for (const group of activityGroupsData) {
       try {
-        await prisma.activity.upsert({
-          where: { id: activity.id },
-          update: { name: activity.name },
-          create: {
-            id: activity.id,
-            name: activity.name,
-          },
+        await prisma.activityGroup.upsert({
+          where: { id: group.id },
+          update: { name: group.name },
+          create: { id: group.id, name: group.name },
         });
-        results.activities.created++;
       } catch (error) {
         this.logger.warn(
-          ` Ошибка при создании сферы деятельности ${activity.name}: ${error.message}`,
+          ` Ошибка при создании группы ${group.name}: ${error.message}`,
         );
-        results.activities.errors++;
+      }
+    }
+
+    // Создаем активности с привязкой к группам
+    for (const group of activityGroupsData) {
+      for (const activity of group.activities) {
+        try {
+          await prisma.activity.upsert({
+            where: { id: activity.id },
+            update: { name: activity.name, groupId: group.id },
+            create: {
+              id: activity.id,
+              name: activity.name,
+              groupId: group.id,
+            },
+          });
+          results.activities.created++;
+        } catch (error) {
+          this.logger.warn(
+            ` Ошибка при создании сферы деятельности ${activity.name}: ${error.message}`,
+          );
+          results.activities.errors++;
+        }
       }
     }
 

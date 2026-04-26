@@ -4,9 +4,43 @@ import {
   UserDto,
   ActivityDto,
 } from '../dto/response/favorite-user-profile-response.dto';
+import { ListingStatus } from '@/listings/enums/listing-status.enum';
+import { MapLocationType } from '@/listings/dto/request/create-map-location.dto';
+import { FileKind } from '../../../prisma/generated/enums';
 
 export class FavoriteUserMapper {
   static toResponse(favorite: any): FavoriteUserProfileResponseDto {
+    // Get account number
+    const accountNumber = favorite.targetUser?.accountNumber || '';
+
+    // Count offices and warehouses from locations
+    const officesCount =
+      favorite.targetUser?.locations?.filter(
+        (loc: any) =>
+          loc.type === MapLocationType.MAIN_OFFICE ||
+          loc.type === MapLocationType.OFFICE,
+      ).length || 0;
+
+    const warehousesCount =
+      favorite.targetUser?.locations?.filter(
+        (loc: any) => loc.type === MapLocationType.WAREHOUSE,
+      ).length || 0;
+
+    // Count workers
+    const workersCount = favorite.targetUser?.workers?.length || 0;
+
+    // Count only PUBLISHED listings
+    const listingsCount =
+      favorite.targetUser?.listings?.filter(
+        (listing: any) => listing.status === ListingStatus.PUBLISHED,
+      ).length || 0;
+
+    // Get gallery photos (PHOTO kind)
+    const photos =
+      favorite.targetUser?.files
+        ?.filter((file: any) => file.kind === FileKind.PHOTO)
+        .map((file: any) => file.url) || [];
+
     const userProfile = favorite.targetUser?.profile
       ? new UserProfileDto(
           favorite.targetUser.profile.id || '',
@@ -16,9 +50,14 @@ export class FavoriteUserMapper {
           favorite.targetUser.profile.avatarUrl || null,
           favorite.targetUser.profile.phone || null,
           favorite.targetUser.profile.email || null,
-          favorite.targetUser.profile.telegram || null,
           favorite.targetUser.profile.siteUrl || null,
           favorite.targetUser.profile.description || null,
+          accountNumber,
+          officesCount,
+          warehousesCount,
+          workersCount,
+          listingsCount,
+          photos,
         )
       : null;
 

@@ -84,7 +84,11 @@ describe('ReviewsService', () => {
       prisma.listing.findFirst = jest.fn().mockResolvedValue({
         id: '123e4567-e89b-12d3-a456-426614174000',
         status: 'PUBLISHED',
+        userId: 'different-user',
       });
+
+      // Mock findFirst for review check (no existing review)
+      prisma.review.findFirst = jest.fn().mockResolvedValue(null);
 
       // Mock the entire transaction
       prisma.$transaction = jest.fn().mockResolvedValue('review-123');

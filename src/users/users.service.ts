@@ -47,7 +47,9 @@ import { ComplaintResponseDto } from './dto/response/complaint-response.dto';
 import { S3Service } from '@/s3/s3.service';
 import { RabbitmqService } from '@/rabbitmq/rabbitmq.service';
 import { FileOwnerType } from '../../prisma/generated/enums';
+import { ViewTargetType } from '../../prisma/generated/enums';
 import { UserCoreService } from './user-core.service';
+import { ViewTrackerService } from '@/view-tracker/view-tracker.service';
 import { ProfileService } from './profile.service';
 import { FileService } from '@/s3/file.service';
 import { NoteTargetType } from '@/notes';
@@ -66,6 +68,7 @@ export class UsersService {
     private readonly userCoreService: UserCoreService,
     private readonly profileService: ProfileService,
     private readonly fileService: FileService,
+    private readonly viewTrackerService: ViewTrackerService,
   ) {}
 
   async banUser(id: string, isBan: boolean, reason: string) {
@@ -225,7 +228,11 @@ export class UsersService {
             include: {
               userActivities: {
                 include: {
-                  activity: true,
+                  activity: {
+                    include: {
+                      group: true,
+                    },
+                  },
                 },
               },
             },
@@ -293,7 +300,11 @@ export class UsersService {
           include: {
             userActivities: {
               include: {
-                activity: true,
+                activity: {
+                  include: {
+                    group: true,
+                  },
+                },
               },
             },
             files: {
@@ -416,6 +427,7 @@ export class UsersService {
   async getProfileById(
     currentUserId: string | undefined,
     id: string,
+    ipAddress?: string,
   ): Promise<FullProfileResponseDto> {
     // Строим include для relations, скалярные поля включены по умолчанию
     const user = await prisma.user.findUnique({
@@ -427,7 +439,6 @@ export class UsersService {
             avatarUrl: true,
             phone: true,
             email: true,
-            telegram: true,
             siteUrl: true,
             description: true,
             legalEntityType: true,
@@ -436,7 +447,11 @@ export class UsersService {
         },
         userActivities: {
           include: {
-            activity: true,
+            activity: {
+              include: {
+                group: true,
+              },
+            },
           },
         },
         files: {
@@ -467,6 +482,29 @@ export class UsersService {
 
     if (!user) {
       throw new NotFoundException(`Пользователь с id: ${id} не найден`);
+    }
+
+    // Инкрементируем счетчик просмотров профиля только для уникальных IP
+    if (ipAddress) {
+      const isUniqueView = await this.viewTrackerService.trackView(
+        ViewTargetType.USER,
+        id,
+        ipAddress,
+      );
+
+      if (isUniqueView) {
+        prisma.user
+          .update({
+            where: { id },
+            data: { viewsCount: { increment: 1 } },
+          })
+          .catch((err) => {
+            this.logger.error(
+              `Failed to increment viewsCount for user ${id}:`,
+              err,
+            );
+          });
+      }
     }
 
     // Проверяем избранное отдельным запросом
@@ -704,7 +742,6 @@ export class UsersService {
               avatarUrl: body.avatar,
               phone: body.companyPhone,
               email: body.companyEmail,
-              telegram: body.telegram,
               siteUrl: body.siteUrl,
               description: body.description,
             },
@@ -741,7 +778,6 @@ export class UsersService {
               avatarUrl: body.avatar,
               phone: body.companyPhone,
               email: body.companyEmail,
-              telegram: body.telegram,
               siteUrl: body.siteUrl,
               description: body.description,
             },

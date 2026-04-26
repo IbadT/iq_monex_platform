@@ -34,6 +34,7 @@ import { MapLocationsModule } from './map_locations/map_locations.module';
 import { ActivitiesModule } from './activities/activities.module';
 import { TariffsModule } from './tariffs/tariffs.module';
 import { NotesModule } from './notes/notes.module';
+import { ViewTrackerModule } from './view-tracker/view-tracker.module';
 
 @Module({
   imports: [
@@ -77,6 +78,7 @@ import { NotesModule } from './notes/notes.module';
     ActivitiesModule,
     TariffsModule,
     NotesModule,
+    ViewTrackerModule,
   ],
   controllers: [AppController],
   providers: [

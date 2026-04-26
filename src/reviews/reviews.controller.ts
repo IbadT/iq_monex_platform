@@ -42,14 +42,13 @@ export class ReviewsController {
   ) {}
 
   @Get('users/:id')
-  // @Protected()
   @ApiGetUserReviewsDocs()
   async getUserReviews(
     @Param('id', ParseUUIDPipe) id: string,
-    // @Query() query: PaginationDto,
     @Query() query: UserReviewsQueryDto,
+    @CurrentUser() user?: JwtPayload,
   ): Promise<GetReviewsDto[]> {
-    return await this.reviewsService.getUserReviews(id, query);
+    return await this.reviewsService.getUserReviews(id, query, user?.id);
   }
 
   @Post('users')
@@ -75,11 +74,13 @@ export class ReviewsController {
   }
 
   // получить все коментарии к объявлению
-  // TODO: limit, offset, has_photo, new_first, positive_rate_first
   @Get('listings')
   @ApiGetAllReviewsDocs()
-  findAll(@Query() query: ListingReviewsQueryDto): Promise<GetReviewsDto[]> {
-    return this.reviewsService.findAll(query);
+  findAll(
+    @Query() query: ListingReviewsQueryDto,
+    @CurrentUser() user?: JwtPayload,
+  ): Promise<GetReviewsDto[]> {
+    return this.reviewsService.findAll(query, user?.id);
   }
 
   @Get('listings/:id')

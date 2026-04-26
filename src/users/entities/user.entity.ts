@@ -29,7 +29,6 @@ export interface Profile {
   avatarUrl: string | null;
   phone: string | null;
   email: string | null;
-  telegram: string | null;
   siteUrl: string | null;
   description: string | null;
   createdAt: Date;
@@ -168,7 +167,6 @@ export class User {
           avatarUrl: profileData.avatarUrl,
           phone: profileData.phone,
           email: profileData.email,
-          telegram: profileData.telegram,
           siteUrl: profileData.siteUrl,
           description: profileData.description,
           createdAt: user.profile.createdAt,

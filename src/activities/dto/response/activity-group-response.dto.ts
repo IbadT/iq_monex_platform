@@ -1,6 +1,6 @@
 import { ApiProperty } from '@nestjs/swagger';
 
-export class ActivityResponseDto {
+export class ActivityInGroupDto {
   @ApiProperty({
     description: 'Уникальный идентификатор сферы деятельности',
     example: 101,
@@ -22,25 +22,37 @@ export class ActivityResponseDto {
   })
   groupId: number;
 
+  constructor(id: number, name: string, groupId: number) {
+    this.id = id;
+    this.name = name;
+    this.groupId = groupId;
+  }
+}
+
+export class ActivityGroupResponseDto {
+  @ApiProperty({
+    description: 'Уникальный идентификатор группы',
+    example: 1,
+    type: 'integer',
+  })
+  id: number;
+
   @ApiProperty({
     description: 'Название группы активностей',
     example: 'ЮРИДИЧЕСКИЕ И РЕГУЛЯТОРНЫЕ УСЛУГИ',
     type: 'string',
-    nullable: true,
   })
-  groupName?: string | undefined;
+  name: string;
 
-  constructor(
-    id: number,
-    name: string,
-    groupId: number,
-    groupName?: string | undefined,
-  ) {
+  @ApiProperty({
+    description: 'Список активностей в группе',
+    type: [ActivityInGroupDto],
+  })
+  activities: ActivityInGroupDto[];
+
+  constructor(id: number, name: string, activities: ActivityInGroupDto[]) {
     this.id = id;
     this.name = name;
-    this.groupId = groupId;
-    if (groupName !== undefined) {
-      this.groupName = groupName;
-    }
+    this.activities = activities;
   }
 }

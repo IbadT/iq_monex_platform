@@ -1,4 +1,4 @@
-import { ActivityResponseDto } from '@/activities/dto/response/activity-response.dto';
+import { ActivityGroupResponseDto } from '@/activities/dto/response/activity-group-response.dto';
 import { LegalEntityResponseDto } from '@/categories/dto/response/legal-entity.response.dto';
 import { PaginationDto } from '@/common/dto/pagintation.dto';
 import { CurrenciesResponseDto } from '@/dictionaries/dto/response/currencies-response.dto';
@@ -61,13 +61,6 @@ export class ProfileResponseDto {
   email: string | null;
 
   @ApiProperty({
-    description: 'Telegram',
-    example: '@company',
-    type: 'string',
-  })
-  telegram: string | null;
-
-  @ApiProperty({
     description: 'Сайт компании',
     example: 'https://company.com',
     type: 'string',
@@ -96,10 +89,10 @@ export class ProfileResponseDto {
   currency: CurrenciesResponseDto | null;
 
   @ApiProperty({
-    description: 'Описание сферы деятельности',
-    type: () => ActivityResponseDto,
+    description: 'Описание сферы деятельности, сгруппированное по группам',
+    type: () => [ActivityGroupResponseDto],
   })
-  activities: ActivityResponseDto[];
+  activities: ActivityGroupResponseDto[];
 
   @ApiProperty({
     description: 'Рейтинг профиля',
@@ -128,6 +121,14 @@ export class ProfileResponseDto {
   })
   maps: MapLocationResponseDto[];
 
+  @ApiProperty({
+    description: 'Дата создания пользователя',
+    example: '2024-01-15T10:30:00.000Z',
+    type: 'string',
+    format: 'date-time',
+  })
+  createdAt: Date;
+
   constructor(
     id: string,
     userId: string,
@@ -136,16 +137,16 @@ export class ProfileResponseDto {
     avatarUrl: string | null,
     phone: string | null,
     email: string | null,
-    telegram: string | null,
     siteUrl: string | null,
     description: string | null,
     legalEntityType: LegalEntityResponseDto | null,
     currency: CurrenciesResponseDto | null,
-    activities: ActivityResponseDto[],
+    activities: ActivityGroupResponseDto[],
     rating: number,
     commentsCount: number,
     ban: BanResponseDto,
     maps: MapLocationResponseDto[],
+    createdAt: Date,
   ) {
     this.id = id;
     this.userId = userId;
@@ -154,7 +155,6 @@ export class ProfileResponseDto {
     this.avatarUrl = avatarUrl;
     this.phone = phone;
     this.email = email;
-    this.telegram = telegram;
     this.siteUrl = siteUrl;
     this.description = description;
     this.legalEntityType = legalEntityType;
@@ -164,6 +164,7 @@ export class ProfileResponseDto {
     this.commentsCount = commentsCount;
     this.ban = ban;
     this.maps = maps;
+    this.createdAt = createdAt;
   }
 }
 

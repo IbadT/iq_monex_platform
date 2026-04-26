@@ -1,17 +1,18 @@
 # ─────────────────────────────────────────────────────────────
 # Этап 1: Сборка (builder)
 # ─────────────────────────────────────────────────────────────
-FROM node:20-alpine AS builder
+FROM oven/bun:1-alpine AS builder
 
 WORKDIR /app
 
 # Копируем конфиги
 COPY package*.json ./
+COPY bun.lock ./
 COPY tsconfig*.json ./
 COPY nest-cli.json ./
 
 # Устанавливаем зависимости
-RUN npm ci
+RUN bun install --frozen-lockfile
 
 # Копируем остальной код
 COPY . .
@@ -20,17 +21,20 @@ COPY . .
 ARG DATABASE_URL
 ENV DATABASE_URL=${DATABASE_URL}
 
-RUN npx prisma generate
+RUN bun run prisma generate
 
 # Сборка приложения
-RUN npm run build
+RUN bun run build
+
+# Заменяем алиасы путей на относительные
+RUN bun run tsc-alias
 
 # ─────────────────────────────────────────────────────────────
 # Этап 2: Продакшн
 # ─────────────────────────────────────────────────────────────
-FROM node:20-alpine AS production
+FROM oven/bun:1-alpine AS production
 
-RUN apk add --no-cache dumb-init postgresql-client jq bash
+RUN apk add --no-cache dumb-init postgresql-client jq bash nodejs
 
 WORKDIR /app
 
@@ -39,7 +43,8 @@ ENV PORT=3000
 
 # Только production зависимости
 COPY package*.json ./
-RUN npm ci --only=production && npm cache clean --force
+COPY bun.lock ./
+RUN bun install --frozen-lockfile --production && bun pm cache rm
 
 # Копируем скомпилированный код
 COPY --from=builder /app/dist ./dist
@@ -73,7 +78,7 @@ CMD ["node", "dist/src/main.js"]
 # # ─────────────────────────────────────────────────────────────
 # # Этап 1: Сборка (builder)
 # # ─────────────────────────────────────────────────────────────
-# FROM node:20-alpine AS builder
+# FROM oven/bun:1-alpine AS builder
 
 # WORKDIR /app
 
@@ -82,26 +87,27 @@ CMD ["node", "dist/src/main.js"]
 
 # # Копируем конфиги
 # COPY package*.json ./
+# COPY bun.lock ./
 # COPY tsconfig*.json ./
 # COPY nest-cli.json ./
 
 # # Устанавливаем зависимости
-# RUN npm ci
+# RUN bun install --frozen-lockfile
 
 # # Копируем остальной код
 # COPY . .
 
 # # Генерация Prisma клиента
 # ENV DATABASE_URL=${DATABASE_URL}
-# RUN npx prisma generate
+# RUN bun run prisma generate
 
 # # Сборка приложения
-# RUN npm run build
+# RUN bun run build
 
 # # ─────────────────────────────────────────────────────────────
 # # Этап 2: Продакшн
 # # ─────────────────────────────────────────────────────────────
-# FROM node:20-alpine AS production
+# FROM oven/bun:1-alpine AS production
 
 # RUN apk add --no-cache dumb-init
 
@@ -112,7 +118,8 @@ CMD ["node", "dist/src/main.js"]
 
 # # Только production зависимости
 # COPY package*.json ./
-# RUN npm ci --only=production && npm cache clean --force
+# COPY bun.lock ./
+# RUN bun install --frozen-lockfile --production && bun pm cache rm
 
 # # Копируем скомпилированный код
 # COPY --from=builder /app/dist ./dist
@@ -136,4 +143,4 @@ CMD ["node", "dist/src/main.js"]
 # EXPOSE 3000
 
 # ENTRYPOINT ["dumb-init", "--"]
-# CMD ["node", "dist/src/main.js"]
+# CMD ["bun", "dist/src/main.js"]

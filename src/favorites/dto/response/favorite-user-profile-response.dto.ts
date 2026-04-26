@@ -53,13 +53,6 @@ export class UserProfileDto {
   email: string | null;
 
   @ApiProperty({
-    description: 'Telegram',
-    example: '@company',
-    type: 'string',
-  })
-  telegram: string | null;
-
-  @ApiProperty({
     description: 'Сайт',
     example: 'https://company.com',
     type: 'string',
@@ -73,6 +66,51 @@ export class UserProfileDto {
   })
   description: string | null;
 
+  @ApiProperty({
+    description: 'Номер счета',
+    example: 'ACC-123456',
+    type: 'string',
+  })
+  accountNumber: string;
+
+  @ApiProperty({
+    description: 'Количество офисов',
+    example: 3,
+    type: 'integer',
+  })
+  officesCount: number;
+
+  @ApiProperty({
+    description: 'Количество складов',
+    example: 2,
+    type: 'integer',
+  })
+  warehousesCount: number;
+
+  @ApiProperty({
+    description: 'Количество сотрудников',
+    example: 15,
+    type: 'integer',
+  })
+  workersCount: number;
+
+  @ApiProperty({
+    description: 'Количество опубликованных объявлений',
+    example: 25,
+    type: 'integer',
+  })
+  listingsCount: number;
+
+  @ApiProperty({
+    description: 'Фотографии галереи',
+    type: [String],
+    example: [
+      'https://example.com/photo1.jpg',
+      'https://example.com/photo2.jpg',
+    ],
+  })
+  photos: string[];
+
   constructor(
     id: string,
     userId: string,
@@ -81,9 +119,14 @@ export class UserProfileDto {
     avatarUrl: string | null,
     phone: string | null,
     email: string | null,
-    telegram: string | null,
     siteUrl: string | null,
     description: string | null,
+    accountNumber: string,
+    officesCount: number,
+    warehousesCount: number,
+    workersCount: number,
+    listingsCount: number,
+    photos: string[],
   ) {
     this.id = id;
     this.userId = userId;
@@ -92,9 +135,14 @@ export class UserProfileDto {
     this.avatarUrl = avatarUrl;
     this.phone = phone;
     this.email = email;
-    this.telegram = telegram;
     this.siteUrl = siteUrl;
     this.description = description;
+    this.accountNumber = accountNumber;
+    this.officesCount = officesCount;
+    this.warehousesCount = warehousesCount;
+    this.workersCount = workersCount;
+    this.listingsCount = listingsCount;
+    this.photos = photos;
   }
 }
 

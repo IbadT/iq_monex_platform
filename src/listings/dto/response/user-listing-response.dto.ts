@@ -9,4 +9,6 @@ export class UserListingResponseDto extends PickType(UserResponseDto, [
   isFavorite!: boolean;
   code!: string;
   accountNumber!: string;
+  rating!: number;
+  reviewsCount!: number;
 }

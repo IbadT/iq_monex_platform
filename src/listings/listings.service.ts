@@ -46,6 +46,10 @@ import { FileService } from '@/s3/file.service';
 import { MapLocationType } from './dto/request/create-map-location.dto';
 import { PromoParticipantService } from '@/promo/promo_participant.service';
 import { NoteTargetType } from '@/notes';
+import { GetConvertValueFromAmountDto } from '@/dictionaries/dto/request/get-convert-valut-from-amount.dto';
+import { VALUT_CODE } from '@/dictionaries/enums/valut-code.enum';
+import { ViewTrackerService } from '@/view-tracker/view-tracker.service';
+import { ViewTargetType } from '../../prisma/generated/enums';
 
 @Injectable()
 export class ListingsService {
@@ -63,7 +67,105 @@ export class ListingsService {
     private readonly fileService: FileService,
     private readonly promoParticipantService: PromoParticipantService,
     private readonly logger: AppLogger,
+    private readonly viewTrackerService: ViewTrackerService,
   ) {}
+
+  /**
+   * Конвертирует цену объявления в валюту пользователя
+   * @param listingCurrencyCode - валюта объявления
+   * @param price - цена объявления
+   * @param targetCurrencyCode - предпочитаемая валюта пользователя (если null - возвращаем оригинальную цену)
+   */
+  private async convertListingPrice(
+    listingCurrencyCode: string | null,
+    price: Decimal | null,
+    targetCurrencyCode?: string | null,
+  ): Promise<number | null> {
+    if (!listingCurrencyCode || !price) {
+      return null;
+    }
+
+    // Если пользователь не авторизован или валюта та же - возвращаем оригинальную цену
+    if (!targetCurrencyCode || targetCurrencyCode === listingCurrencyCode) {
+      return Number(price);
+    }
+
+    try {
+      // Проверяем, что коды валют поддерживаются
+      const validCodes = Object.values(VALUT_CODE) as string[];
+      if (
+        !validCodes.includes(listingCurrencyCode) ||
+        !validCodes.includes(targetCurrencyCode)
+      ) {
+        return Number(price);
+      }
+
+      const body = new GetConvertValueFromAmountDto(
+        listingCurrencyCode as any,
+        Number(price),
+      );
+
+      const rates = await this.dictionariesService.convertValutFromAmount(body);
+
+      // Находим курс целевой валюты
+      const targetRate = rates.find((r) => r.code === targetCurrencyCode);
+      if (!targetRate) {
+        return Number(price);
+      }
+
+      // Конвертируем через RUB: (цена * курс_исходной / номинал_исходной) -> RUB -> целевая
+      // Получаем курс исходной валюты
+      const sourceRate = rates.find((r) => r.code === listingCurrencyCode);
+      if (!sourceRate) {
+        return Number(price);
+      }
+
+      // Сначала в рубли: (цена * курс_исходной) / номинал_исходной
+      const amountInRub =
+        (Number(price) * Number(sourceRate.rate)) / sourceRate.nominal;
+
+      // Затем в целевую валюту: (рубли * номинал_целевой) / курс_целевой
+      const convertedPrice =
+        (amountInRub * targetRate.nominal) / Number(targetRate.rate);
+      return Number(convertedPrice.toFixed(2));
+    } catch (error) {
+      this.logger.error('Ошибка конвертации цены:', error);
+      return Number(price);
+    }
+  }
+
+  /**
+   * Получает предпочитаемую валюту пользователя из профиля
+   */
+  private async getUserPreferredCurrency(userId: string): Promise<{
+    id: number;
+    symbol: string;
+    name: string;
+    code: string;
+  } | null> {
+    try {
+      const profile = await prisma.profile.findUnique({
+        where: { userId },
+        include: { currency: true },
+      });
+      if (!profile?.currency) return null;
+      // name - JSON поле с мультиязычными названиями {"ru": "...", "en": "..."}
+      const nameData = profile.currency.name as {
+        ru?: string;
+        en?: string;
+        kz?: string;
+      };
+      return {
+        id: profile.currency.id,
+        symbol: profile.currency.symbol,
+        name: nameData?.ru || nameData?.en || 'Unknown',
+        code: profile.currency.code,
+      };
+    } catch (error) {
+      this.logger.error('Ошибка получения валюты пользователя:', error);
+      return null;
+    }
+  }
 
   async getRecomendsByListingId(listingId: string, query: GetRecomentQueryDto) {
     const listing = await prisma.listing.findUnique({
@@ -246,12 +348,25 @@ export class ListingsService {
     // Загружаем promo данные для всех пользователей (batch запрос)
     const promoDataMap = await this.getPromoDataForUsers(finalListings);
 
-    return finalListings.map((listing) =>
-      ListingMapper.toResponse(
-        listing,
-        contactDataMap.get(listing.id) || null,
-        promoDataMap.get(listing.userId) || null,
-      ),
+    return Promise.all(
+      finalListings.map(async (listing) => {
+        // Для неавторизованных пользователей - оригинальная цена
+        const convertedPrice = await this.convertListingPrice(
+          listing.currency?.code || null,
+          listing.price,
+          null,
+        );
+        return ListingMapper.toResponse(
+          listing,
+          contactDataMap.get(listing.id) || null,
+          promoDataMap.get(listing.userId) || null,
+          undefined,
+          undefined,
+          undefined,
+          undefined,
+          convertedPrice,
+        );
+      }),
     );
   }
 
@@ -562,11 +677,20 @@ export class ListingsService {
             listing.contactType,
           );
           const promoData = await this.getPromoData(listing.userId);
+          const convertedPrice = await this.convertListingPrice(
+            listing.currency?.code || null,
+            listing.price,
+          );
 
           return ListingMapper.toResponse(
             listingWithSeparatedFiles,
             contactData,
             promoData,
+            undefined,
+            undefined,
+            undefined,
+            undefined,
+            convertedPrice,
           );
         }),
       );
@@ -722,40 +846,50 @@ export class ListingsService {
       string,
       { id: string; targetType: string; targetId: string }
     >();
+    let userPreferredCurrency: {
+      id: number;
+      symbol: string;
+      name: string;
+      code: string;
+    } | null = null;
 
     if (currentUserId) {
       const listingIds = listings.map((l) => l.id);
       const targetUserIds = [...new Set(listings.map((l) => l.userId))];
 
-      const [favorites, userFavorites, notes] = await Promise.all([
-        prisma.favorite.findMany({
-          where: {
-            userId: currentUserId,
-            listingId: { in: listingIds },
-            type: 'LISTING',
-          },
-          select: { listingId: true },
-        }),
-        prisma.favorite.findMany({
-          where: {
-            userId: currentUserId,
-            targetUserId: { in: targetUserIds },
-            type: 'USER',
-          },
-          select: { targetUserId: true },
-        }),
-        prisma.userNote.findMany({
-          where: {
-            authorId: currentUserId,
-            targetType: 'LISTING',
-            targetListingId: { in: listingIds },
-          },
-          select: { id: true, targetListingId: true },
-        }),
-      ]);
+      const [favorites, userFavorites, notes, currencyCode] = await Promise.all(
+        [
+          prisma.favorite.findMany({
+            where: {
+              userId: currentUserId,
+              listingId: { in: listingIds },
+              type: 'LISTING',
+            },
+            select: { listingId: true },
+          }),
+          prisma.favorite.findMany({
+            where: {
+              userId: currentUserId,
+              targetUserId: { in: targetUserIds },
+              type: 'USER',
+            },
+            select: { targetUserId: true },
+          }),
+          prisma.userNote.findMany({
+            where: {
+              authorId: currentUserId,
+              targetType: 'LISTING',
+              targetListingId: { in: listingIds },
+            },
+            select: { id: true, targetListingId: true },
+          }),
+          this.getUserPreferredCurrency(currentUserId),
+        ],
+      );
 
       favoritesSet = new Set(favorites.map((f) => f.listingId!));
       userFavoritesSet = new Set(userFavorites.map((f) => f.targetUserId!));
+      userPreferredCurrency = currencyCode;
       notes.forEach((n) => {
         notesMap.set(n.targetListingId!, {
           id: n.id,
@@ -766,41 +900,51 @@ export class ListingsService {
     }
 
     // Разделяем файлы на фотографии и документы и мапим через ListingMapper
-    const processedListings = listings.map((listing: any) => {
-      const listingWithSeparatedFiles = {
-        ...listing,
-        photos: listing.files.filter(
-          (file: any) => file.kind === FileKind.PHOTO,
-        ),
-        files: listing.files.filter(
-          (file: any) => file.kind === FileKind.DOCUMENT,
-        ),
-      };
+    const processedListings = await Promise.all(
+      listings.map(async (listing: any) => {
+        const listingWithSeparatedFiles = {
+          ...listing,
+          photos: listing.files.filter(
+            (file: any) => file.kind === FileKind.PHOTO,
+          ),
+          files: listing.files.filter(
+            (file: any) => file.kind === FileKind.DOCUMENT,
+          ),
+        };
 
-      const mine = currentUserId ? listing.userId === currentUserId : false;
-      const isFavorite = currentUserId ? favoritesSet.has(listing.id) : false;
-      const isUserFavorite = currentUserId
-        ? userFavoritesSet.has(listing.userId)
-        : false;
-      const noteData = notesMap.get(listing.id);
-      const note = noteData
-        ? ListingMapper.buildNoteEmbeddedDto(
-            noteData.id,
-            NoteTargetType.LISTING,
-            noteData.targetId,
-          )
-        : null;
+        const mine = currentUserId ? listing.userId === currentUserId : false;
+        const isFavorite = currentUserId ? favoritesSet.has(listing.id) : false;
+        const isUserFavorite = currentUserId
+          ? userFavoritesSet.has(listing.userId)
+          : false;
+        const noteData = notesMap.get(listing.id);
+        const note = noteData
+          ? ListingMapper.buildNoteEmbeddedDto(
+              noteData.id,
+              NoteTargetType.LISTING,
+              noteData.targetId,
+            )
+          : null;
 
-      return ListingMapper.toResponse(
-        listingWithSeparatedFiles,
-        contactDataMap.get(listing.id) || null,
-        promoDataMap.get(listing.userId) || null,
-        isFavorite,
-        note,
-        isUserFavorite,
-        mine,
-      );
-    });
+        const convertedPrice = await this.convertListingPrice(
+          listingWithSeparatedFiles.currency?.code || null,
+          listingWithSeparatedFiles.price,
+          userPreferredCurrency?.code || null,
+        );
+
+        return ListingMapper.toResponse(
+          listingWithSeparatedFiles,
+          contactDataMap.get(listing.id) || null,
+          promoDataMap.get(listing.userId) || null,
+          isFavorite,
+          note,
+          isUserFavorite,
+          mine,
+          convertedPrice,
+          userPreferredCurrency,
+        );
+      }),
+    );
 
     return {
       rows: processedListings,
@@ -877,12 +1021,21 @@ export class ListingsService {
 
         // если статус НЕ PUBLISHED, то освобождаем слоты
         if (checkIfListingExist.status === ListingStatus.PUBLISHED) {
-          await tx.listingSlot.delete({
-            where: {
-              listingId,
-            },
+          // Проверяем, существует ли слот перед удалением
+          const existingSlot = await tx.listingSlot.findFirst({
+            where: { listingId },
           });
-          this.logger.log(`Освобожден слот для объявления ${listingId}`);
+
+          if (existingSlot) {
+            await tx.listingSlot.delete({
+              where: { id: existingSlot.id },
+            });
+            this.logger.log(`Освобожден слот для объявления ${listingId}`);
+          } else {
+            this.logger.warn(
+              `Попытка удалить несуществующий слот для объявления ${listingId}`,
+            );
+          }
         }
 
         // Обработка ARCHIVED
@@ -1039,6 +1192,7 @@ export class ListingsService {
     id: string,
     status: StatusQueryDto,
     userId?: string,
+    ipAddress?: string,
   ): Promise<ListingResposeDto> {
     // const cachedKey = `listings:${id}`;
     // const cachedListing = await this.cacheSevice.get(cachedKey);
@@ -1072,12 +1226,15 @@ export class ListingsService {
             id: true,
             name: true,
             accountNumber: true,
+            rating: true,
+            reviewsCount: true,
             files: {
               where: { kind: 'AVATAR' },
               select: { url: true },
             },
             profile: {
               select: {
+                currencyId: true,
                 avatarUrl: true,
                 legalEntityType: {
                   select: {
@@ -1103,18 +1260,28 @@ export class ListingsService {
       );
     }
 
-    // Инкрементируем счетчик просмотров (асинхронно, не блокируем ответ)
-    prisma.listing
-      .update({
-        where: { id },
-        data: { viewsCount: { increment: 1 } },
-      })
-      .catch((err) => {
-        this.logger.error(
-          `Failed to increment viewsCount for listing ${id}:`,
-          err,
-        );
-      });
+    // Инкрементируем счетчик просмотров только для уникальных IP
+    if (ipAddress) {
+      const isUniqueView = await this.viewTrackerService.trackView(
+        ViewTargetType.LISTING,
+        id,
+        ipAddress,
+      );
+
+      if (isUniqueView) {
+        prisma.listing
+          .update({
+            where: { id },
+            data: { viewsCount: { increment: 1 } },
+          })
+          .catch((err) => {
+            this.logger.error(
+              `Failed to increment viewsCount for listing ${id}:`,
+              err,
+            );
+          });
+      }
+    }
 
     // Получаем данные контакта если указаны
     const contactData = await this.getContactData(
@@ -1129,39 +1296,46 @@ export class ListingsService {
     let isFavorite = false;
     let isUserFavorite = false;
     let note;
+    let userPreferredCurrency: {
+      id: number;
+      symbol: string;
+      name: string;
+      code: string;
+    } | null = null;
     // Определяем, является ли объявление собственностью текущего пользователя
     const mine = userId ? listing.userId === userId : false;
     if (userId) {
-      const favorite = await prisma.favorite.findFirst({
-        where: {
-          userId,
-          listingId: id,
-          type: 'LISTING',
-        },
-      });
-      isFavorite = !!favorite;
+      const [favorite, userFavorite, userNote, currencyCode] =
+        await Promise.all([
+          prisma.favorite.findFirst({
+            where: {
+              userId,
+              listingId: id,
+              type: 'LISTING',
+            },
+          }),
+          prisma.favorite.findFirst({
+            where: {
+              userId,
+              targetUserId: listing.userId,
+              type: 'USER',
+            },
+          }),
+          prisma.userNote.findFirst({
+            where: {
+              authorId: userId,
+              targetType: 'LISTING',
+              targetListingId: id,
+            },
+          }),
+          this.getUserPreferredCurrency(userId),
+        ]);
 
-      // Проверяем, находится ли владелец объявления в избранном пользователя
-      const userFavorite = await prisma.favorite.findFirst({
-        where: {
-          userId,
-          targetUserId: listing.userId,
-          type: 'USER',
-        },
-      });
+      isFavorite = !!favorite;
       isUserFavorite = !!userFavorite;
+      userPreferredCurrency = currencyCode;
 
       // Получаем заметку пользователя об объявлении
-      this.logger.log(
-        `[DEBUG] Looking for note: authorId=${userId}, targetListingId=${id}`,
-      );
-      const userNote = await prisma.userNote.findFirst({
-        where: {
-          authorId: userId,
-          targetType: 'LISTING',
-          targetListingId: id,
-        },
-      });
       this.logger.log(`[DEBUG] Found note: ${userNote ? userNote.id : 'null'}`);
       note = userNote
         ? ListingMapper.buildNoteEmbeddedDto(
@@ -1172,6 +1346,12 @@ export class ListingsService {
         : null;
     }
 
+    const convertedPrice = await this.convertListingPrice(
+      listing.currency?.code || null,
+      listing.price,
+      userPreferredCurrency?.code || null,
+    );
+
     return ListingMapper.toResponse(
       listing,
       contactData,
@@ -1180,6 +1360,8 @@ export class ListingsService {
       note,
       isUserFavorite,
       mine,
+      convertedPrice,
+      userPreferredCurrency,
     );
   }
 
@@ -1259,36 +1441,44 @@ export class ListingsService {
     let isFavorite = false;
     let isUserFavorite = false;
     let note;
+    let userPreferredCurrency: {
+      id: number;
+      symbol: string;
+      name: string;
+      code: string;
+    } | null = null;
     // Определяем, является ли объявление собственностью текущего пользователя
     const mine = userId ? listing.userId === userId : false;
     if (userId) {
-      const favorite = await prisma.favorite.findFirst({
-        where: {
-          userId,
-          listingId: listing.id,
-          type: 'LISTING',
-        },
-      });
+      const [favorite, userFavorite, userNote, currencyCode] =
+        await Promise.all([
+          prisma.favorite.findFirst({
+            where: {
+              userId,
+              listingId: listing.id,
+              type: 'LISTING',
+            },
+          }),
+          prisma.favorite.findFirst({
+            where: {
+              userId,
+              targetUserId: listing.userId,
+              type: 'USER',
+            },
+          }),
+          prisma.userNote.findFirst({
+            where: {
+              authorId: userId,
+              targetType: 'LISTING',
+              targetListingId: listing.id,
+            },
+          }),
+          this.getUserPreferredCurrency(userId),
+        ]);
+
       isFavorite = !!favorite;
-
-      // Проверяем, находится ли владелец объявления в избранном пользователя
-      const userFavorite = await prisma.favorite.findFirst({
-        where: {
-          userId,
-          targetUserId: listing.userId,
-          type: 'USER',
-        },
-      });
       isUserFavorite = !!userFavorite;
-
-      // Получаем заметку пользователя об объявлении
-      const userNote = await prisma.userNote.findFirst({
-        where: {
-          authorId: userId,
-          targetType: 'LISTING',
-          targetListingId: listing.id,
-        },
-      });
+      userPreferredCurrency = currencyCode;
       note = userNote
         ? ListingMapper.buildNoteEmbeddedDto(
             userNote.id,
@@ -1298,6 +1488,12 @@ export class ListingsService {
         : null;
     }
 
+    const convertedPrice = await this.convertListingPrice(
+      listing.currency?.code || null,
+      listing.price,
+      userPreferredCurrency?.code || null,
+    );
+
     return ListingMapper.toResponse(
       listing,
       contactData,
@@ -1306,6 +1502,8 @@ export class ListingsService {
       note,
       isUserFavorite,
       mine,
+      convertedPrice,
+      userPreferredCurrency,
     );
   }
 
@@ -1409,40 +1607,50 @@ export class ListingsService {
       string,
       { id: string; targetType: string; targetId: string }
     >();
+    let userPreferredCurrency: {
+      id: number;
+      symbol: string;
+      name: string;
+      code: string;
+    } | null = null;
 
     if (currentUserId) {
       const listingIds = listings.map((l) => l.id);
       const targetUserIds = [...new Set(listings.map((l) => l.userId))];
 
-      const [favorites, userFavorites, notes] = await Promise.all([
-        prisma.favorite.findMany({
-          where: {
-            userId: currentUserId,
-            listingId: { in: listingIds },
-            type: 'LISTING',
-          },
-          select: { listingId: true },
-        }),
-        prisma.favorite.findMany({
-          where: {
-            userId: currentUserId,
-            targetUserId: { in: targetUserIds },
-            type: 'USER',
-          },
-          select: { targetUserId: true },
-        }),
-        prisma.userNote.findMany({
-          where: {
-            authorId: currentUserId,
-            targetType: 'LISTING',
-            targetListingId: { in: listingIds },
-          },
-          select: { id: true, targetListingId: true },
-        }),
-      ]);
+      const [favorites, userFavorites, notes, currencyCode] = await Promise.all(
+        [
+          prisma.favorite.findMany({
+            where: {
+              userId: currentUserId,
+              listingId: { in: listingIds },
+              type: 'LISTING',
+            },
+            select: { listingId: true },
+          }),
+          prisma.favorite.findMany({
+            where: {
+              userId: currentUserId,
+              targetUserId: { in: targetUserIds },
+              type: 'USER',
+            },
+            select: { targetUserId: true },
+          }),
+          prisma.userNote.findMany({
+            where: {
+              authorId: currentUserId,
+              targetType: 'LISTING',
+              targetListingId: { in: listingIds },
+            },
+            select: { id: true, targetListingId: true },
+          }),
+          this.getUserPreferredCurrency(currentUserId),
+        ],
+      );
 
       favoritesSet = new Set(favorites.map((f) => f.listingId!));
       userFavoritesSet = new Set(userFavorites.map((f) => f.targetUserId!));
+      userPreferredCurrency = currencyCode;
       notes.forEach((n) => {
         notesMap.set(n.targetListingId!, {
           id: n.id,
@@ -1452,31 +1660,41 @@ export class ListingsService {
       });
     }
 
-    const rows = listings.map((listing) => {
-      const mine = currentUserId ? listing.userId === currentUserId : false;
-      const isFavorite = currentUserId ? favoritesSet.has(listing.id) : false;
-      const isUserFavorite = currentUserId
-        ? userFavoritesSet.has(listing.userId)
-        : false;
-      const noteData = notesMap.get(listing.id);
-      const note = noteData
-        ? ListingMapper.buildNoteEmbeddedDto(
-            noteData.id,
-            NoteTargetType.LISTING,
-            noteData.targetId,
-          )
-        : null;
+    const rows = await Promise.all(
+      listings.map(async (listing) => {
+        const mine = currentUserId ? listing.userId === currentUserId : false;
+        const isFavorite = currentUserId ? favoritesSet.has(listing.id) : false;
+        const isUserFavorite = currentUserId
+          ? userFavoritesSet.has(listing.userId)
+          : false;
+        const noteData = notesMap.get(listing.id);
+        const note = noteData
+          ? ListingMapper.buildNoteEmbeddedDto(
+              noteData.id,
+              NoteTargetType.LISTING,
+              noteData.targetId,
+            )
+          : null;
 
-      return ListingMapper.toResponse(
-        listing,
-        contactDataMap.get(listing.id) || null,
-        promoDataMap.get(listing.userId) || null,
-        isFavorite,
-        note,
-        isUserFavorite,
-        mine,
-      );
-    });
+        const convertedPrice = await this.convertListingPrice(
+          listing.currency?.code || null,
+          listing.price,
+          userPreferredCurrency?.code || null,
+        );
+
+        return ListingMapper.toResponse(
+          listing,
+          contactDataMap.get(listing.id) || null,
+          promoDataMap.get(listing.userId) || null,
+          isFavorite,
+          note,
+          isUserFavorite,
+          mine,
+          convertedPrice,
+          userPreferredCurrency,
+        );
+      }),
+    );
 
     return {
       rows,
@@ -1979,10 +2197,25 @@ export class ListingsService {
     // Получаем данные о подписке
     const promoData = await this.getPromoData(updatedListing.updated.userId);
 
+    // Получаем предпочитаемую валюту редактирующего пользователя
+    const userPreferredCurrency = await this.getUserPreferredCurrency(user.id);
+
+    const convertedPrice = await this.convertListingPrice(
+      updatedListing.updated.currency?.code || null,
+      updatedListing.updated.price,
+      userPreferredCurrency?.code || null,
+    );
+
     return ListingMapper.toResponse(
       updatedListing.updated,
       contactData,
       promoData,
+      undefined,
+      undefined,
+      undefined,
+      undefined,
+      convertedPrice,
+      userPreferredCurrency,
     );
   }
 

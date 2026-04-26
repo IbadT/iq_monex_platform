@@ -13,6 +13,7 @@ import { MapLocationsService } from '@/map_locations/map_locations.service';
 import { DictionariesService } from '@/dictionaries/dictionaries.service';
 import { FileService } from '@/s3/file.service';
 import { PromoModule } from '@/promo/promo.module';
+import { ViewTrackerModule } from '@/view-tracker/view-tracker.module';
 
 @Module({
   imports: [
@@ -21,6 +22,7 @@ import { PromoModule } from '@/promo/promo.module';
     SearchModule,
     RabbitmqModule,
     PromoModule,
+    ViewTrackerModule,
   ],
   controllers: [ListingsController],
   providers: [

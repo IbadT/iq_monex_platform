@@ -1,8 +1,8 @@
 import { PrismaClient } from '../../../prisma/generated/client';
-import { AddActivityToUserDto } from '../dto/add-activity-to-user.dto';
+import { UpdateUserActivityDto } from '../dto/update-user-activity.dto';
 
 export interface ActivityProcessData {
   userId: string;
-  activities: AddActivityToUserDto[];
+  activities: UpdateUserActivityDto[];
   tx: PrismaClient;
 }

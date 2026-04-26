@@ -14,17 +14,17 @@ import { AddActivityToUserDto } from '@/users/dto/add-activity-to-user.dto';
 import { ApiGetActivitiesDocs } from './decorators/get-activities-docs.decorator';
 import { ApiGetUserActivitiesDocs } from './decorators/get-user-activities-docs.decorator';
 import { ApiAddUserActivityDocs } from './decorators/add-user-activity-docs.decorator';
-import { ActivityResponseDto } from './dto/response/activity-response.dto';
+import { ActivityGroupResponseDto } from './dto/response/activity-group-response.dto';
 import { UserActivityResponseDto } from './dto/response/user-activity.response.dto';
 
 @Controller('activities')
 export class ActivitiesController {
   constructor(private readonly activitiesService: ActivitiesService) {}
 
-  // получить сферы деятельности
+  // получить сферы деятельности (группированные)
   @Get()
   @ApiGetActivitiesDocs()
-  async getActivities(): Promise<ActivityResponseDto[]> {
+  async getActivities(): Promise<ActivityGroupResponseDto[]> {
     return await this.activitiesService.getActivities();
   }
 

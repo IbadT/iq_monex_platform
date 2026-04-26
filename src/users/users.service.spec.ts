@@ -11,6 +11,7 @@ import { RabbitmqService } from '@/rabbitmq/rabbitmq.service';
 import { UserCoreService } from './user-core.service';
 import { ProfileService } from './profile.service';
 import { FileService } from '@/s3/file.service';
+import { ViewTrackerService } from '@/view-tracker/view-tracker.service';
 import { UpdateUserDto } from './dto/update-user.dto';
 import { UserResponseDto } from './dto/response/user-response.dto';
 const prisma = require('@/lib/prisma').prisma;
@@ -144,6 +145,13 @@ describe('UsersService', () => {
             replaceUserFilesArray: jest.fn(),
             enqueueFilesUpload: jest.fn(),
             enqueueAvatarUploadIfNeeded: jest.fn(),
+          },
+        },
+        {
+          provide: ViewTrackerService,
+          useValue: {
+            trackView: jest.fn(),
+            hasViewed: jest.fn(),
           },
         },
       ],

@@ -10,10 +10,11 @@ import {
   ValidateNested,
   IsUrl,
   MaxLength,
-  ArrayMaxSize,
   IsNumber,
+  ArrayMaxSize,
 } from 'class-validator';
-import { AddActivityToUserDto } from './add-activity-to-user.dto';
+import { MaxNonDeleteActivities } from '../validators/max-non-delete-activities.validator';
+import { UpdateUserActivityDto } from './update-user-activity.dto';
 import { CreateWorkerDto } from '@/workers/dto/create-worker.dto';
 import { CreateMapLocationDto } from '@/listings/dto/request/create-map-location.dto';
 
@@ -63,14 +64,14 @@ export class UpdateUserDto {
 
   @ApiProperty({
     description: 'Сферы деятельности',
-    type: [AddActivityToUserDto],
+    type: [UpdateUserActivityDto],
     required: true,
   })
   @IsArray({ message: 'Активности должны быть массивом' })
   @ValidateNested({ each: true })
-  @Type(() => AddActivityToUserDto)
-  @ArrayMaxSize(5, { message: 'Максимум 5 видов деятельности' })
-  activities: AddActivityToUserDto[];
+  @Type(() => UpdateUserActivityDto)
+  @MaxNonDeleteActivities(5, { message: 'Максимум 5 видов деятельности' })
+  activities: UpdateUserActivityDto[];
 
   @ApiProperty({
     description: 'Телефон компании',
@@ -87,13 +88,6 @@ export class UpdateUserDto {
   })
   @IsEmail({}, { message: 'Некорректный формат email' })
   companyEmail: string | null;
-
-  @ApiPropertyOptional({
-    description: 'Telegram',
-    example: '@username',
-  })
-  @IsString({ message: 'Telegram должен быть строкой' })
-  telegram: string | null;
 
   @ApiPropertyOptional({
     description: 'Сайт компании',
@@ -156,10 +150,9 @@ export class UpdateUserDto {
     legalEntityId: number,
     name: string,
     currencyId: number,
-    activities: AddActivityToUserDto[],
+    activities: UpdateUserActivityDto[],
     companyPhone?: string | null,
     companyEmail?: string | null,
-    telegram?: string | null,
     siteUrl?: string | null,
     description?: string | null,
     workers?: CreateWorkerDto[] | [],
@@ -174,7 +167,6 @@ export class UpdateUserDto {
     this.activities = activities;
     this.companyPhone = companyPhone || null;
     this.companyEmail = companyEmail || null;
-    this.telegram = telegram || null;
     this.siteUrl = siteUrl || null;
     this.description = description || null;
     this.workers = workers || [];

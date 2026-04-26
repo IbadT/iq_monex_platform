@@ -1,7 +1,7 @@
 import { UserWorkerResponseDto } from '@/workers/dto/response/worker-response.dto';
 import { ProfileResponseDto } from './profile-response.dto';
 import { MapLocationResponseDto } from '@/map_locations/dto/response/map-enterprice.response.dto';
-import { ActivityResponseDto } from '@/activities/dto/response/activity-response.dto';
+import { ActivityGroupResponseDto } from '@/activities/dto/response/activity-group-response.dto';
 import { LegalEntityResponseDto } from '@/categories/dto/response/legal-entity.response.dto';
 import { CurrenciesResponseDto } from '@/dictionaries/dto/response/currencies-response.dto';
 import { ApiProperty } from '@nestjs/swagger';
@@ -11,11 +11,11 @@ import { BanResponseDto } from './ban-response.dto';
 
 export class FullProfileResponseDto extends ProfileResponseDto {
   @ApiProperty({
-    description: 'Информация сферы деятельности',
-    type: () => [ActivityResponseDto],
+    description: 'Информация сферы деятельности, сгруппированное по группам',
+    type: () => [ActivityGroupResponseDto],
     isArray: true,
   })
-  activities: ActivityResponseDto[];
+  activities: ActivityGroupResponseDto[];
 
   @ApiProperty({
     description: 'Файлы профиля',
@@ -90,12 +90,11 @@ export class FullProfileResponseDto extends ProfileResponseDto {
     avatarUrl: string | null,
     phone: string | null,
     email: string | null,
-    telegram: string | null,
     siteUrl: string | null,
     description: string | null,
     legalEntityType: LegalEntityResponseDto | null,
     currency: CurrenciesResponseDto | null,
-    activities: ActivityResponseDto[],
+    activities: ActivityGroupResponseDto[],
     files: ListingFileResponseDto[],
     images: ListingFileResponseDto[],
     isFavorite: boolean,
@@ -105,6 +104,7 @@ export class FullProfileResponseDto extends ProfileResponseDto {
     maps: MapLocationResponseDto[],
     note: NoteEmbeddedDto | null,
     ban: BanResponseDto,
+    createdAt: Date,
   ) {
     super(
       id,
@@ -114,7 +114,6 @@ export class FullProfileResponseDto extends ProfileResponseDto {
       avatarUrl,
       phone,
       email,
-      telegram,
       siteUrl,
       description,
       legalEntityType,
@@ -124,6 +123,7 @@ export class FullProfileResponseDto extends ProfileResponseDto {
       commentsCount,
       ban,
       maps,
+      createdAt,
     );
     this.activities = activities;
     this.files = files;

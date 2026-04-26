@@ -34,12 +34,50 @@ export class ReviewsService {
   async getUserReviews(
     userId: string,
     query: UserReviewsQueryDto,
+    currentUserId?: string,
   ): Promise<GetReviewsDto[]> {
-    // Формируем условия where
+    const include = {
+      files: true,
+      author: {
+        select: {
+          id: true,
+          name: true,
+          files: {
+            where: {
+              kind: FILE_KIND.AVATAR,
+            },
+            select: {
+              url: true,
+            },
+            take: 1,
+          },
+        },
+      },
+    };
+
+    // Если есть авторизованный пользователь, получаем его отзыв отдельно
+    let currentUserReview = null;
+    if (currentUserId) {
+      currentUserReview = await prisma.review.findFirst({
+        where: {
+          targetUserId: userId,
+          targetType: ReviewTargetType.USER,
+          authorId: currentUserId,
+        },
+        include,
+      });
+    }
+
+    // Формируем условия where для остальных отзывов
     const where: any = {
       targetUserId: userId,
       targetType: ReviewTargetType.USER,
     };
+
+    // Исключаем отзыв текущего пользователя из общего списка
+    if (currentUserReview) {
+      where.id = { not: currentUserReview.id };
+    }
 
     // Фильтр по наличию фото
     if (query.hasPhoto === true) {
@@ -69,28 +107,16 @@ export class ReviewsService {
       orderBy.push({ createdAt: 'asc' });
     }
 
+    // Если у пользователя есть отзыв, уменьшаем limit для остальных
+    const effectiveLimit = currentUserReview
+      ? Math.max(0, query.limit - 1)
+      : query.limit;
+
     // Строим объект запроса
     const findManyArgs: any = {
       where,
-      include: {
-        files: true,
-        author: {
-          select: {
-            id: true,
-            name: true,
-            files: {
-              where: {
-                kind: FILE_KIND.AVATAR,
-              },
-              select: {
-                url: true,
-              },
-              take: 1,
-            },
-          },
-        },
-      },
-      take: query.limit,
+      include,
+      take: effectiveLimit,
       skip: query.offset,
     };
 
@@ -100,7 +126,12 @@ export class ReviewsService {
 
     const reviews = await prisma.review.findMany(findManyArgs);
 
-    return ReviewMapper.toGetReviewsDtoList(reviews);
+    // Объединяем: сначала отзыв текущего пользователя, затем остальные
+    const allReviews = currentUserReview
+      ? [currentUserReview, ...reviews]
+      : reviews;
+
+    return ReviewMapper.toGetReviewsDtoList(allReviews);
   }
 
   async createReviewToUser(
@@ -123,6 +154,19 @@ export class ReviewsService {
 
     if (!targetUser) {
       throw new NotFoundException('Пользователь не найден');
+    }
+
+    // Проверяем, не оставлял ли пользователь уже отзыв этому пользователю
+    const existingReview = await prisma.review.findFirst({
+      where: {
+        authorId: userId,
+        targetUserId: body.userId,
+        targetType: ReviewTargetType.USER,
+      },
+    });
+
+    if (existingReview) {
+      throw new ConflictException('Вы уже оставляли отзыв этому пользователю');
     }
 
     return await prisma.$transaction(async (tx: PrismaClient) => {
@@ -248,6 +292,19 @@ export class ReviewsService {
       );
     }
 
+    // Проверяем, не оставлял ли пользователь уже отзыв к этому объявлению
+    const existingReview = await prisma.review.findFirst({
+      where: {
+        authorId,
+        listingId: body.listingId,
+        targetType: ReviewTargetType.LISTING,
+      },
+    });
+
+    if (existingReview) {
+      throw new ConflictException('Вы уже оставляли отзыв к этому объявлению');
+    }
+
     try {
       return await prisma.$transaction(async (tx: TransactionClient) => {
         // Получаем текущее состояние объявления
@@ -345,7 +402,10 @@ export class ReviewsService {
     }
   }
 
-  async findAll(query: ListingReviewsQueryDto): Promise<GetReviewsDto[]> {
+  async findAll(
+    query: ListingReviewsQueryDto,
+    currentUserId?: string,
+  ): Promise<GetReviewsDto[]> {
     const {
       listing_id,
       limit = 20,
@@ -355,7 +415,36 @@ export class ReviewsService {
       positive_rate_first,
     } = query;
 
-    const cacheKey = `reviews:${listing_id}:${JSON.stringify({ limit, offset, has_photo, new_first, positive_rate_first })}`;
+    const include = {
+      likes: true,
+      files: true,
+      author: {
+        include: {
+          files: {
+            where: {
+              kind: FILE_KIND.AVATAR,
+            },
+            select: {
+              url: true,
+            },
+          },
+        },
+      },
+    };
+
+    // Если есть авторизованный пользователь, получаем его отзыв отдельно
+    let currentUserReview = null;
+    if (currentUserId) {
+      currentUserReview = await prisma.review.findFirst({
+        where: {
+          listingId: listing_id,
+          authorId: currentUserId,
+        },
+        include,
+      });
+    }
+
+    const cacheKey = `reviews:${listing_id}:${JSON.stringify({ limit, offset, has_photo, new_first, positive_rate_first, currentUserId })}`;
     const cachedData = await this.cacheService.get<GetReviewsDto[]>(cacheKey);
     if (cachedData) return cachedData;
 
@@ -363,6 +452,11 @@ export class ReviewsService {
     const where: any = {
       listingId: listing_id,
     };
+
+    // Исключаем отзыв текущего пользователя из общего списка
+    if (currentUserReview) {
+      where.id = { not: currentUserReview.id };
+    }
 
     // Фильтр по наличию фото
     if (has_photo !== undefined) {
@@ -391,32 +485,25 @@ export class ReviewsService {
       orderBy.push({ createdAt: 'desc' });
     }
 
+    // Если у пользователя есть отзыв, уменьшаем limit для остальных
+    const effectiveLimit = currentUserReview ? Math.max(0, limit - 1) : limit;
+
     const reviews = await prisma.review.findMany({
       where,
-      include: {
-        likes: true,
-        files: true,
-        author: {
-          include: {
-            files: {
-              where: {
-                kind: FILE_KIND.AVATAR,
-              },
-              select: {
-                url: true,
-              },
-            },
-          },
-        },
-      },
+      include,
       orderBy,
-      take: limit,
+      take: effectiveLimit,
       skip: offset,
     });
 
-    const response = ReviewMapper.toGetReviewsDtoList(reviews);
+    // Объединяем: сначала отзыв текущего пользователя, затем остальные
+    const allReviews = currentUserReview
+      ? [currentUserReview, ...reviews]
+      : reviews;
 
-    if (reviews && reviews.length > 0) {
+    const response = ReviewMapper.toGetReviewsDtoList(allReviews);
+
+    if (allReviews && allReviews.length > 0) {
       await this.cacheService.set({
         baseKey: cacheKey,
         ttl: 900,
