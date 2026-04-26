@@ -16,7 +16,7 @@ export class MaxNonDeleteActivitiesConstraint implements ValidatorConstraintInte
 
     const maxSize = args.constraints[0];
     const nonDeleteCount = activities.filter(
-      (activity) => activity.action !== 'DELETE'
+      (activity) => activity.action !== 'DELETE',
     ).length;
 
     return nonDeleteCount <= maxSize;
@@ -30,7 +30,7 @@ export class MaxNonDeleteActivitiesConstraint implements ValidatorConstraintInte
 
 export function MaxNonDeleteActivities(
   maxSize: number,
-  validationOptions?: ValidationOptions
+  validationOptions?: ValidationOptions,
 ) {
   return function (object: object, propertyName: string) {
     registerDecorator({
