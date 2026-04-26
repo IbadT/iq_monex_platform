@@ -121,6 +121,7 @@ describe('ListingsController', () => {
         listingId,
         query,
         undefined,
+        undefined,
       );
       expect(result).toEqual(mockListing);
     });

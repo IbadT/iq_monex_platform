@@ -13,6 +13,7 @@ import { DictionariesService } from '@/dictionaries/dictionaries.service';
 import { MapLocationsService } from '@/map_locations/map_locations.service';
 import { FileService } from '@/s3/file.service';
 import { PromoParticipantService } from '@/promo/promo_participant.service';
+import { ViewTrackerService } from '@/view-tracker/view-tracker.service';
 
 describe('ListingsService', () => {
   let service: ListingsService;
@@ -122,6 +123,13 @@ describe('ListingsService', () => {
           provide: PromoParticipantService,
           useValue: {
             checkUserConditions: jest.fn(),
+          },
+        },
+        {
+          provide: ViewTrackerService,
+          useValue: {
+            trackView: jest.fn(),
+            hasViewed: jest.fn(),
           },
         },
       ],

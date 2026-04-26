@@ -10,6 +10,7 @@ import {
   UseGuards,
   UseInterceptors,
   ClassSerializerInterceptor,
+  Ip,
 } from '@nestjs/common';
 import { UsersService } from './users.service';
 import { ApiTags } from '@nestjs/swagger';
@@ -66,8 +67,9 @@ export class UsersController {
   async getProfileById(
     @Param('id', ParseUUIDPipe) id: string,
     @CurrentUser() user?: JwtPayload,
+    @Ip() ip?: string,
   ): Promise<FullProfileResponseDto> {
-    return await this.usersService.getProfileById(user?.id, id);
+    return await this.usersService.getProfileById(user?.id, id, ip);
   }
 
   @Get('account/:account_number')

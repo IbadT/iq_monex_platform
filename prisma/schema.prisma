@@ -33,6 +33,9 @@ model User {
   rating       Float? @default(0)
   reviewsCount Int    @default(0) @map("reviews_count")
 
+  // Счетчик просмотров профиля
+  viewsCount Int @default(0) @map("views_count")
+
   roleId String @map("role_id") @db.Uuid
   role   Role   @relation(fields: [roleId], references: [id])
 
@@ -1303,4 +1306,40 @@ model UserNote {
 enum UserNoteTargetType {
   USER
   LISTING
+}
+
+// ================ VIEW TRACKER ================
+// Отслеживание уникальных просмотров для защиты от накрутки
+
+enum ViewTargetType {
+  LISTING
+  USER
+
+  @@map("view_target_type")
+}
+
+model ViewTracker {
+  id String @id @default(uuid()) @db.Uuid
+
+  // Тип цели просмотра (объявление или пользователь)
+  targetType ViewTargetType @map("target_type")
+
+  // ID цели (может быть listingId или userId)
+  targetId String @map("target_id") @db.Uuid
+
+  // IP адрес просматривающего
+  ipAddress String @map("ip_address") @db.VarChar(45) // IPv6 может быть до 45 символов
+
+  // User Agent для дополнительной идентификации
+  userAgent String? @map("user_agent") @db.VarChar(500)
+
+  // Время просмотра
+  viewedAt DateTime @default(now()) @map("viewed_at")
+
+  // Уникальный индекс: один IP может просмотреть цель только один раз
+  @@unique([targetType, targetId, ipAddress])
+  @@index([targetType, targetId])
+  @@index([ipAddress])
+  @@index([viewedAt])
+  @@map("view_trackers")
 }

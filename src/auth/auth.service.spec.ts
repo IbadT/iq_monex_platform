@@ -272,6 +272,7 @@ describe('AuthService', () => {
         createdAt: new Date(),
         updatedAt: new Date(),
         reviewsCount: 0,
+        viewsCount: 0,
         roleId: 'role-123',
         isBanned: false,
         banReason: null,

@@ -17,6 +17,7 @@ import { UserCoreService } from './user-core.service';
 import { ProfileService } from './profile.service';
 import { FileService } from '@/s3/file.service';
 import { GuardsModule } from '@/common/guards/guards.module';
+import { ViewTrackerModule } from '@/view-tracker/view-tracker.module';
 
 @Module({
   imports: [
@@ -29,6 +30,7 @@ import { GuardsModule } from '@/common/guards/guards.module';
     SearchModule,
     S3Module,
     RabbitmqModule,
+    ViewTrackerModule,
   ],
   controllers: [UsersController],
   providers: [

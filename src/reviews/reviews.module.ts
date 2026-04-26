@@ -15,6 +15,7 @@ import { DictionariesService } from '@/dictionaries/dictionaries.service';
 import { MapLocationsService } from '@/map_locations/map_locations.service';
 import { FileService } from '@/s3/file.service';
 import { PromoModule } from '@/promo/promo.module';
+import { ViewTrackerModule } from '@/view-tracker/view-tracker.module';
 
 @Module({
   imports: [
@@ -23,6 +24,7 @@ import { PromoModule } from '@/promo/promo.module';
     SubscriptionServiceModule,
     SearchModule,
     PromoModule,
+    ViewTrackerModule,
   ],
   controllers: [ReviewsController],
   providers: [

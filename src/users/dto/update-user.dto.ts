@@ -10,9 +10,10 @@ import {
   ValidateNested,
   IsUrl,
   MaxLength,
-  ArrayMaxSize,
   IsNumber,
+  ArrayMaxSize,
 } from 'class-validator';
+import { MaxNonDeleteActivities } from '../validators/max-non-delete-activities.validator';
 import { UpdateUserActivityDto } from './update-user-activity.dto';
 import { CreateWorkerDto } from '@/workers/dto/create-worker.dto';
 import { CreateMapLocationDto } from '@/listings/dto/request/create-map-location.dto';
@@ -69,7 +70,7 @@ export class UpdateUserDto {
   @IsArray({ message: 'Активности должны быть массивом' })
   @ValidateNested({ each: true })
   @Type(() => UpdateUserActivityDto)
-  @ArrayMaxSize(5, { message: 'Максимум 5 видов деятельности' })
+  @MaxNonDeleteActivities(5, { message: 'Максимум 5 видов деятельности' })
   activities: UpdateUserActivityDto[];
 
   @ApiProperty({

@@ -48,6 +48,8 @@ import { PromoParticipantService } from '@/promo/promo_participant.service';
 import { NoteTargetType } from '@/notes';
 import { GetConvertValueFromAmountDto } from '@/dictionaries/dto/request/get-convert-valut-from-amount.dto';
 import { VALUT_CODE } from '@/dictionaries/enums/valut-code.enum';
+import { ViewTrackerService } from '@/view-tracker/view-tracker.service';
+import { ViewTargetType } from '../../prisma/generated/enums';
 
 @Injectable()
 export class ListingsService {
@@ -65,6 +67,7 @@ export class ListingsService {
     private readonly fileService: FileService,
     private readonly promoParticipantService: PromoParticipantService,
     private readonly logger: AppLogger,
+    private readonly viewTrackerService: ViewTrackerService,
   ) {}
 
   /**
@@ -1189,6 +1192,7 @@ export class ListingsService {
     id: string,
     status: StatusQueryDto,
     userId?: string,
+    ipAddress?: string,
   ): Promise<ListingResposeDto> {
     // const cachedKey = `listings:${id}`;
     // const cachedListing = await this.cacheSevice.get(cachedKey);
@@ -1256,18 +1260,28 @@ export class ListingsService {
       );
     }
 
-    // Инкрементируем счетчик просмотров
-    prisma.listing
-      .update({
-        where: { id },
-        data: { viewsCount: { increment: 1 } },
-      })
-      .catch((err) => {
-        this.logger.error(
-          `Failed to increment viewsCount for listing ${id}:`,
-          err,
-        );
-      });
+    // Инкрементируем счетчик просмотров только для уникальных IP
+    if (ipAddress) {
+      const isUniqueView = await this.viewTrackerService.trackView(
+        ViewTargetType.LISTING,
+        id,
+        ipAddress,
+      );
+
+      if (isUniqueView) {
+        prisma.listing
+          .update({
+            where: { id },
+            data: { viewsCount: { increment: 1 } },
+          })
+          .catch((err) => {
+            this.logger.error(
+              `Failed to increment viewsCount for listing ${id}:`,
+              err,
+            );
+          });
+      }
+    }
 
     // Получаем данные контакта если указаны
     const contactData = await this.getContactData(

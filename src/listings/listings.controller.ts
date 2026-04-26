@@ -10,6 +10,7 @@ import {
   HttpCode,
   HttpStatus,
   UseGuards,
+  Ip,
 } from '@nestjs/common';
 import { ListingsService } from './listings.service';
 import { ListingQueryDto } from './dto/request/listing-query.dto';
@@ -64,8 +65,9 @@ export class ListingsController {
     @Param('id', ParseUUIDPipe) id: string,
     @Query() query: StatusQueryDto,
     @CurrentUser() user?: JwtPayload,
+    @Ip() ip?: string,
   ): Promise<ListingResposeDto> {
-    return await this.listingsService.listingById(id, query, user?.id);
+    return await this.listingsService.listingById(id, query, user?.id, ip);
   }
 
   @Get('accountNumber/:accountNumber')

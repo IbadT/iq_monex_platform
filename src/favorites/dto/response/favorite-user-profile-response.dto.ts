@@ -104,7 +104,10 @@ export class UserProfileDto {
   @ApiProperty({
     description: 'Фотографии галереи',
     type: [String],
-    example: ['https://example.com/photo1.jpg', 'https://example.com/photo2.jpg'],
+    example: [
+      'https://example.com/photo1.jpg',
+      'https://example.com/photo2.jpg',
+    ],
   })
   photos: string[];
 
